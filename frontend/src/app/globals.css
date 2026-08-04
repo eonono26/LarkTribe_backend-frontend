@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --color-ink: #0B0B0C;
+  --color-paper: #FFFFFF;
+  --color-mist: #F4F4F2;
+  --color-signal: #FFE100;   /* marketplace yellow — CTAs, price tags */
+  --color-flag: #E8331F;     /* sale/discount red */
+  --color-line: #E3E3E0;
+
+  /* department wayfinding accents */
+  --dept-women: #C6185C;
+  --dept-kids: #1E8FCE;
+  --dept-beauty: #B84DFF;
+  --dept-maternity: #2FAE66;
+  --dept-home: #B77A2E;
+
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+html, body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--color-signal);
+  color: var(--color-ink);
+}
+
+.container-shell {
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3vw, 32px);
+}
+
+.marquee-track {
+  animation: marquee 22s linear infinite;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
