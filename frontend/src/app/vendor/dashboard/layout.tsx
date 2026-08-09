@@ -24,6 +24,8 @@ export default function VendorDashboardLayout({ children }: { children: React.Re
     { href: "/vendor/dashboard", label: "Overview" },
     { href: "/vendor/dashboard/products", label: "Products" },
     { href: "/vendor/dashboard/orders", label: "Orders" },
+    { href: "/vendor/dashboard/promotions", label: "Promotions" },
+    { href: "/vendor/dashboard/insights", label: "AI Insights" },
   ];
 
   return (

@@ -1,31 +1,51 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
 @import "tailwindcss";
 
 :root {
   --color-ink: #0B0B0C;
-  --color-paper: #FFFFFF;
+  --color-paper: #ffffff;
+  --color-promo:#000000;
   --color-mist: #F4F4F2;
-  --color-signal: #FFE100;   /* marketplace yellow — CTAs, price tags */
-  --color-flag: #E8331F;     /* sale/discount red */
+  --color-signal: #FFE400;
+  --color-flag: #E8331F;
   --color-line: #E3E3E0;
 
-  /* department wayfinding accents */
-  --dept-women: #C6185C;
-  --dept-kids: #1E8FCE;
-  --dept-beauty: #B84DFF;
-  --dept-maternity: #2FAE66;
-  --dept-home: #B77A2E;
+  --dept-women: #333;
+  --dept-kids: #333;
+  --dept-beauty: #333;
+  --dept-maternity: #333;
+  --dept-home: #333;
 
-  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
 }
 
-html, body {
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+
+html,
+body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
 }
 
-h1, h2, h3, .font-display {
+
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-display {
   font-family: var(--font-display);
 }
 
@@ -59,4 +79,116 @@ h1, h2, h3, .font-display {
 :focus-visible {
   outline: 3px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+
+/*promo css */
+.promo-marquee-wrapper {
+  overflow: hidden;
+}
+
+.promo-marquee-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  gap: 24px;
+  padding-inline: clamp(16px, 3vw, 32px); /* Same as .container-shell */
+  animation: marquee 22s linear infinite;
+
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding-block: 6px;
+}
+
+/* category css */
+
+.category-marquee-wrapper {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.category-marquee-track {
+  display: flex;
+  width: max-content;
+  padding-inline: clamp(16px, 3vw, 32px); /* same as container-shell */
+  gap: 24px;
+  animation: categoryScroll 40s linear infinite;
+}
+
+.category-marquee-item {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+}
+
+.category-marquee-item:hover {
+  border-bottom-color: currentColor;
+}
+
+@keyframes categoryScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Hover pause */
+.category-marquee-wrapper:hover .category-marquee-track {
+  animation-play-state: paused;
+}
+
+/* Hide scrollbar */
+.category-marquee-wrapper::-webkit-scrollbar {
+  display: none;
+}
+.category-marquee-wrapper {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Add this to your existing CSS */
+.category-marquee-item {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 0;
+  transition: border-color 0.2s;
+  margin-right: 24px; /* Add spacing between items */
+}
+
+/* Make sure the track has padding */
+.category-marquee-track {
+  display: flex;
+  width: fit-content;
+  animation: categoryScroll 40s linear infinite;
+  padding: 4px 16px; /* Add horizontal padding */
+}
+
+
+/* Add to globals.css or a custom CSS file */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

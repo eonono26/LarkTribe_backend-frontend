@@ -1,5 +1,6 @@
-import type { Cart, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor } from "./types";
+import type { Cart, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor, Brand, ShowcaseVideoItem } from "./types";
 import { getToken } from "./auth";
+import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -34,7 +35,29 @@ function sessionKey(): string {
 }
 
 export const api = {
-  departments: () => request<Paginated<Department>>("/catalog/departments/"),
+  departments: async (params?: Record<string, any>) => {
+    const response = await axios.get(`${API_URL}/catalog/departments/`, { params });
+    return response.data.results || response.data;
+  },
+
+  departmentMedia: async (departmentId: number) => {
+    const response = await axios.get(`${API_URL}/catalog/departments/${departmentId}/media/`);
+    return response.data;
+  },
+
+  uploadDepartmentMedia: async (departmentId: number, formData: FormData) => {
+    const response = await axios.post(
+      `${API_URL}/catalog/departments/${departmentId}/media/`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
   categories: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request<Paginated<{ id: number; name: string; slug: string; department: Department }>>(`/catalog/categories/${qs ? `?${qs}` : ""}`);
@@ -44,6 +67,15 @@ export const api = {
     return request<Paginated<ProductListItem>>(`/catalog/products/${qs ? `?${qs}` : ""}`);
   },
   product: (slug: string) => request<ProductDetail>(`/catalog/products/${slug}/`),
+
+  // Brands
+  brands: (params: Record<string, string> = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request<Paginated<Brand>>(`/catalog/brands/${qs ? `?${qs}` : ""}`);
+  },
+  brand: (id: number) => request<Brand>(`/catalog/brands/${id}/`),
+  brandProducts: (id: number) =>
+    request<{ brand: Brand; products: ProductListItem[]; count: number }>(`/catalog/brands/${id}/products/`),
 
   // Cart
   cart: () => request<Cart>("/cart/"),
@@ -102,6 +134,7 @@ export const api = {
       method: "POST", body: JSON.stringify({ code, subtotal }),
     }),
   campaigns: () => request<Paginated<Campaign>>("/promotions/campaigns/?live=true"),
+  showcaseVideos: () => request<Paginated<ShowcaseVideoItem>>("/promotions/showcase-videos/"),
 
   // Notifications
   notifications: () => request<Paginated<Notification> | Notification[]>("/notifications/inbox/"),
@@ -140,14 +173,26 @@ export const api = {
   adminCreateCoupon: (payload: Partial<Coupon>) =>
     request<Coupon>("/promotions/coupons/", { method: "POST", body: JSON.stringify(payload) }),
   adminCampaigns: () => request<Paginated<Campaign> | Campaign[]>("/promotions/campaigns/"),
-  adminCreateCampaign: (payload: Partial<Campaign>) =>
-    request<Campaign>("/promotions/campaigns/", { method: "POST", body: JSON.stringify(payload) }),
+  adminCreateCampaign: (payload: Partial<Campaign> & { imageFile?: File }) => {
+    const { imageFile, ...rest } = payload;
+    if (!imageFile) {
+      return request<Campaign>("/promotions/campaigns/", { method: "POST", body: JSON.stringify(rest) });
+    }
+    const fd = new FormData();
+    Object.entries(rest).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") fd.append(key, String(value));
+    });
+    fd.append("image", imageFile);
+    return request<Campaign>("/promotions/campaigns/", { method: "POST", body: fd });
+  },
+  adminDeleteCampaign: (id: number) => request(`/promotions/campaigns/${id}/`, { method: "DELETE" }),
   adminSupportTickets: () => request<Paginated<SupportTicket> | SupportTicket[]>("/notifications/support-tickets/"),
   adminReplyTicket: (id: number, message: string) =>
     request(`/notifications/support-tickets/${id}/reply/`, { method: "POST", body: JSON.stringify({ message }) }),
   adminResolveTicket: (id: number) => request(`/notifications/support-tickets/${id}/resolve/`, { method: "POST" }),
 
-  adminVendors: () => request<Paginated<AdminVendor> | AdminVendor[]>("/vendors/admin/"),
+  adminVendors: (status?: string) =>
+    request<Paginated<AdminVendor> | AdminVendor[]>(`/vendors/admin/${status ? `?status=${status}` : ""}`),
   adminApproveVendor: (id: number) => request<AdminVendor>(`/vendors/admin/${id}/approve/`, { method: "POST" }),
   adminSuspendVendor: (id: number) => request<AdminVendor>(`/vendors/admin/${id}/suspend/`, { method: "POST" }),
 

@@ -45,13 +45,20 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
+    class FulfillmentStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        SHIPPED = "shipped", "Shipped"
+        DELIVERED = "delivered", "Delivered"
+        CANCELLED = "cancelled", "Cancelled"
+
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT, related_name="order_items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     product_name = models.CharField(max_length=200)  # snapshot at purchase time
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
-    fulfillment_status = models.CharField(max_length=20, default="pending")
+    fulfillment_status = models.CharField(max_length=20, choices=FulfillmentStatus.choices, default=FulfillmentStatus.PENDING)
 
     @property
     def subtotal(self):
@@ -64,3 +71,6 @@ class Coupon(models.Model):
     amount_off = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     active = models.BooleanField(default=True)
     valid_until = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-id"]

@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import ChatbotWidget from "@/components/ChatbotWidget";
 
 export const metadata: Metadata = {
-  title: "duka — Women, Kids, Beauty & Home marketplace",
+  title: "LarkTribe — Women, Kids, Beauty & Home marketplace",
   description: "A multi-vendor marketplace for Women, Kids, Baby, Beauty, Maternity and Home & Lifestyle products in Kenya.",
 };
 

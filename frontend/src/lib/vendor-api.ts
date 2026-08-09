@@ -36,6 +36,13 @@ async function authedRequest<T>(path: string, options: RequestInit = {}): Promis
   return res.json();
 }
 
+export interface VendorProductImage {
+  id: number;
+  image: string;
+  alt_text: string;
+  order: number;
+}
+
 export interface VendorProduct {
   id: number;
   category: number;
@@ -47,6 +54,7 @@ export interface VendorProduct {
   stock: number;
   sku: string;
   status: string;
+  images?: VendorProductImage[];
 }
 
 export interface VendorOrderItem {
@@ -57,13 +65,19 @@ export interface VendorOrderItem {
   quantity: number;
   subtotal: string;
   fulfillment_status: string;
+  order_number: string;
+  order_created_at: string;
+  shipping_name: string;
+  shipping_city: string;
 }
 
-export interface VendorProductImage {
+export interface VendorCoupon {
   id: number;
-  image: string;
-  alt_text: string;
-  order: number;
+  code: string;
+  percent_off: number | null;
+  amount_off: string | null;
+  active: boolean;
+  valid_until: string | null;
 }
 
 export const vendorApi = {
@@ -88,8 +102,20 @@ export const vendorApi = {
   deleteProductImage: (productId: number, imageId: number) =>
     authedRequest<void>(`/catalog/my-products/${productId}/images/${imageId}/`, { method: "DELETE" }),
   myOrderItems: () => authedRequest<VendorOrderItem[]>("/orders/vendor-items/"),
+  updateOrderItemStatus: (itemId: number, fulfillment_status: string) =>
+    authedRequest<VendorOrderItem>(`/orders/vendor-items/${itemId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ fulfillment_status }),
+    }),
   categories: () => authedRequest<{ results: { id: number; name: string; department: { name: string } }[] }>("/catalog/categories/"),
   salesDashboard: () => authedRequest("/vendors/sales-dashboard/"),
   pricingSuggestions: () => authedRequest("/ai/vendor/pricing-suggestions/"),
   demandForecast: () => authedRequest("/ai/vendor/demand-forecast/"),
+  // Coupons & Promotions — backend permits vendors to manage coupons (IsAdminOrVendor)
+  coupons: () => authedRequest<{ results: VendorCoupon[] } | VendorCoupon[]>("/promotions/coupons/"),
+  createCoupon: (payload: Partial<VendorCoupon>) =>
+    authedRequest<VendorCoupon>("/promotions/coupons/", { method: "POST", body: JSON.stringify(payload) }),
+  updateCoupon: (id: number, payload: Partial<VendorCoupon>) =>
+    authedRequest<VendorCoupon>(`/promotions/coupons/${id}/`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteCoupon: (id: number) => authedRequest<void>(`/promotions/coupons/${id}/`, { method: "DELETE" }),
 };

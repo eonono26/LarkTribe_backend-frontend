@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AccountNav from "@/components/AccountNav";
 import { api } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 import type { Notification } from "@/lib/types";
@@ -44,9 +45,12 @@ export default function NotificationsPage() {
   if (loading) return <main className="container-shell py-10 text-neutral-400">Loading…</main>;
 
   return (
-    <main className="container-shell py-10 grid md:grid-cols-3 gap-10">
+    <main className="container-shell py-10">
+      <h1 className="font-display text-2xl font-black mb-1">Notifications</h1>
+      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+      <AccountNav />
+      <div className="grid md:grid-cols-3 gap-10">
       <div className="md:col-span-2">
-        <h1 className="font-display text-2xl font-black mb-6">Notifications</h1>
         {items.length === 0 ? (
           <p className="text-neutral-500">You&apos;re all caught up.</p>
         ) : (
@@ -80,6 +84,7 @@ export default function NotificationsPage() {
           </div>
         </div>
       )}
+      </div>
     </main>
   );
 }

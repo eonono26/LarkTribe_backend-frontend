@@ -1,5 +1,3 @@
-"use client";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const TOKEN_KEY = "duka_access_token";
 const REFRESH_KEY = "duka_refresh_token";
@@ -112,5 +110,8 @@ export const auth = {
   },
   me(): Promise<AuthUser> {
     return authedFetch("/auth/me/");
+  },
+  updateMe(payload: Partial<Pick<AuthUser, "first_name" | "last_name" | "email" | "phone">>): Promise<AuthUser> {
+    return authedFetch("/auth/me/", { method: "PATCH", body: JSON.stringify(payload) });
   },
 };

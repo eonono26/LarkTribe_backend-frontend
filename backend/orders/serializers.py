@@ -8,6 +8,22 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ["id", "product", "product_name", "unit_price", "quantity", "subtotal", "fulfillment_status"]
 
 
+class VendorOrderItemSerializer(serializers.ModelSerializer):
+    """Vendor dashboard: order items belonging to that vendor, with buyer/order context."""
+    order_number = serializers.CharField(source="order.order_number", read_only=True)
+    order_created_at = serializers.DateTimeField(source="order.created_at", read_only=True)
+    shipping_name = serializers.CharField(source="order.shipping_name", read_only=True)
+    shipping_city = serializers.CharField(source="order.shipping_city", read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id", "product", "product_name", "unit_price", "quantity", "subtotal",
+            "fulfillment_status", "order_number", "order_created_at", "shipping_name", "shipping_city",
+        ]
+        read_only_fields = ["id", "product", "product_name", "unit_price", "quantity", "subtotal"]
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
 

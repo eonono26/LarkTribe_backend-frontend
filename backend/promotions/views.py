@@ -2,8 +2,8 @@ from django.utils import timezone
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
 from orders.models import Coupon
-from .models import Campaign
-from .serializers import CouponSerializer, CampaignSerializer, CouponValidateSerializer
+from .models import Campaign, ShowcaseVideo
+from .serializers import CouponSerializer, CampaignSerializer, ShowcaseVideoSerializer, CouponValidateSerializer
 
 
 class IsAdminOrVendor(permissions.BasePermission):
@@ -31,6 +31,23 @@ class CampaignViewSet(viewsets.ModelViewSet):
         if self.action == "list" and self.request.query_params.get("live") == "true":
             now = timezone.now()
             qs = qs.filter(active=True, starts_at__lte=now).exclude(ends_at__lt=now)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class ShowcaseVideoViewSet(viewsets.ModelViewSet):
+    """Standalone shoppable videos for the homepage 'Watch & shop' rail — own upload,
+    not derived from department/category media."""
+    serializer_class = ShowcaseVideoSerializer
+    permission_classes = [IsAdminOrVendor]
+
+    def get_queryset(self):
+        qs = ShowcaseVideo.objects.select_related("product", "department").all()
+        user = self.request.user
+        if self.action == "list" and not (user.is_authenticated and user.is_staff):
+            qs = qs.filter(active=True)
         return qs
 
     def perform_create(self, serializer):

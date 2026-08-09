@@ -118,9 +118,31 @@ class VendorOrderItemsView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        from .serializers import OrderItemSerializer
+        from .serializers import VendorOrderItemSerializer
         if not hasattr(request.user, "vendor_profile"):
             return Response([])
         from .models import OrderItem
         items = OrderItem.objects.filter(vendor=request.user.vendor_profile).select_related("order").order_by("-order__created_at")
-        return Response(OrderItemSerializer(items, many=True).data)
+        return Response(VendorOrderItemSerializer(items, many=True).data)
+
+
+class VendorOrderItemUpdateView(generics.UpdateAPIView):
+    """Vendor dashboard: update fulfillment_status on one of the vendor's own order items."""
+    from .serializers import VendorOrderItemSerializer
+    serializer_class = VendorOrderItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if not hasattr(self.request.user, "vendor_profile"):
+            return OrderItem.objects.none()
+        return OrderItem.objects.filter(vendor=self.request.user.vendor_profile)
+
+    def patch(self, request, *args, **kwargs):
+        item = self.get_object()
+        new_status = request.data.get("fulfillment_status")
+        valid = {c[0] for c in OrderItem.FulfillmentStatus.choices}
+        if new_status not in valid:
+            return Response({"detail": f"fulfillment_status must be one of {sorted(valid)}"}, status=status.HTTP_400_BAD_REQUEST)
+        item.fulfillment_status = new_status
+        item.save(update_fields=["fulfillment_status"])
+        return Response(self.get_serializer(item).data)

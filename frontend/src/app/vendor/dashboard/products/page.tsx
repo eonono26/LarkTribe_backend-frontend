@@ -71,7 +71,13 @@ export default function VendorProductsPage() {
                       {p.status}
                     </span>
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className="py-2 pr-4 whitespace-nowrap">
+                    <Link
+                      href={`/vendor/dashboard/products/${p.id}/edit`}
+                      className="text-[var(--color-ink)] text-xs font-semibold mr-3"
+                    >
+                      Edit
+                    </Link>
                     <button onClick={() => handleDelete(p.id)} className="text-[var(--color-flag)] text-xs font-semibold">
                       Delete
                     </button>

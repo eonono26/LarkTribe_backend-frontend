@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AccountNav from "@/components/AccountNav";
 import { api, formatKES } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 
@@ -28,7 +29,9 @@ export default function MyOrdersPage() {
 
   return (
     <main className="container-shell py-10">
-      <h1 className="font-display text-2xl font-black mb-6">My orders</h1>
+      <h1 className="font-display text-2xl font-black mb-1">My orders</h1>
+      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+      <AccountNav />
       {loading ? (
         <p className="text-neutral-400">Loading…</p>
       ) : orders.length === 0 ? (

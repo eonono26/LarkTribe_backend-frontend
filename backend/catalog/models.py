@@ -1,6 +1,31 @@
 from django.db import models
+from django.core.validators import FileExtensionValidator
 from django.utils.text import slugify
 from vendors.models import Vendor
+
+class DepartmentMedia(models.Model):
+    """Media files (images/videos) for departments"""
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'Image'
+        VIDEO = 'video', 'Video'
+    
+    department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="media_files")
+    file = models.FileField(
+        upload_to='departments/media/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'mp4', 'webm', 'mov'])]
+    )
+    media_type = models.CharField(max_length=10, choices=MediaType.choices, default=MediaType.IMAGE)
+    alt_text = models.CharField(max_length=200, blank=True)
+    is_primary = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name_plural = "Department media"
+    
+    def __str__(self):
+        return f"{self.department.name} - {self.media_type}"
 
 
 class Department(models.Model):
@@ -8,6 +33,10 @@ class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(unique=True, blank=True)
     order = models.PositiveIntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["order"]
@@ -19,6 +48,46 @@ class Department(models.Model):
 
     def __str__(self):
         return self.name
+    
+    @property
+    def primary_image(self):
+        """Get the primary image for the department"""
+        return self.media_files.filter(media_type='image', is_primary=True).first()
+    
+    @property
+    def images(self):
+        """Get all images for the department"""
+        return self.media_files.filter(media_type='image')
+    
+    @property
+    def videos(self):
+        """Get all videos for the department"""
+        return self.media_files.filter(media_type='video')
+
+
+class CategoryMedia(models.Model):
+    """Media files (images/videos) for categories"""
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'Image'
+        VIDEO = 'video', 'Video'
+    
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name="media_files")
+    file = models.FileField(
+        upload_to='categories/media/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp', 'avif','gif','mp4', 'webm', 'mov'])]
+    )
+    media_type = models.CharField(max_length=10, choices=MediaType.choices, default=MediaType.IMAGE)
+    alt_text = models.CharField(max_length=200, blank=True)
+    is_primary = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name_plural = "Category media"
+    
+    def __str__(self):
+        return f"{self.category.name} - {self.media_type}"
 
 
 class Category(models.Model):
@@ -28,6 +97,10 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, blank=True)
     order = models.PositiveIntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["order"]
@@ -40,6 +113,22 @@ class Category(models.Model):
 
     def __str__(self):
         return f"{self.department.name} / {self.name}"
+    
+    @property
+    def primary_image(self):
+        """Get the primary image for the category"""
+        return self.media_files.filter(media_type='image', is_primary=True).first()
+    
+    @property
+    def images(self):
+        """Get all images for the category"""
+        return self.media_files.filter(media_type='image')
+    
+    @property
+    def videos(self):
+        """Get all videos for the category"""
+        return self.media_files.filter(media_type='video')
+
 
 
 class Brand(models.Model):
@@ -138,3 +227,4 @@ class Wishlist(models.Model):
 
     class Meta:
         unique_together = ["user", "product"]
+        ordering = ["-created_at"]

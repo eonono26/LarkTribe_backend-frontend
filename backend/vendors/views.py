@@ -76,6 +76,7 @@ class AdminVendorViewSet(viewsets.ModelViewSet):
     queryset = Vendor.objects.select_related("user").all()
     serializer_class = VendorAdminSerializer
     permission_classes = [IsAdminUser]
+    filterset_fields = ["status"]
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):

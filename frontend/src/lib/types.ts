@@ -1,8 +1,40 @@
+export interface DepartmentMedia {
+  id: number;
+  file: string;
+  file_url: string;
+  media_type: 'image' | 'video';
+  alt_text: string;
+  is_primary: boolean;
+  order: number;
+  uploaded_at: string;
+}
+
+export interface CategoryMedia {
+  id: number;
+  file: string;
+  file_url: string;
+  media_type: 'image' | 'video';
+  alt_text: string;
+  is_primary: boolean;
+  order: number;
+  uploaded_at: string;
+}
+
 export interface Department {
   id: number;
   name: string;
   slug: string;
+  description?: string;
   order: number;
+  is_active: boolean;
+  media_files: DepartmentMedia[];
+  primary_image: DepartmentMedia | null;
+  images: DepartmentMedia[];
+  videos: DepartmentMedia[];
+  category_count: number;
+  product_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Category {
@@ -11,6 +43,17 @@ export interface Category {
   parent: number | null;
   name: string;
   slug: string;
+  order: number;
+  description?: string;
+  is_active: boolean;
+  media_files: CategoryMedia[];
+  primary_image: CategoryMedia | null;
+  images: CategoryMedia[];
+  videos: CategoryMedia[];
+  child_count: number;
+  product_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProductListItem {
@@ -156,6 +199,9 @@ export interface Campaign {
   title: string;
   description: string;
   placement: string;
+  style: "hero" | "strip" | "split" | "countdown" | "card";
+  background_color: string;
+  cta_label: string;
   image: string | null;
   link_url: string;
   department: number | null;
@@ -191,6 +237,32 @@ export interface AdminReports {
   top_products: { product__id: number; product__name: string; units_sold: number; revenue: number }[];
   conversion_funnel: Record<string, number>;
   open_support_tickets: number;
+}
+
+export interface ShowcaseVideoItem {
+  id: number;
+  title: string;
+  video: string;
+  video_url: string | null;
+  thumbnail: string | null;
+  thumbnail_url: string | null;
+  cta_label: string;
+  link_url: string;
+  product: number | null;
+  product_slug: string | null;
+  department: number | null;
+  department_slug: string | null;
+  resolved_link: string | null;
+  order: number;
+  active: boolean;
+  created_at: string;
+}
+
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  product_count: number;
 }
 
 export interface AIDashboard {

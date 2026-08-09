@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
+import AccountNav from "@/components/AccountNav";
 import { api } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 import type { Wishlist } from "@/lib/types";
@@ -22,7 +23,9 @@ export default function WishlistPage() {
 
   return (
     <main className="container-shell py-10">
-      <h1 className="font-display text-2xl font-black mb-6">My wishlist</h1>
+      <h1 className="font-display text-2xl font-black mb-1">My wishlist</h1>
+      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+      <AccountNav />
       {loading ? (
         <p className="text-neutral-400">Loading…</p>
       ) : items.length === 0 ? (
