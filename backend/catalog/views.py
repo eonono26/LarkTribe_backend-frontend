@@ -3,15 +3,17 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, F, Value, Case, When, DecimalField
+from django.db.models.functions import Round
 from django.shortcuts import get_object_or_404
-from .models import Department, Category, Brand, Product, ProductImage, Review, Wishlist,  DepartmentMedia, CategoryMedia
+from .models import Department, Category, Brand, Product, ProductImage, Review, Wishlist, DepartmentMedia, CategoryMedia, AgeGroup, AgeGroupMedia
 from .serializers import (
     DepartmentSerializer, CategorySerializer, BrandSerializer,
     ProductListSerializer, ProductDetailSerializer, ProductWriteSerializer,
     ProductImageSerializer, ReviewSerializer, WishlistSerializer,
     DepartmentAdminSerializer, CategoryAdminSerializer, ProductAdminSerializer,
-    DepartmentMediaSerializer, CategoryMediaSerializer
+    DepartmentMediaSerializer, CategoryMediaSerializer, AgeGroupSerializer,
+    AgeGroupMediaSerializer, BrandMediaSerializer
 )
 from .permissions import IsOwnerVendorOrReadOnly
 from .filters import ProductFilter
@@ -39,10 +41,8 @@ class DepartmentMediaViewSet(viewsets.ModelViewSet):
         department = get_object_or_404(Department, id=self.kwargs['department_pk'])
         media_type = self.request.data.get('media_type', 'image')
         
-        # If this is the first media or marked as primary, set as primary
         is_primary = self.request.data.get('is_primary', False)
         if is_primary or not department.media_files.exists():
-            # Unset other primary media
             department.media_files.update(is_primary=False)
             is_primary = True
         
@@ -59,10 +59,7 @@ class DepartmentMediaViewSet(viewsets.ModelViewSet):
         media = self.get_object()
         department = media.department
         
-        # Unset all other primary media
         department.media_files.update(is_primary=False)
-        
-        # Set this as primary
         media.is_primary = True
         media.save()
         
@@ -85,7 +82,6 @@ class CategoryMediaViewSet(viewsets.ModelViewSet):
         category = get_object_or_404(Category, id=self.kwargs['category_pk'])
         media_type = self.request.data.get('media_type', 'image')
         
-        # If this is the first media or marked as primary, set as primary
         is_primary = self.request.data.get('is_primary', False)
         if is_primary or not category.media_files.exists():
             category.media_files.update(is_primary=False)
@@ -104,15 +100,95 @@ class CategoryMediaViewSet(viewsets.ModelViewSet):
         media = self.get_object()
         category = media.category
         
-        # Unset all other primary media
         category.media_files.update(is_primary=False)
-        
-        # Set this as primary
         media.is_primary = True
         media.save()
         
         return Response({'message': 'Primary media set successfully'})
 
+
+class AgeGroupMediaViewSet(viewsets.ModelViewSet):
+    """View for managing age group media"""
+    serializer_class = AgeGroupMediaSerializer
+    permission_classes = [permissions.IsAdminUser]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+    
+    def get_queryset(self):
+        age_group_id = self.kwargs.get('age_group_pk')
+        if age_group_id:
+            return AgeGroupMedia.objects.filter(age_group_id=age_group_id)
+        return AgeGroupMedia.objects.none()
+    
+    def perform_create(self, serializer):
+        age_group = get_object_or_404(AgeGroup, id=self.kwargs['age_group_pk'])
+        media_type = self.request.data.get('media_type', 'image')
+        
+        is_primary = self.request.data.get('is_primary', False)
+        if is_primary or not age_group.media_files.exists():
+            age_group.media_files.update(is_primary=False)
+            is_primary = True
+        
+        serializer.save(
+            age_group=age_group,
+            media_type=media_type,
+            is_primary=is_primary,
+            order=age_group.media_files.count()
+        )
+    
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, age_group_pk=None, pk=None):
+        """Set a media file as primary"""
+        media = self.get_object()
+        age_group = media.age_group
+        
+        age_group.media_files.update(is_primary=False)
+        media.is_primary = True
+        media.save()
+        
+        return Response({'message': 'Primary media set successfully'})
+
+
+class AgeGroupViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public list of shopper age segments (Baby, Kids, Teens, ...) for age-based shopping."""
+    queryset = AgeGroup.objects.filter(is_active=True)
+    serializer_class = AgeGroupSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+    filter_backends = [filters.OrderingFilter]
+    ordering = ['order']
+    
+    @action(detail=True, methods=['get'], url_path='products')
+    def get_products(self, request, pk=None):
+        """Get products for a specific age group"""
+        age_group = self.get_object()
+        products = age_group.products.filter(status=Product.Status.ACTIVE)
+        
+        # Apply filters
+        price_min = request.query_params.get('price_min')
+        price_max = request.query_params.get('price_max')
+        
+        if price_min:
+            products = products.filter(price__gte=price_min)
+        if price_max:
+            products = products.filter(price__lte=price_max)
+        
+        # Pagination
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = ProductListSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = ProductListSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='with-product-counts')
+    def with_product_counts(self, request):
+        """Get all age groups with product counts"""
+        age_groups = self.get_queryset().annotate(
+            product_count=Count('products', filter=Q(products__status=Product.Status.ACTIVE))
+        )
+        serializer = self.get_serializer(age_groups, many=True)
+        return Response(serializer.data)
 
 
 class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -178,7 +254,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             status=Product.Status.ACTIVE
         )
         
-        # Apply filters
         price_min = request.query_params.get('price_min')
         price_max = request.query_params.get('price_max')
         rating = request.query_params.get('rating')
@@ -190,7 +265,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         if rating:
             products = products.filter(rating_avg__gte=rating)
         
-        # Pagination
         page = self.paginate_queryset(products)
         if page is not None:
             serializer = ProductListSerializer(page, many=True, context={'request': request})
@@ -248,6 +322,48 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
             'count': products.count()
         })
 
+# Add BrandMediaViewSet
+class BrandMediaViewSet(viewsets.ModelViewSet):
+    """View for managing brand media"""
+    serializer_class = BrandMediaSerializer
+    permission_classes = [permissions.IsAdminUser]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+    
+    def get_queryset(self):
+        brand_id = self.kwargs.get('brand_pk')
+        if brand_id:
+            return BrandMedia.objects.filter(brand_id=brand_id)
+        return BrandMedia.objects.none()
+    
+    def perform_create(self, serializer):
+        brand = get_object_or_404(Brand, id=self.kwargs['brand_pk'])
+        media_type = self.request.data.get('media_type', 'image')
+        
+        is_primary = self.request.data.get('is_primary', False)
+        if is_primary or not brand.media_files.exists():
+            brand.media_files.update(is_primary=False)
+            is_primary = True
+        
+        serializer.save(
+            brand=brand,
+            media_type=media_type,
+            is_primary=is_primary,
+            order=brand.media_files.count()
+        )
+    
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, brand_pk=None, pk=None):
+        """Set a media file as primary"""
+        media = self.get_object()
+        brand = media.brand
+        
+        brand.media_files.update(is_primary=False)
+        media.is_primary = True
+        media.save()
+        
+        return Response({'message': 'Primary media set successfully'})
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     """
     Public: list/retrieve active products only.
@@ -255,19 +371,19 @@ class ProductViewSet(viewsets.ModelViewSet):
     """
     queryset = Product.objects.filter(status=Product.Status.ACTIVE).select_related(
         "vendor", "category", "category__department", "brand"
-    ).prefetch_related("images", "variants", "reviews")
+    ).prefetch_related("images", "variants", "reviews", "age_groups")
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ProductFilter
     filterset_fields = [
         "category__slug", "category__department__slug", "brand__slug", 
-        "vendor__slug", "is_featured", "price"
+        "vendor__slug", "is_featured", "price", "age_groups__slug"
     ]
     search_fields = ["name", "description", "brand__name", "category__name"]
-    ordering_fields = ["price", "created_at", "rating_avg", "discount_percent"]
+    ordering_fields = ["price", "created_at", "rating_avg", "discount_percentage"]
     ordering = ["-created_at"]
     permission_classes = [permissions.AllowAny]
-    lookup_field = 'slug'  # <-- ADD THIS LINE
-    lookup_value_regex = '[^/]+'  # <-- Optional: allows any characters in slug
+    lookup_field = 'slug'
+    lookup_value_regex = '[^/]+'
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -284,14 +400,23 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Annotate with computed fields
         queryset = queryset.annotate(
-            avg_rating=Avg('reviews__rating')
+            avg_rating=Avg('reviews__rating'),
+            discount_percentage=Case(
+                When(
+                    compare_at_price__isnull=False,
+                    compare_at_price__gt=F('price'),
+                    then=Round(
+                        (F('compare_at_price') - F('price')) * 100.0 / F('compare_at_price'),
+                        0
+                    )
+                ),
+                default=Value(0),
+                output_field=DecimalField(max_digits=5, decimal_places=0)
+            )
         )
         
         return queryset
-
-        
 
     @action(detail=False, methods=['get'], url_path='featured')
     def get_featured(self, request):
@@ -319,7 +444,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_on_sale(self, request):
         """Get products with discounts"""
         products = self.get_queryset().exclude(compare_at_price__isnull=True).exclude(
-            compare_at_price__lte=models.F('price')
+            compare_at_price__lte=F('price')
         )[:20]
         serializer = ProductListSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
@@ -348,7 +473,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         except ValueError:
             return Response({'error': 'Rating must be between 1 and 5'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check if user already reviewed
         existing_review = Review.objects.filter(product=product, user=request.user).first()
         if existing_review:
             return Response({'error': 'You have already reviewed this product'}, 
@@ -361,8 +485,6 @@ class ProductViewSet(viewsets.ModelViewSet):
             comment=comment
         )
         
-        # Update product rating
-        from django.db.models import Avg
         avg_rating = product.reviews.aggregate(Avg('rating'))['rating__avg']
         product.rating_avg = avg_rating or 0
         product.rating_count = product.reviews.count()
@@ -383,12 +505,25 @@ class MyProductsViewSet(viewsets.ModelViewSet):
             return Product.objects.none()
         return Product.objects.filter(vendor=self.request.user.vendor_profile).select_related(
             "category", "category__department", "brand"
-        ).prefetch_related("images", "variants")
+        ).prefetch_related("images", "variants", "age_groups").annotate(
+            discount_percent=Case(
+                When(
+                    compare_at_price__isnull=False,
+                    compare_at_price__gt=F('price'),
+                    then=Round(
+                        (F('compare_at_price') - F('price')) * 100.0 / F('compare_at_price'),
+                        0
+                    )
+                ),
+                default=Value(0),
+                output_field=DecimalField(max_digits=5, decimal_places=0)
+            )
+        )
 
     def perform_create(self, serializer):
         serializer.save(
             vendor=self.request.user.vendor_profile,
-            status=Product.Status.PENDING  # New products start as pending
+            status=Product.Status.PENDING
         )
 
     @action(detail=False, methods=['get'], url_path='stats')
@@ -417,7 +552,6 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         if not image_file:
             return Response({"detail": "image file is required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Validate image size (max 5MB)
         if image_file.size > 5 * 1024 * 1024:
             return Response({"detail": "Image size should not exceed 5MB"}, 
                           status=status.HTTP_400_BAD_REQUEST)
@@ -448,7 +582,6 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         product = self.get_object()
         image = get_object_or_404(product.images, id=image_id)
         
-        # Reset all other images
         product.images.update(order=models.F('order') + 1)
         image.order = 0
         image.save()
@@ -467,7 +600,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         product = get_object_or_404(Product, id=self.kwargs["product_pk"])
         serializer.save(user=self.request.user, product=product)
         
-        # Update product rating
         from django.db.models import Avg
         avg_rating = product.reviews.aggregate(Avg('rating'))['rating__avg']
         product.rating_avg = avg_rating or 0
@@ -494,14 +626,31 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
 class AdminProductModerationViewSet(viewsets.ModelViewSet):
     """Admin 'Product Moderation' module: review vendor submissions, approve/reject."""
-    queryset = Product.objects.select_related("vendor", "category", "category__department", "brand").prefetch_related("images")
+    queryset = Product.objects.select_related("vendor", "category", "category__department", "brand").prefetch_related("images", "age_groups")
     serializer_class = ProductAdminSerializer
     permission_classes = [IsAdminUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["status", "vendor", "category"]
+    filterset_fields = ["status", "vendor", "category", "age_groups"]
     search_fields = ["name", "sku", "vendor__store_name"]
     ordering_fields = ["created_at", "price", "name"]
     ordering = ["-created_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.annotate(
+            discount_percent=Case(
+                When(
+                    compare_at_price__isnull=False,
+                    compare_at_price__gt=F('price'),
+                    then=Round(
+                        (F('compare_at_price') - F('price')) * 100.0 / F('compare_at_price'),
+                        0
+                    )
+                ),
+                default=Value(0),
+                output_field=DecimalField(max_digits=5, decimal_places=0)
+            )
+        )
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
@@ -540,7 +689,7 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
             from notifications.models import Notification
             notify(product.vendor.user, title, body, Notification.Category.VENDOR)
         except ImportError:
-            pass  # Notifications app not installed
+            pass
 
     @action(detail=False, methods=['get'], url_path='pending-count')
     def pending_count(self, request):
@@ -558,7 +707,6 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         products = Product.objects.filter(id__in=product_ids)
         count = products.update(status=Product.Status.ACTIVE)
         
-        # Notify vendors individually
         for product in products:
             self._notify(product, "Product Approved", f"Your product '{product.name}' has been approved.")
         
@@ -577,7 +725,6 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         products = Product.objects.filter(id__in=product_ids)
         count = products.update(status=Product.Status.REJECTED)
         
-        # Notify vendors individually
         for product in products:
             self._notify(product, "Product Rejected", f"Your product '{product.name}' was rejected. Reason: {reason}")
         

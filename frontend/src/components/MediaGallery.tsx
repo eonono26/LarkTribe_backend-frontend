@@ -19,55 +19,96 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
   const videos = media.filter(m => m.media_type === 'video');
   const allMedia = [...images, ...videos];
 
+  // Get first two media items
+  const firstMedia = allMedia[0] || null;
+  const secondMedia = allMedia[1] || null;
+
   if (allMedia.length === 0) {
     return (
-      <div className={`bg-gray-100 rounded-lg flex items-center justify-center ${className}`}>
+      <div className={`bg-gray-100 rounded-xl flex items-center justify-center p-8 ${className}`}>
         <span className="text-gray-400">No media available</span>
       </div>
     );
   }
 
-  return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Main display */}
-      <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-        {selectedMedia ? (
-          selectedMedia.media_type === 'video' ? (
-            <video
-              src={selectedMedia.file_url}
-              className="w-full h-full object-contain"
-              controls
-              autoPlay={isVideoPlaying}
-              poster={images[0]?.file_url}
-            />
-          ) : (
-            <Image
-              src={selectedMedia.file_url}
-              alt={selectedMedia.alt_text || 'Department image'}
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, 50vw"
-              priority
-            />
-          )
+  const renderMediaItem = (item: DepartmentMedia | CategoryMedia, isMain: boolean = true) => {
+    if (!item) return null;
+
+    return (
+      <div 
+        className={`relative bg-black/5 rounded-xl overflow-hidden ${isMain ? 'aspect-video' : 'aspect-square'}`}
+        onClick={() => {
+          setSelectedMedia(item);
+          if (item.media_type === 'video') {
+            setIsVideoPlaying(true);
+          }
+        }}
+      >
+        {item.media_type === 'video' ? (
+          <video
+            src={item.file_url}
+            className="w-full h-full object-cover cursor-pointer"
+            muted
+            playsInline
+            poster={images[0]?.file_url}
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <span className="text-gray-500">No media selected</span>
-          </div>
+          <Image
+            src={item.file_url}
+            alt={item.alt_text || 'Media image'}
+            fill
+            className="object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
+            sizes="(max-width: 768px) 50vw, 33vw"
+          />
         )}
         
         {/* Media type badge */}
-        {selectedMedia && (
-          <div className="absolute top-4 left-4 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
-            {selectedMedia.media_type === 'video' ? '🎬 Video' : '📷 Image'}
+        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-lg">
+          {item.media_type === 'video' ? (
+            <>
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Video
+            </>
+          ) : (
+            <>
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+              </svg>
+              Image
+            </>
+          )}
+        </div>
+
+        {item.is_primary && (
+          <div className="absolute top-2 right-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs px-2 py-0.5 rounded-full shadow-md flex items-center gap-0.5">
+            <span>★</span>
+            <span className="hidden sm:inline">Primary</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`space-y-3 ${className}`}>
+      {/* Two media items side by side */}
+      <div className="grid grid-cols-2 gap-3">
+        {firstMedia && renderMediaItem(firstMedia)}
+        {secondMedia ? (
+          renderMediaItem(secondMedia)
+        ) : (
+          <div className="bg-gray-100 rounded-xl flex items-center justify-center aspect-video">
+            <span className="text-gray-400 text-sm">No media</span>
           </div>
         )}
       </div>
 
       {/* Thumbnails */}
-      {allMedia.length > 1 && (
+      {allMedia.length > 2 && (
         <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-          {allMedia.map((item) => (
+          {allMedia.slice(2).map((item) => (
             <button
               key={item.id}
               onClick={() => {
@@ -77,29 +118,36 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
                 }
               }}
               className={`
-                relative aspect-square rounded-lg overflow-hidden border-2 transition-all
+                relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-200
                 ${selectedMedia?.id === item.id 
-                  ? 'border-blue-500 ring-2 ring-blue-200' 
-                  : 'border-transparent hover:border-gray-300'
+                  ? 'border-blue-500 ring-2 ring-blue-200 ring-offset-1' 
+                  : 'border-transparent hover:border-gray-300 hover:scale-105'
                 }
               `}
             >
               {item.media_type === 'video' ? (
-                <div className="w-full h-full bg-black flex items-center justify-center">
-                  <span className="text-2xl">▶️</span>
+                <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <span className="text-white text-lg">▶</span>
+                  </div>
                 </div>
               ) : (
                 <Image
                   src={item.file_url}
                   alt={item.alt_text || 'Thumbnail'}
                   fill
-                  className="object-cover"
+                  className="object-cover hover:scale-110 transition-transform duration-300"
                   sizes="(max-width: 768px) 25vw, 12.5vw"
                 />
               )}
               {item.is_primary && (
-                <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded">
+                <div className="absolute top-1 right-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full shadow-md">
                   ★
+                </div>
+              )}
+              {item.media_type === 'video' && (
+                <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                  🎬
                 </div>
               )}
             </button>

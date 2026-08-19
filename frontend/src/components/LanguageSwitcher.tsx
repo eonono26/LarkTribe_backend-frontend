@@ -1,20 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Globe, ChevronDown } from "lucide-react";
+import { useLocalization } from "@/lib/localization-context";
 
-const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "sw", label: "Kiswahili" },
-];
-
+/** Standalone language switcher, kept for use outside the main Header (e.g. in
+ * a footer or a settings page). Reads/writes the same shared LocalizationProvider
+ * as the Header's own dropdown, so a change here is reflected everywhere. */
 export default function LanguageSwitcher() {
+  const { language, languages, setLanguage } = useLocalization();
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState("en");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setLang(localStorage.getItem("duka_lang") || "en");
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
@@ -22,31 +20,22 @@ export default function LanguageSwitcher() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function select(code: string) {
-    setLang(code);
-    localStorage.setItem("duka_lang", code);
-    setOpen(false);
-    // hook this into your i18n setup (next-intl / next-i18next) when ready
-  }
-
-  const current = LANGUAGES.find((l) => l.code === lang);
-
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1 text-xs font-semibold hover:opacity-70">
         <Globe size={18} />
-        <span className="hidden sm:inline">{current?.label}</span>
+        <span className="hidden sm:inline">{language.native_name}</span>
         <ChevronDown size={14} />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-2 bg-[var(--color-paper)] border border-[var(--color-line)] rounded-xl shadow-lg overflow-hidden z-50 min-w-[140px]">
-          {LANGUAGES.map((l) => (
+          {languages.map((l) => (
             <button
               key={l.code}
-              onClick={() => select(l.code)}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-[var(--color-mist)] ${l.code === lang ? "font-semibold" : ""}`}
+              onClick={() => { setLanguage(l.code); setOpen(false); }}
+              className={`w-full text-left px-4 py-2 text-sm hover:bg-[var(--color-mist)] ${l.code === language.code ? "font-semibold" : ""}`}
             >
-              {l.label}
+              {l.native_name}
             </button>
           ))}
         </div>

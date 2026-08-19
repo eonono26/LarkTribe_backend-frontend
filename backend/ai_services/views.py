@@ -1,3 +1,5 @@
+# ai/views.py - Updated to include full image URLs
+
 from django.shortcuts import get_object_or_404
 from rest_framework import views, permissions, generics, status
 from rest_framework.response import Response
@@ -34,7 +36,8 @@ class RecommendedForYouView(views.APIView):
             session_key=session_key,
             limit=int(request.query_params.get("limit", 12)),
         )
-        return Response(ProductListSerializer(products, many=True).data)
+        # Pass request context to serializer so image URLs are absolute
+        return Response(ProductListSerializer(products, many=True, context={'request': request}).data)
 
 
 class SimilarProductsView(views.APIView):
@@ -43,7 +46,7 @@ class SimilarProductsView(views.APIView):
     def get(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
         products = recommendations.similar_products(product, limit=int(request.query_params.get("limit", 8)))
-        return Response(ProductListSerializer(products, many=True).data)
+        return Response(ProductListSerializer(products, many=True, context={'request': request}).data)
 
 
 class FrequentlyBoughtTogetherView(views.APIView):
@@ -52,7 +55,7 @@ class FrequentlyBoughtTogetherView(views.APIView):
     def get(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
         products = recommendations.frequently_bought_with(product, limit=int(request.query_params.get("limit", 6)))
-        return Response(ProductListSerializer(products, many=True).data)
+        return Response(ProductListSerializer(products, many=True, context={'request': request}).data)
 
 
 class SmartSearchView(views.APIView):
@@ -66,7 +69,7 @@ class SmartSearchView(views.APIView):
             "query": query,
             "used_query": used_query,
             "corrected": was_corrected,
-            "results": ProductListSerializer(products, many=True).data,
+            "results": ProductListSerializer(products, many=True, context={'request': request}).data,
         })
 
 
@@ -80,7 +83,7 @@ class ImageSearchView(views.APIView):
         if not image:
             return Response({"detail": "image file is required"}, status=status.HTTP_400_BAD_REQUEST)
         products = search_engine.image_search(image)
-        return Response(ProductListSerializer(products, many=True).data)
+        return Response(ProductListSerializer(products, many=True, context={'request': request}).data)
 
 
 class ChatbotView(views.APIView):
@@ -107,7 +110,11 @@ class ChatbotView(views.APIView):
         if products:
             bot_msg.products.set([p.id for p in products])
 
-        return Response({"session_id": session.id, "reply": ChatMessageSerializer(bot_msg).data})
+        # Pass request context to serializer for image URLs
+        return Response({
+            "session_id": session.id, 
+            "reply": ChatMessageSerializer(bot_msg, context={'request': request}).data
+        })
 
 
 # ---------- Vendor-facing AI ----------

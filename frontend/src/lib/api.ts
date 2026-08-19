@@ -1,4 +1,4 @@
-import type { Cart, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor, Brand, ShowcaseVideoItem } from "./types";
+import type { Cart, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor, Brand, ShowcaseVideoItem, Address, PaymentMethod, WalletCoupon, CouponClaim, AgeGroup, DeliveryTracking, DeliveryAdmin, DriverMe, DriverAdmin, User, AuthResponse, RegisterData, PhoneOTPRequest, PhoneOTPVerify, SocialAuthData } from "./types";
 import { getToken } from "./auth";
 import axios from "axios";
 
@@ -35,6 +35,100 @@ function sessionKey(): string {
 }
 
 export const api = {
+  // ==============================================================
+  // AUTHENTICATION
+  // ==============================================================
+  
+  auth: {
+    // Register new user
+    register: (data: RegisterData) => {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (key === 'profile_picture' && value instanceof File) {
+            formData.append(key, value);
+          } else if (typeof value !== 'object') {
+            formData.append(key, String(value));
+          } else {
+            formData.append(key, JSON.stringify(value));
+          }
+        }
+      });
+      return request<User>("/auth/register/", { 
+        method: "POST", 
+        body: formData 
+      });
+    },
+
+    // Login with username/password
+    login: (username: string, password: string) =>
+      request<{ access: string; refresh: string }>("/auth/login/", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      }),
+
+    // Refresh token
+    refreshToken: (refresh: string) =>
+      request<{ access: string }>("/auth/token/refresh/", {
+        method: "POST",
+        body: JSON.stringify({ refresh }),
+      }),
+
+    // Get current user
+    me: () => request<User>("/auth/me/"),
+
+    // Update current user
+    updateMe: (data: Partial<User> | FormData) => {
+      const isFormData = data instanceof FormData;
+      const headers = isFormData ? {} : { "Content-Type": "application/json" };
+      const body = isFormData ? data : JSON.stringify(data);
+      return request<User>("/auth/me/", { 
+        method: "PATCH", 
+        body,
+        headers,
+      });
+    },
+
+    // Social auth (Google/Apple)
+    social: (data: SocialAuthData) =>
+      request<AuthResponse>("/auth/social/", { 
+        method: "POST", 
+        body: JSON.stringify(data) 
+      }),
+
+    // Phone OTP
+    phoneRequestOTP: (data: PhoneOTPRequest) =>
+      request<{ detail: string; debug_code?: string }>("/auth/phone/request-otp/", { 
+        method: "POST", 
+        body: JSON.stringify(data) 
+      }),
+
+    phoneVerifyOTP: (data: PhoneOTPVerify) =>
+      request<AuthResponse>("/auth/phone/verify-otp/", { 
+        method: "POST", 
+        body: JSON.stringify(data) 
+      }),
+
+    // Profile picture management
+    uploadProfilePicture: (file: File) => {
+      const formData = new FormData();
+      formData.append('profile_picture', file);
+      return request<User>("/auth/profile-picture/", {
+        method: "POST",
+        body: formData,
+      });
+    },
+
+    deleteProfilePicture: () =>
+      request<User>("/auth/profile-picture/", {
+        method: "DELETE",
+      }),
+  },
+
+  // ==============================================================
+  // CATALOG
+  // ==============================================================
+
   departments: async (params?: Record<string, any>) => {
     const response = await axios.get(`${API_URL}/catalog/departments/`, { params });
     return response.data.results || response.data;
@@ -62,6 +156,7 @@ export const api = {
     const qs = new URLSearchParams(params).toString();
     return request<Paginated<{ id: number; name: string; slug: string; department: Department }>>(`/catalog/categories/${qs ? `?${qs}` : ""}`);
   },
+  ageGroups: () => request<AgeGroup[]>(`/catalog/age-groups/`),
   products: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request<Paginated<ProductListItem>>(`/catalog/products/${qs ? `?${qs}` : ""}`);
@@ -69,6 +164,15 @@ export const api = {
   product: (slug: string) => request<ProductDetail>(`/catalog/products/${slug}/`),
 
   // Brands
+  // brands: (params: Record<string, string> = {}) => {
+  //   const qs = new URLSearchParams(params).toString();
+  //   return request<Paginated<Brand>>(`/catalog/brands/${qs ? `?${qs}` : ""}`);
+  // },
+  // brand: (id: number) => request<Brand>(`/catalog/brands/${id}/`),
+  // brandProducts: (id: number) =>
+  //   request<{ brand: Brand; products: ProductListItem[]; count: number }>(`/catalog/brands/${id}/products/`),
+
+
   brands: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request<Paginated<Brand>>(`/catalog/brands/${qs ? `?${qs}` : ""}`);
@@ -77,7 +181,11 @@ export const api = {
   brandProducts: (id: number) =>
     request<{ brand: Brand; products: ProductListItem[]; count: number }>(`/catalog/brands/${id}/products/`),
 
-  // Cart
+
+  // ==============================================================
+  // CART
+  // ==============================================================
+
   cart: () => request<Cart>("/cart/"),
   addToCart: (product_id: number, quantity = 1) =>
     request<Cart>("/cart/items/", { method: "POST", body: JSON.stringify({ product_id, quantity }) }),
@@ -86,33 +194,36 @@ export const api = {
   removeCartItem: (itemId: number) =>
     request<Cart>(`/cart/items/${itemId}/`, { method: "DELETE" }),
 
-  // Orders
+  // ==============================================================
+  // ORDERS
+  // ==============================================================
+
   checkout: (payload: Record<string, unknown>) =>
     request("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
   myOrders: () => request<Paginated<unknown> | unknown[]>("/orders/mine/"),
   orderDetail: (orderNumber: string) => request(`/orders/${orderNumber}/`),
 
-  // Auth (legacy helpers kept for back-compat with existing checkout flow)
-  login: (username: string, password: string) =>
-    request<{ access: string; refresh: string }>("/auth/login/", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    }),
-  register: (payload: Record<string, unknown>) =>
-    request("/auth/register/", { method: "POST", body: JSON.stringify(payload) }),
+  // ==============================================================
+  // WISHLIST
+  // ==============================================================
 
-  // Wishlist
   wishlist: () => request<Paginated<Wishlist>>("/catalog/wishlist/"),
   addToWishlist: (product_id: number) =>
     request<Wishlist>("/catalog/wishlist/", { method: "POST", body: JSON.stringify({ product_id }) }),
   removeFromWishlist: (id: number) => request<void>(`/catalog/wishlist/${id}/`, { method: "DELETE" }),
 
-  // Reviews
+  // ==============================================================
+  // REVIEWS
+  // ==============================================================
+
   reviews: (productId: number) => request(`/catalog/products/${productId}/reviews/`),
   addReview: (productId: number, rating: number, comment: string) =>
     request(`/catalog/products/${productId}/reviews/`, { method: "POST", body: JSON.stringify({ rating, comment }) }),
 
-  // AI
+  // ==============================================================
+  // AI & RECOMMENDATIONS
+  // ==============================================================
+
   recommendedForYou: () => request<ProductListItem[]>(`/ai/recommended-for-you/?session_key=${sessionKey()}`),
   similarProducts: (productId: number) => request<ProductListItem[]>(`/ai/products/${productId}/similar/`),
   frequentlyBoughtTogether: (productId: number) => request<ProductListItem[]>(`/ai/products/${productId}/frequently-bought-together/`),
@@ -128,7 +239,10 @@ export const api = {
       body: JSON.stringify({ message, session_id: sessionId, session_key: sessionKey() }),
     }),
 
-  // Promotions
+  // ==============================================================
+  // PROMOTIONS
+  // ==============================================================
+
   validateCoupon: (code: string, subtotal: number) =>
     request<{ valid: boolean; code?: string; discount?: number; detail?: string }>("/promotions/validate-coupon/", {
       method: "POST", body: JSON.stringify({ code, subtotal }),
@@ -136,7 +250,38 @@ export const api = {
   campaigns: () => request<Paginated<Campaign>>("/promotions/campaigns/?live=true"),
   showcaseVideos: () => request<Paginated<ShowcaseVideoItem>>("/promotions/showcase-videos/"),
 
-  // Notifications
+  // Coupon wallet ("My Coupons")
+  availableCoupons: () => request<WalletCoupon[]>("/promotions/coupons/available/"),
+  myCoupons: () => request<CouponClaim[]>("/promotions/coupons/mine/"),
+  claimCoupon: (code: string) =>
+    request<CouponClaim>("/promotions/coupons/claim/", { method: "POST", body: JSON.stringify({ code }) }),
+
+  // ==============================================================
+  // ADDRESS BOOK
+  // ==============================================================
+
+  addresses: () => request<Address[] | Paginated<Address>>("/auth/addresses/"),
+  createAddress: (payload: Omit<Address, "id" | "created_at">) =>
+    request<Address>("/auth/addresses/", { method: "POST", body: JSON.stringify(payload) }),
+  updateAddress: (id: number, payload: Partial<Omit<Address, "id" | "created_at">>) =>
+    request<Address>(`/auth/addresses/${id}/`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAddress: (id: number) => request<void>(`/auth/addresses/${id}/`, { method: "DELETE" }),
+  setDefaultAddress: (id: number) => request<Address>(`/auth/addresses/${id}/set_default/`, { method: "POST" }),
+
+  // ==============================================================
+  // PAYMENT METHODS
+  // ==============================================================
+
+  paymentMethods: () => request<PaymentMethod[] | Paginated<PaymentMethod>>("/auth/payment-methods/"),
+  createPaymentMethod: (payload: Partial<Omit<PaymentMethod, "id" | "created_at">>) =>
+    request<PaymentMethod>("/auth/payment-methods/", { method: "POST", body: JSON.stringify(payload) }),
+  deletePaymentMethod: (id: number) => request<void>(`/auth/payment-methods/${id}/`, { method: "DELETE" }),
+  setDefaultPaymentMethod: (id: number) => request<PaymentMethod>(`/auth/payment-methods/${id}/set_default/`, { method: "POST" }),
+
+  // ==============================================================
+  // NOTIFICATIONS
+  // ==============================================================
+
   notifications: () => request<Paginated<Notification> | Notification[]>("/notifications/inbox/"),
   markNotificationRead: (id: number) => request(`/notifications/inbox/${id}/mark_read/`, { method: "POST" }),
   markAllNotificationsRead: () => request("/notifications/inbox/mark-all-read/", { method: "POST" }),
@@ -144,14 +289,20 @@ export const api = {
   updateNotificationPreferences: (payload: Record<string, boolean>) =>
     request("/notifications/preferences/", { method: "PATCH", body: JSON.stringify(payload) }),
 
-  // Support
+  // ==============================================================
+  // SUPPORT
+  // ==============================================================
+
   supportTickets: () => request<Paginated<SupportTicket> | SupportTicket[]>("/notifications/support-tickets/"),
   openSupportTicket: (subject: string, message: string, order?: number) =>
     request<SupportTicket>("/notifications/support-tickets/", { method: "POST", body: JSON.stringify({ subject, message, order }) }),
   replySupportTicket: (id: number, message: string) =>
     request(`/notifications/support-tickets/${id}/reply/`, { method: "POST", body: JSON.stringify({ message }) }),
 
-  // Vendor apply
+  // ==============================================================
+  // VENDOR
+  // ==============================================================
+
   applyVendor: (payload: { store_name: string; slug: string; description?: string; logo?: File }) => {
     const fd = new FormData();
     fd.append("store_name", payload.store_name);
@@ -164,7 +315,10 @@ export const api = {
   vendorPricingSuggestions: () => request("/ai/vendor/pricing-suggestions/"),
   vendorDemandForecast: () => request("/ai/vendor/demand-forecast/"),
 
-  // Admin
+  // ==============================================================
+  // ADMIN
+  // ==============================================================
+
   adminReports: (days = 30) => request<AdminReports>(`/analytics/admin/reports/?days=${days}`),
   adminAIDashboard: () => request<AIDashboard>("/ai/admin/dashboard/"),
   adminSegments: () => request<Paginated<CustomerSegment> | CustomerSegment[]>("/ai/admin/segments/"),
@@ -201,7 +355,10 @@ export const api = {
   adminApproveProduct: (id: number) => request(`/catalog/admin/products/${id}/approve/`, { method: "POST" }),
   adminRejectProduct: (id: number) => request(`/catalog/admin/products/${id}/reject/`, { method: "POST" }),
 
-  // Behavior tracking (fire-and-forget)
+  // ==============================================================
+  // BEHAVIOR TRACKING
+  // ==============================================================
+
   track: (event_type: string, extra: Record<string, unknown> = {}) => {
     if (typeof window === "undefined") return;
     fetch(`${API_URL}/analytics/track/`, {
@@ -209,6 +366,33 @@ export const api = {
       headers: { "Content-Type": "application/json", ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
       body: JSON.stringify({ event_type, session_key: sessionKey(), ...extra }),
     }).catch(() => {});
+  },
+
+  // ==============================================================
+  // DELIVERY
+  // ==============================================================
+
+  delivery: {
+    // Customer: live tracking for one order (works for guests too, like order tracking).
+    track: (orderNumber: string) => request<DeliveryTracking>(`/delivery/orders/${orderNumber}/tracking/`),
+
+    // Driver: own profile — online toggle + posted location.
+    me: () => request<DriverMe>(`/delivery/driver/me/`),
+    updateMe: (patch: Partial<{ is_online: boolean; current_lat: number | string; current_lng: number | string; vehicle_type: DriverMe["vehicle_type"]; vehicle_plate: string; phone: string }>) =>
+      request<DriverMe>(`/delivery/driver/me/`, { method: "PATCH", body: JSON.stringify(patch) }),
+
+    // Driver: jobs. scope "available" = unassigned pool, "mine" = assigned to me.
+    deliveries: (scope: "available" | "mine" = "mine") =>
+      request<DeliveryAdmin[]>(`/delivery/driver/deliveries/?scope=${scope}`),
+    driverAction: (deliveryId: number, action: "accept" | "pickup" | "en_route" | "deliver" | "cancel") =>
+      request<DeliveryAdmin>(`/delivery/driver/deliveries/${deliveryId}/${action}/`, { method: "POST" }),
+
+    // Admin dispatch board.
+    adminDeliveries: (status?: string) =>
+      request<Paginated<DeliveryAdmin> | DeliveryAdmin[]>(`/delivery/admin/deliveries/${status ? `?status=${status}` : ""}`),
+    adminDrivers: () => request<Paginated<DriverAdmin> | DriverAdmin[]>(`/delivery/admin/drivers/`),
+    adminAssign: (deliveryId: number, driverId: number) =>
+      request<DeliveryAdmin>(`/delivery/admin/deliveries/${deliveryId}/assign/`, { method: "POST", body: JSON.stringify({ driver_id: driverId }) }),
   },
 };
 

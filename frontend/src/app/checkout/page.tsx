@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
-import { api, formatKES } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useLocalization } from "@/lib/localization-context";
 import { auth, isLoggedIn } from "@/lib/auth";
 import CouponField from "@/components/CouponField";
+import type { Address } from "@/lib/types";
 
 type Mode = "member" | "guest";
 type Step = "identify" | "details";
 
 export default function CheckoutPage() {
   const { cart, isLoading } = useCart();
+  const { formatPrice } = useLocalization();
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>(isLoggedIn() ? "member" : "guest");
@@ -33,6 +36,34 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (step === "details" && mode === "member" && isLoggedIn()) {
+      api
+        .addresses()
+        .then((r) => {
+          const list = Array.isArray(r) ? r : r.results;
+          setSavedAddresses(list);
+          const def = list.find((a) => a.is_default) || list[0];
+          if (def) applyAddress(def);
+        })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, mode]);
+
+  function applyAddress(a: Address) {
+    setSelectedAddressId(a.id);
+    setForm((f) => ({
+      ...f,
+      shipping_name: a.full_name,
+      shipping_phone: a.phone,
+      shipping_address: a.address_line,
+      shipping_city: a.city,
+    }));
+  }
 
   async function handleIdentifyContinue() {
     setAuthError("");
@@ -177,6 +208,33 @@ export default function CheckoutPage() {
       ) : (
         <>
           <h1 className="font-display text-2xl font-black mb-6">Delivery & payment</h1>
+
+          {mode === "member" && savedAddresses.length > 0 && (
+            <div className="mb-5">
+              <p className="text-sm font-semibold mb-2">Deliver to</p>
+              <div className="space-y-2">
+                {savedAddresses.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => applyAddress(a)}
+                    className={`w-full text-left border rounded-lg px-4 py-3 text-sm ${
+                      selectedAddressId === a.id
+                        ? "border-[var(--color-ink)] bg-[var(--color-mist)]"
+                        : "border-[var(--color-line)]"
+                    }`}
+                  >
+                    <span className="font-semibold uppercase text-xs mr-2">{a.label}</span>
+                    {a.full_name} — {a.address_line}, {a.city}
+                  </button>
+                ))}
+              </div>
+              <a href="/account/addresses" className="text-xs underline text-neutral-500 mt-2 inline-block">
+                Manage addresses
+              </a>
+            </div>
+          )}
+
           <div className="space-y-3">
             <input
               placeholder="Full name"
@@ -232,17 +290,17 @@ export default function CheckoutPage() {
           <div className="mt-6 text-sm space-y-1">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>{formatKES(cart.total)}</span>
+              <span>{formatPrice(cart.total)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-[var(--dept-maternity)]">
                 <span>Coupon discount</span>
-                <span>-{formatKES(discount)}</span>
+                <span>-{formatPrice(discount)}</span>
               </div>
             )}
             <div className="flex justify-between items-center pt-1">
               <span className="font-semibold">Total</span>
-              <span className="font-bold text-lg">{formatKES(total)}</span>
+              <span className="font-bold text-lg">{formatPrice(total)}</span>
             </div>
           </div>
 

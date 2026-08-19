@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
-import { api, formatKES } from "@/lib/api";
+import { api } from "@/lib/api";
+import PriceTag from "@/components/PriceTag";
 import AddToCartButton from "@/components/AddToCartButton";
 import WishlistButton from "@/components/WishlistButton";
 import ReviewForm from "@/components/ReviewForm";
@@ -74,10 +75,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           )}
 
           <div className="flex items-baseline gap-3 mt-4">
-            <span className="text-2xl font-bold">{formatKES(product.price)}</span>
-            {product.compare_at_price && (
-              <span className="text-neutral-400 line-through">{formatKES(product.compare_at_price)}</span>
-            )}
+            <PriceTag price={product.price} compareAtPrice={product.compare_at_price} />
           </div>
 
           {variants.length > 0 && (

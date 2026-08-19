@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { api, formatKES } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useLocalization } from "@/lib/localization-context";
 
 export default function CouponField({
   subtotal,
@@ -10,6 +11,7 @@ export default function CouponField({
   subtotal: number;
   onApplied: (code: string, discount: number) => void;
 }) {
+  const { formatPrice } = useLocalization();
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "checking" | "applied" | "invalid">("idle");
   const [discount, setDiscount] = useState(0);
@@ -51,7 +53,7 @@ export default function CouponField({
         </button>
       </div>
       {status === "applied" && (
-        <p className="text-sm text-[var(--dept-maternity)] mt-1">Coupon applied — {formatKES(discount)} off.</p>
+        <p className="text-sm text-[var(--dept-maternity)] mt-1">Coupon applied — {formatPrice(discount)} off.</p>
       )}
       {status === "invalid" && <p className="text-sm text-[var(--color-flag)] mt-1">Invalid or expired coupon.</p>}
     </div>

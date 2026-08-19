@@ -130,10 +130,47 @@ class Category(models.Model):
         return self.media_files.filter(media_type='video')
 
 
+class AgeGroupMedia(models.Model):
+    """Media files (images/videos) for age groups"""
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'Image'
+        VIDEO = 'video', 'Video'
+    
+    age_group = models.ForeignKey('AgeGroup', on_delete=models.CASCADE, related_name="media_files")
+    file = models.FileField(
+        upload_to='agegroups/media/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'mp4', 'webm', 'mov'])]
+    )
+    media_type = models.CharField(max_length=10, choices=MediaType.choices, default=MediaType.IMAGE)
+    alt_text = models.CharField(max_length=200, blank=True)
+    is_primary = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name_plural = "Age group media"
+    
+    def __str__(self):
+        return f"{self.age_group.name} - {self.media_type}"
 
-class Brand(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+
+class AgeGroup(models.Model):
+    """Cross-cutting shopper age segment — Baby, Toddler, Kids, Teens, Adult —
+    independent of Department/Category so a Women's jacket and a Kids' jacket
+    can both surface under 'Teens' if tagged. Products can carry more than one."""
+
+    name = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(unique=True, blank=True)
+    min_age_years = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, help_text="Lower bound in years, e.g. 0 for Baby.")
+    max_age_years = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, help_text="Upper bound in years, blank = no upper limit.")
+    icon = models.CharField(max_length=8, blank=True, help_text="Emoji shown in the age-group nav, e.g. 🍼")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order"]
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -143,7 +180,83 @@ class Brand(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def primary_image(self):
+        """Get the primary image for the age group"""
+        return self.media_files.filter(media_type='image', is_primary=True).first()
+    
+    @property
+    def images(self):
+        """Get all images for the age group"""
+        return self.media_files.filter(media_type='image')
+    
+    @property
+    def videos(self):
+        """Get all videos for the age group"""
+        return self.media_files.filter(media_type='video')
 
+
+# models.py - Add BrandMedia model
+
+class BrandMedia(models.Model):
+    """Media files (images/videos) for brands"""
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'Image'
+        VIDEO = 'video', 'Video'
+    
+    brand = models.ForeignKey('Brand', on_delete=models.CASCADE, related_name="media_files")
+    file = models.FileField(
+        upload_to='brands/media/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'mp4', 'webm', 'mov'])]
+    )
+    media_type = models.CharField(max_length=10, choices=MediaType.choices, default=MediaType.IMAGE)
+    alt_text = models.CharField(max_length=200, blank=True)
+    is_primary = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name_plural = "Brand media"
+    
+    def __str__(self):
+        return f"{self.brand.name} - {self.media_type}"
+
+
+class Brand(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(unique=True, blank=True)
+    logo = models.ImageField(upload_to='brands/logos/', blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+    
+    @property
+    def primary_image(self):
+        """Get the primary image for the brand"""
+        return self.media_files.filter(media_type='image', is_primary=True).first()
+    
+    @property
+    def images(self):
+        """Get all images for the brand"""
+        return self.media_files.filter(media_type='image')
+    
+    @property
+    def videos(self):
+        """Get all videos for the brand"""
+        return self.media_files.filter(media_type='video')
+
+        
 class Product(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
@@ -154,6 +267,7 @@ class Product(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name="products")
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
+    age_groups = models.ManyToManyField(AgeGroup, blank=True, related_name="products", help_text="Who this product is for, e.g. Kids, Teens, Baby. Independent of the department/category.")
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)
     description = models.TextField(blank=True)

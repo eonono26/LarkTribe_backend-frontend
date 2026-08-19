@@ -5,10 +5,12 @@ import Image from "next/image";
 import { useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
-import { mediaUrl, formatKES } from "@/lib/api";
+import { mediaUrl } from "@/lib/api";
+import { useLocalization } from "@/lib/localization-context";
 
 export default function CartPage() {
   const { cart, isLoading, updateItem, removeItem } = useCart();
+  const { formatPrice } = useLocalization();
   const [busyId, setBusyId] = useState<number | null>(null);
 
   async function changeQty(itemId: number, next: number) {
@@ -105,7 +107,7 @@ export default function CartPage() {
                     </Link>
                   </div>
                   <span className="font-bold shrink-0 whitespace-nowrap">
-                    {formatKES(item.subtotal)}
+                    {formatPrice(item.subtotal)}
                   </span>
                 </div>
 
@@ -149,12 +151,12 @@ export default function CartPage() {
       <div className="mt-6 max-w-sm ml-auto space-y-2">
         <div className="flex justify-between text-sm text-neutral-600">
           <span>Subtotal</span>
-          <span>{formatKES(cart.total)}</span>
+          <span>{formatPrice(cart.total)}</span>
         </div>
         <p className="text-xs text-neutral-500">Delivery and coupons are calculated at checkout.</p>
         <div className="flex justify-between items-center pt-2 border-t border-[var(--color-line)]">
           <span className="font-semibold">Total</span>
-          <span className="font-bold text-lg">{formatKES(cart.total)}</span>
+          <span className="font-bold text-lg">{formatPrice(cart.total)}</span>
         </div>
 
         <Link

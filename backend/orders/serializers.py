@@ -32,7 +32,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "id", "order_number", "status", "payment_method", "subtotal", "shipping_fee",
             "discount_total", "total", "shipping_name", "shipping_phone", "shipping_address",
-            "shipping_city", "coupon_code", "guest_email", "items", "created_at",
+            "shipping_city", "shipping_lat", "shipping_lng", "coupon_code", "guest_email", "items", "created_at",
         ]
         read_only_fields = ["order_number", "status", "subtotal", "total", "items", "created_at"]
 
@@ -46,4 +46,6 @@ class CheckoutSerializer(serializers.Serializer):
     shipping_phone = serializers.CharField(max_length=20)
     shipping_address = serializers.CharField()
     shipping_city = serializers.CharField(max_length=100)
+    shipping_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    shipping_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     coupon_code = serializers.CharField(required=False, allow_blank=True)

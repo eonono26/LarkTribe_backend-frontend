@@ -2,8 +2,11 @@ from django.utils import timezone
 from rest_framework import viewsets, permissions, views, status
 from rest_framework.response import Response
 from orders.models import Coupon
-from .models import Campaign, ShowcaseVideo
-from .serializers import CouponSerializer, CampaignSerializer, ShowcaseVideoSerializer, CouponValidateSerializer
+from .models import Campaign, ShowcaseVideo, CouponClaim
+from .serializers import (
+    CouponSerializer, CampaignSerializer, ShowcaseVideoSerializer, CouponValidateSerializer,
+    CouponWalletSerializer, CouponClaimSerializer,
+)
 
 
 class IsAdminOrVendor(permissions.BasePermission):
@@ -71,3 +74,39 @@ class ValidateCouponView(views.APIView):
             return Response({"valid": False, "detail": "This coupon has expired."}, status=status.HTTP_400_BAD_REQUEST)
         discount = float(coupon.amount_off) if coupon.amount_off else float(subtotal) * (coupon.percent_off or 0) / 100
         return Response({"valid": True, "code": coupon.code, "discount": round(discount, 2)})
+
+
+class AvailableCouponsView(views.APIView):
+    """Public, active coupons a signed-in customer can browse and save — the
+    'My Coupons' page's top section. Flags coupons already saved by this user."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        now = timezone.now()
+        qs = Coupon.objects.filter(active=True, is_public=True).exclude(valid_until__lt=now)
+        claimed_ids = set(CouponClaim.objects.filter(user=request.user).values_list("coupon_id", flat=True))
+        data = CouponWalletSerializer(qs, many=True, context={"claimed_ids": claimed_ids}).data
+        return Response(data)
+
+
+class MyCouponsView(views.APIView):
+    """A signed-in customer's saved coupon wallet."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        claims = CouponClaim.objects.filter(user=request.user).select_related("coupon")
+        return Response(CouponClaimSerializer(claims, many=True).data)
+
+
+class ClaimCouponView(views.APIView):
+    """Save a public coupon to the signed-in customer's wallet."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        code = request.data.get("code", "")
+        try:
+            coupon = Coupon.objects.get(code__iexact=code, active=True, is_public=True)
+        except Coupon.DoesNotExist:
+            return Response({"detail": "Invalid or unavailable coupon."}, status=status.HTTP_404_NOT_FOUND)
+        claim, created = CouponClaim.objects.get_or_create(user=request.user, coupon=coupon)
+        return Response(CouponClaimSerializer(claim).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

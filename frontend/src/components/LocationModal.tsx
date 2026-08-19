@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { X, MapPin, Navigation, Search } from "lucide-react";
+import { useLocalization } from "@/lib/localization-context";
 
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
@@ -18,6 +19,7 @@ interface LocationModalProps {
 const NAIROBI = { lat: -1.2921, lng: 36.8219 };
 
 export default function LocationModal({ open, onClose, onSave, initialLocation }: LocationModalProps) {
+  const { t } = useLocalization();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationValue[]>([]);
   const [picked, setPicked] = useState<LocationValue>(initialLocation ?? { label: "Nairobi, Kenya", ...NAIROBI });
@@ -67,7 +69,7 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-[var(--color-paper)] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-line)]">
-          <h2 className="font-display text-lg font-bold">Choose delivery location</h2>
+          <h2 className="font-display text-lg font-bold">{t("chooseDeliveryLocation")}</h2>
           <button onClick={onClose} aria-label="Close" className="hover:opacity-70">
             <X size={20} />
           </button>
@@ -79,14 +81,14 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search area, estate, street…"
+              placeholder={t("searchAreaPlaceholder")}
               className="bg-transparent w-full outline-none text-sm"
             />
           </form>
 
           <button type="button" onClick={useMyLocation} className="flex items-center gap-2 text-sm font-semibold text-[var(--color-signal)]">
             <Navigation size={16} />
-            {loading ? "Locating…" : "Use my current location"}
+            {loading ? t("locating") : t("useMyLocation")}
           </button>
 
           {results.length > 0 && (
@@ -119,7 +121,7 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
             onClick={() => { onSave(picked); onClose(); }}
             className="w-full bg-[var(--color-ink)] text-[var(--color-paper)] rounded-full py-3 font-semibold"
           >
-            Confirm location
+            {t("confirmLocation")}
           </button>
         </div>
       </div>

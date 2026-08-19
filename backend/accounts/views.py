@@ -1,14 +1,16 @@
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
-from rest_framework import generics, permissions, views, status
+from rest_framework import generics, permissions, views, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import (
     RegisterSerializer, UserSerializer, SocialAuthSerializer,
     PhoneOTPRequestSerializer, PhoneOTPVerifySerializer,
+    AddressSerializer, PaymentMethodSerializer,
 )
-from .models import PhoneOTP
+from .models import PhoneOTP, Address, PaymentMethod
 from .social_auth import verify_provider_token, SocialAuthError
 
 User = get_user_model()
@@ -30,6 +32,26 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+    
+    def update(self, request, *args, **kwargs):
+        """Handle profile picture updates with proper file handling"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+        
+        return Response(serializer.data)
+    
+    def perform_update(self, serializer):
+        # Handle profile picture separately if needed
+        if 'profile_picture' in self.request.FILES:
+            serializer.save(profile_picture=self.request.FILES['profile_picture'])
+        else:
+            serializer.save()
 
 
 class LoginView(TokenObtainPairView):
@@ -68,7 +90,7 @@ class SocialAuthView(views.APIView):
             user.set_unusable_password()
             user.save()
 
-        return Response({"user": UserSerializer(user).data, **_tokens_for(user)})
+        return Response({"user": UserSerializer(user, context={'request': request}).data, **_tokens_for(user)})
 
 
 class PhoneOTPRequestView(views.APIView):
@@ -117,9 +139,80 @@ class PhoneOTPVerifyView(views.APIView):
             user.is_phone_verified = True
             user.save(update_fields=["is_phone_verified"])
 
-        return Response({"user": UserSerializer(user).data, **_tokens_for(user)})
+        return Response({"user": UserSerializer(user, context={'request': request}).data, **_tokens_for(user)})
 
 
 def _send_sms(phone, message):
     """TODO: integrate an SMS gateway (e.g. Africa's Talking, Twilio). No-op today."""
     return None
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    """Saved delivery addresses — the account 'Address Book', selectable at checkout."""
+    serializer_class = AddressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"])
+    def set_default(self, request, pk=None):
+        address = self.get_object()
+        address.is_default = True
+        address.save(update_fields=["is_default"])
+        return Response(AddressSerializer(address).data)
+
+
+class PaymentMethodViewSet(viewsets.ModelViewSet):
+    """Saved payment methods — cards (display-only token, never a real PAN) and M-Pesa numbers."""
+    serializer_class = PaymentMethodSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return PaymentMethod.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"])
+    def set_default(self, request, pk=None):
+        method = self.get_object()
+        method.is_default = True
+        method.save(update_fields=["is_default"])
+        return Response(PaymentMethodSerializer(method).data)
+
+
+# Optional: Add a dedicated view for profile picture upload/delete
+class ProfilePictureView(views.APIView):
+    """Dedicated endpoint for uploading or deleting profile pictures"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """Upload a profile picture"""
+        if 'profile_picture' not in request.FILES:
+            return Response(
+                {"detail": "No profile picture provided."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = request.user
+        user.profile_picture = request.FILES['profile_picture']
+        user.save(update_fields=['profile_picture'])
+        
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)
+
+    def delete(self, request):
+        """Delete the profile picture"""
+        user = request.user
+        if user.profile_picture:
+            # Delete the file from storage
+            user.profile_picture.delete(save=False)
+            user.profile_picture = None
+            user.save(update_fields=['profile_picture'])
+        
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)

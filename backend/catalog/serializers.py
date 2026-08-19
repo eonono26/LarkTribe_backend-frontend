@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Department, Category, Brand, Product, ProductImage, DepartmentMedia,CategoryMedia, ProductVariant, Review, Wishlist
+from .models import Department, Category, Brand, Product, ProductImage, BrandMedia, DepartmentMedia, CategoryMedia, ProductVariant, Review, Wishlist, AgeGroup, AgeGroupMedia
 from accounts.models import User
 
 
@@ -24,6 +24,22 @@ class CategoryMediaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = CategoryMedia
+        fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
+    
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
+
+class AgeGroupMediaSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AgeGroupMedia
         fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
     
     def get_file_url(self, obj):
@@ -112,18 +128,97 @@ class CategorySerializer(serializers.ModelSerializer):
         return obj.products.filter(status=Product.Status.ACTIVE).count()
 
 
-
-
-class BrandSerializer(serializers.ModelSerializer):
+class AgeGroupSerializer(serializers.ModelSerializer):
+    media_files = AgeGroupMediaSerializer(many=True, read_only=True)
+    primary_image = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+    videos = serializers.SerializerMethodField()
     product_count = serializers.SerializerMethodField()
     
     class Meta:
+        model = AgeGroup
+        fields = [
+            "id", "name", "slug", "min_age_years", "max_age_years", 
+            "icon", "order", "is_active", "media_files", "primary_image",
+            "images", "videos", "product_count", "created_at"
+        ]
+    
+    def get_primary_image(self, obj):
+        media = obj.primary_image
+        if media:
+            return AgeGroupMediaSerializer(media, context=self.context).data
+        return None
+    
+    def get_images(self, obj):
+        media = obj.images
+        return AgeGroupMediaSerializer(media, many=True, context=self.context).data
+    
+    def get_videos(self, obj):
+        media = obj.videos
+        return AgeGroupMediaSerializer(media, many=True, context=self.context).data
+    
+    def get_product_count(self, obj):
+        return obj.products.filter(status=Product.Status.ACTIVE).count()
+
+
+class BrandMediaSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BrandMedia
+        fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
+    
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
+
+class BrandSerializer(serializers.ModelSerializer):
+    media_files = BrandMediaSerializer(many=True, read_only=True)
+    primary_image = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+    videos = serializers.SerializerMethodField()
+    product_count = serializers.SerializerMethodField()
+    logo_url = serializers.SerializerMethodField()
+    
+    class Meta:
         model = Brand
-        fields = ["id", "name", "slug", "product_count"]
+        fields = [
+            "id", "name", "slug", "logo", "logo_url", "description", 
+            "website", "is_active", "media_files", "primary_image", 
+            "images", "videos", "product_count", "created_at", "updated_at"
+        ]
+    
+    def get_primary_image(self, obj):
+        media = obj.primary_image
+        if media:
+            return BrandMediaSerializer(media, context=self.context).data
+        return None
+    
+    def get_images(self, obj):
+        media = obj.images
+        return BrandMediaSerializer(media, many=True, context=self.context).data
+    
+    def get_videos(self, obj):
+        media = obj.videos
+        return BrandMediaSerializer(media, many=True, context=self.context).data
     
     def get_product_count(self, obj):
         """Get the number of products for this brand"""
         return obj.products.filter(status=Product.Status.ACTIVE).count()
+    
+    def get_logo_url(self, obj):
+        """Get the absolute URL of the brand logo"""
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -164,30 +259,33 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_at"]
 
 
+# catalog/serializers.py - Fixed ProductListSerializer
+
 class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for grid/listing views."""
     image = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
     vendor_name = serializers.CharField(source="vendor.store_name", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
     department_name = serializers.CharField(source="category.department.name", read_only=True)
     discount_percent = serializers.IntegerField(read_only=True)
     price_display = serializers.SerializerMethodField()
+    age_groups = AgeGroupSerializer(many=True, read_only=True)
     
     class Meta:
         model = Product
         fields = [
             "id", "name", "slug", "price", "price_display", "compare_at_price", 
             "discount_percent", "rating_avg", "rating_count", "image", "image_url",
-            "vendor_name", "category_name", "department_name", "is_featured",
-            "stock", "status", "created_at"
+            "images", "vendor_name", "category_name", "department_name", "is_featured",
+            "stock", "status", "created_at", "age_groups"
         ]
 
     def get_image(self, obj):
         """Get the image URL string for the first product image"""
         first = obj.images.first()
         if first and first.image:
-            # Return the URL as a string, not the ImageFieldFile object
             return first.image.url
         return None
     
@@ -201,10 +299,27 @@ class ProductListSerializer(serializers.ModelSerializer):
             return first.image.url
         return None
     
+    def get_images(self, obj):
+        """Get all product images as ProductImage objects with full URLs"""
+        request = self.context.get('request')
+        images_data = []
+        for img in obj.images.all().order_by('order'):
+            if img.image:
+                image_url = img.image.url
+                if request:
+                    image_url = request.build_absolute_uri(img.image.url)
+                images_data.append({
+                    'id': img.id,
+                    'image': image_url,
+                    'alt_text': img.alt_text,
+                    'order': img.order
+                })
+        return images_data
+    
     def get_price_display(self, obj):
         """Format price for display"""
         return f"${obj.price:.2f}"
-
+        
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
@@ -219,6 +334,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     discount_percent = serializers.IntegerField(read_only=True)
     review_summary = serializers.SerializerMethodField()
     is_in_stock = serializers.SerializerMethodField()
+    age_groups = AgeGroupSerializer(many=True, read_only=True)
     
     class Meta:
         model = Product
@@ -228,7 +344,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "sku", "status", "rating_avg", "rating_count", "review_summary",
             "category", "brand", "vendor_name", "vendor_id", "department",
             "images", "variants", "reviews", "created_at", "updated_at",
-            "is_featured"
+            "is_featured", "age_groups"
         ]
     
     def get_images(self, obj):
@@ -252,7 +368,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     
     def get_reviews(self, obj):
         """Get all reviews with pagination"""
-        reviews = obj.reviews.all()[:10]  # Limit to 10 recent reviews
+        reviews = obj.reviews.all()[:10]
         return ReviewSerializer(reviews, many=True).data
     
     def get_review_summary(self, obj):
@@ -289,7 +405,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         fields = [
             "id", "category", "brand", "name", "description", "price", 
             "compare_at_price", "stock", "sku", "status", "images",
-            "is_featured"
+            "is_featured", "age_groups"
         ]
         read_only_fields = ["id"]
 

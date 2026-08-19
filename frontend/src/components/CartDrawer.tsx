@@ -4,10 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
-import { mediaUrl, formatKES } from "@/lib/api";
+import { mediaUrl } from "@/lib/api";
+import { useLocalization } from "@/lib/localization-context";
 
 export default function CartDrawer() {
   const { cart, drawerOpen, closeDrawer, updateItem, removeItem } = useCart();
+  const { formatPrice } = useLocalization();
 
   if (!drawerOpen) return null;
 
@@ -35,7 +37,7 @@ export default function CartDrawer() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium line-clamp-2">{item.product.name}</p>
-                  <p className="text-sm font-bold mt-1">{formatKES(item.product.price)}</p>
+                  <p className="text-sm font-bold mt-1">{formatPrice(item.product.price)}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <button
                       onClick={() => updateItem(item.id, Math.max(1, item.quantity - 1))}
@@ -64,7 +66,7 @@ export default function CartDrawer() {
           <div className="p-4 border-t border-[var(--color-line)] space-y-3">
             <div className="flex justify-between text-sm">
               <span>Subtotal</span>
-              <span className="font-bold">{formatKES(cart.total)}</span>
+              <span className="font-bold">{formatPrice(cart.total)}</span>
             </div>
             <Link
               href="/checkout"

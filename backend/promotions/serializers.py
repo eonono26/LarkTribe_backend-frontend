@@ -1,12 +1,34 @@
 from rest_framework import serializers
 from orders.models import Coupon
-from .models import Campaign, ShowcaseVideo
+from .models import Campaign, ShowcaseVideo, CouponClaim
 
 
 class CouponSerializer(serializers.ModelSerializer):
     class Meta:
         model = Coupon
-        fields = ["id", "code", "percent_off", "amount_off", "active", "valid_until"]
+        fields = ["id", "code", "percent_off", "amount_off", "active", "valid_until", "is_public"]
+
+
+class CouponWalletSerializer(serializers.ModelSerializer):
+    """Public coupon list for the 'My Coupons' page — flags whether the
+    requesting user has already saved each one."""
+    saved = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Coupon
+        fields = ["id", "code", "percent_off", "amount_off", "valid_until", "saved"]
+
+    def get_saved(self, obj):
+        claimed_ids = self.context.get("claimed_ids", set())
+        return obj.id in claimed_ids
+
+
+class CouponClaimSerializer(serializers.ModelSerializer):
+    coupon = CouponSerializer(read_only=True)
+
+    class Meta:
+        model = CouponClaim
+        fields = ["id", "coupon", "claimed_at", "used_at"]
 
 
 class CampaignSerializer(serializers.ModelSerializer):

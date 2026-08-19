@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, formatKES } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useLocalization } from "@/lib/localization-context";
+import LiveDeliveryTracker from "@/components/LiveDeliveryTracker";
 
 interface OrderItem {
   id: number;
@@ -27,6 +29,7 @@ const STEPS = ["pending_payment", "paid", "processing", "shipped", "delivered"];
 
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
+  const { formatPrice } = useLocalization();
   const [order, setOrder] = useState<OrderData | null>(null);
   const [ticketOpen, setTicketOpen] = useState(false);
   const [ticketMessage, setTicketMessage] = useState("");
@@ -70,14 +73,14 @@ export default function OrderTrackingPage() {
         {order.items.map((item) => (
           <div key={item.id} className="flex justify-between text-sm">
             <span>{item.product_name} × {item.quantity}</span>
-            <span>{formatKES(parseFloat(item.unit_price) * item.quantity)}</span>
+            <span>{formatPrice(parseFloat(item.unit_price) * item.quantity)}</span>
           </div>
         ))}
       </div>
 
       <div className="flex justify-between font-bold pt-4 border-t border-[var(--color-line)] mt-4">
         <span>Total</span>
-        <span>{formatKES(order.total)}</span>
+        <span>{formatPrice(order.total)}</span>
       </div>
 
       <div className="mt-8 text-sm text-neutral-600 space-y-1">
@@ -86,6 +89,8 @@ export default function OrderTrackingPage() {
         <p>{order.shipping_address}, {order.shipping_city}</p>
         <p className="capitalize">Payment: {order.payment_method}</p>
       </div>
+
+      <LiveDeliveryTracker orderNumber={order.order_number} />
 
       <div className="mt-10 border-t border-[var(--color-line)] pt-6">
         {ticketSent ? (

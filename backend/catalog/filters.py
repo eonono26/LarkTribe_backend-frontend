@@ -1,5 +1,5 @@
 from django_filters import rest_framework as filters
-from django.db.models import Q
+from django.db.models import F, Q
 from .models import Product, Category, Brand, Department
 
 
@@ -32,6 +32,9 @@ class ProductFilter(filters.FilterSet):
     
     # Brand filter
     brand = filters.CharFilter(field_name="brand__slug")
+
+    # Age group filter — shopping by Kids/Teens/Baby etc, independent of department
+    age_group = filters.CharFilter(method='filter_age_group')
     
     # Discount filter
     on_sale = filters.BooleanFilter(method='filter_on_sale')
@@ -48,7 +51,7 @@ class ProductFilter(filters.FilterSet):
     class Meta:
         model = Product
         fields = [
-            'category', 'categories', 'department', 'brand', 
+            'category', 'categories', 'department', 'brand', 'age_group',
             'price_min', 'price_max', 'rating_min', 'rating_max',
             'in_stock', 'low_stock', 'on_sale', 'is_featured',
             'created_after', 'created_before', 'q'
@@ -81,7 +84,7 @@ class ProductFilter(filters.FilterSet):
     def filter_on_sale(self, queryset, name, value):
         """Filter products with discount (compare_at_price > price)"""
         if value:
-            return queryset.exclude(compare_at_price__isnull=True).exclude(compare_at_price__lte=filters.F('price'))
+            return queryset.exclude(compare_at_price__isnull=True).exclude(compare_at_price__lte=F('price'))
         return queryset
     
     def filter_price_range(self, queryset, name, value):
@@ -94,6 +97,12 @@ class ProductFilter(filters.FilterSet):
                 queryset = queryset.filter(price__lte=float(max_price))
         except (ValueError, TypeError):
             pass
+        return queryset
+
+    def filter_age_group(self, queryset, name, value):
+        """Filter products tagged for a given age group slug, e.g. 'kids'."""
+        if value:
+            return queryset.filter(age_groups__slug=value).distinct()
         return queryset
 
 

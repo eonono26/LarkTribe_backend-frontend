@@ -58,10 +58,10 @@ function VideoTile({ item }: { item: ShowcaseVideoItem }) {
         {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
       </button>
 
-      <div className="absolute bottom-0 left-0 right-0 p-4">
+      {/* <div className="absolute bottom-0 left-0 right-0 p-4">
         <p className="text-white font-display font-bold text-lg drop-shadow-md line-clamp-2">{item.title}</p>
         <span className="text-white/90 text-sm font-semibold underline">{item.cta_label || "Shop now"}</span>
-      </div>
+      </div> */}
     </Link>
   );
 }
@@ -74,12 +74,12 @@ export default function VideoShowcase({ videos }: { videos: ShowcaseVideoItem[] 
   if (items.length === 0) return null;
 
   return (
-    <section className="container-shell mt-14">
-      <div className="flex items-baseline justify-between mb-5 px-4 sm:px-6 lg:px-8">
+    <section className="container-shell mt-3">
+      <div className="flex items-baseline justify-between mb-5">
         <h2 className="font-display text-2xl font-bold">Watch & shop</h2>
-        <span className="text-sm text-neutral-500">Tap a video to browse the look</span>
+        {/* <span className="text-sm text-neutral-500">Tap a video to browse the look</span> */}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {items.map((item) => (
           <VideoTile key={item.id} item={item} />
         ))}

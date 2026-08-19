@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AccountNav from "@/components/AccountNav";
-import { api, formatKES } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useLocalization } from "@/lib/localization-context";
 import { isLoggedIn } from "@/lib/auth";
 
 interface OrderRow {
@@ -16,6 +17,7 @@ interface OrderRow {
 
 export default function MyOrdersPage() {
   const router = useRouter();
+  const { formatPrice } = useLocalization();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +51,7 @@ export default function MyOrdersPage() {
                 <p className="text-xs text-neutral-500">{new Date(o.created_at).toLocaleDateString()}</p>
               </div>
               <div className="text-right">
-                <p className="font-semibold">{formatKES(o.total)}</p>
+                <p className="font-semibold">{formatPrice(o.total)}</p>
                 <p className="text-xs uppercase tracking-wide text-neutral-500">{o.status.replace(/_/g, " ")}</p>
               </div>
             </Link>

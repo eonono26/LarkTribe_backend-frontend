@@ -55,6 +55,8 @@ class CheckoutView(views.APIView):
                 shipping_phone=data["shipping_phone"],
                 shipping_address=data["shipping_address"],
                 shipping_city=data["shipping_city"],
+                shipping_lat=data.get("shipping_lat"),
+                shipping_lng=data.get("shipping_lng"),
                 coupon_code=coupon_code,
             )
             for item in cart.items.select_related("product", "product__vendor"):

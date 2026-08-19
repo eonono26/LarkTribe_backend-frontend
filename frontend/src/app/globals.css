@@ -104,74 +104,56 @@ h6,
 
 /* category css */
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 100s linear infinite;
+}
+
 .category-marquee-wrapper {
   overflow: hidden;
-  width: 100%;
   position: relative;
 }
 
 .category-marquee-track {
   display: flex;
   width: max-content;
-  padding-inline: clamp(16px, 3vw, 32px); /* same as container-shell */
-  gap: 24px;
-  animation: categoryScroll 40s linear infinite;
 }
 
-.category-marquee-item {
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 500;
-  padding-bottom: 4px;
-  border-bottom: 2px solid transparent;
-  transition: all .2s;
-}
-
-.category-marquee-item:hover {
-  border-bottom-color: currentColor;
-}
-
-@keyframes categoryScroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* Hover pause */
-.category-marquee-wrapper:hover .category-marquee-track {
+.category-marquee-track:hover {
   animation-play-state: paused;
 }
 
-/* Hide scrollbar */
-.category-marquee-wrapper::-webkit-scrollbar {
-  display: none;
-}
-.category-marquee-wrapper {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Add this to your existing CSS */
-.category-marquee-item {
-  flex-shrink: 0;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 4px 0;
-  transition: border-color 0.2s;
-  margin-right: 24px; /* Add spacing between items */
+/* Optional: Add gradient fade on edges */
+.category-marquee-wrapper::before,
+.category-marquee-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  z-index: 2;
+  pointer-events: none;
 }
 
-/* Make sure the track has padding */
-.category-marquee-track {
-  display: flex;
-  width: fit-content;
-  animation: categoryScroll 40s linear infinite;
-  padding: 4px 16px; /* Add horizontal padding */
+.category-marquee-wrapper::before {
+  left: 0;
+  background: linear-gradient(to right, white, transparent);
 }
+
+.category-marquee-wrapper::after {
+  right: 0;
+  background: linear-gradient(to left, white, transparent);
+}
+
+
 
 
 /* Add to globals.css or a custom CSS file */

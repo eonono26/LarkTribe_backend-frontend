@@ -32,6 +32,8 @@ class Order(models.Model):
     shipping_phone = models.CharField(max_length=20)
     shipping_address = models.TextField()
     shipping_city = models.CharField(max_length=100)
+    shipping_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Dropoff coordinate captured from the delivery location picker at checkout.")
+    shipping_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     coupon_code = models.CharField(max_length=32, blank=True)
     mpesa_receipt = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -71,6 +73,10 @@ class Coupon(models.Model):
     amount_off = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     active = models.BooleanField(default=True)
     valid_until = models.DateTimeField(null=True, blank=True)
+    is_public = models.BooleanField(default=True, help_text="Shown in the customer 'My Coupons' wallet for saving.")
 
     class Meta:
         ordering = ["-id"]
+
+    def __str__(self):
+        return self.code

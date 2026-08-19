@@ -53,6 +53,23 @@ class Campaign(models.Model):
         return self.starts_at <= now
 
 
+class CouponClaim(models.Model):
+    """A coupon a customer has saved to their 'My Coupons' wallet from the public
+    coupon list, so it's ready to apply at checkout without retyping the code."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="coupon_claims")
+    coupon = models.ForeignKey("orders.Coupon", on_delete=models.CASCADE, related_name="claims")
+    claimed_at = models.DateTimeField(auto_now_add=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ["user", "coupon"]
+        ordering = ["-claimed_at"]
+
+    def __str__(self):
+        return f"{self.user} saved {self.coupon.code}"
+
+
 class ShowcaseVideo(models.Model):
     """Standalone shoppable video content for the homepage 'Watch & shop' rail.
     Independent of DepartmentMedia/CategoryMedia — uploaded and curated on its own,

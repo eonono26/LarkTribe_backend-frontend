@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Campaign, ShowcaseVideo
+from .models import Campaign, ShowcaseVideo, CouponClaim
+
+
+@admin.register(CouponClaim)
+class CouponClaimAdmin(admin.ModelAdmin):
+    list_display = ["user", "coupon", "claimed_at", "used_at"]
+    list_filter = ["claimed_at"]
 
 
 @admin.register(Campaign)

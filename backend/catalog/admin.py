@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Count
 from .models import (
-    Department, Category, Brand, Product, ProductImage, 
-    ProductVariant, Review, Wishlist, DepartmentMedia, CategoryMedia
+    Department, Category, Brand, BrandMedia, Product, ProductImage, 
+    ProductVariant, Review, Wishlist, DepartmentMedia, CategoryMedia, 
+    AgeGroup, AgeGroupMedia  # Added AgeGroupMedia import
 )
 
 
@@ -37,16 +38,17 @@ class ProductAdmin(admin.ModelAdmin):
         'id', 'name', 'vendor', 'category', 'price', 'stock', 
         'status', 'is_featured', 'image_preview', 'rating_display'
     ]
-    list_filter = ['status', 'category__department', 'is_featured', 'vendor']
+    list_filter = ['status', 'category__department', 'age_groups', 'is_featured', 'vendor']
     search_fields = ['name', 'sku', 'vendor__store_name']
     list_editable = ['price', 'stock', 'status', 'is_featured']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at', 'rating_avg', 'rating_count']
     inlines = [ProductImageInline, ProductVariantInline]
+    filter_horizontal = ['age_groups']
     actions = ["approve_products", "reject_products"]
     fieldsets = (
         ('Basic Information', {
-            'fields': ('vendor', 'category', 'brand', 'name', 'slug', 'description')
+            'fields': ('vendor', 'category', 'brand', 'age_groups', 'name', 'slug', 'description')
         }),
         ('Pricing & Stock', {
             'fields': ('price', 'compare_at_price', 'stock', 'sku')
@@ -154,6 +156,30 @@ class DepartmentMediaInline(admin.TabularInline):
 class CategoryMediaInline(admin.TabularInline):
     """Inline editor for category media"""
     model = CategoryMedia
+    extra = 1
+    fields = ['file', 'media_type', 'alt_text', 'is_primary', 'order', 'preview']
+    readonly_fields = ['preview']
+    
+    def preview(self, obj):
+        """Show preview of media file"""
+        if obj and obj.file:
+            if obj.media_type == 'video':
+                return format_html(
+                    '<video width="100" height="100" controls><source src="{}" type="video/mp4"></video>',
+                    obj.file.url
+                )
+            else:
+                return format_html(
+                    '<img src="{}" width="100" height="100" style="object-fit:cover; border-radius:4px;" />',
+                    obj.file.url
+                )
+        return "No file"
+    preview.short_description = "Preview"
+
+
+class AgeGroupMediaInline(admin.TabularInline):
+    """Inline editor for age group media"""
+    model = AgeGroupMedia
     extra = 1
     fields = ['file', 'media_type', 'alt_text', 'is_primary', 'order', 'preview']
     readonly_fields = ['preview']
@@ -304,16 +330,218 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.products.count()
     product_count.short_description = "Products"
 
+class BrandMediaInline(admin.TabularInline):
+    """Inline for brand media in brand admin"""
+    model = BrandMedia
+    extra = 1
+    fields = ['file', 'media_type', 'alt_text', 'is_primary', 'order']
+    show_change_link = True
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'slug', 'product_count']
-    search_fields = ['name', 'slug']
+    list_display = ['id', 'brand_thumbnail', 'name', 'slug', 'product_count', 'is_active', 'created_at']
+    list_display_links = ['id', 'name']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'slug', 'description']
     prepopulated_fields = {'slug': ('name',)}
+    list_per_page = 25
+    # Add logo_preview to readonly_fields
+    readonly_fields = ['created_at', 'updated_at', 'product_count_display', 'media_count_display', 'logo_preview']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'website', 'is_active')
+        }),
+        ('Brand Identity', {
+            'fields': ('logo', 'logo_preview')  # Now this will work
+        }),
+        ('Media', {
+            'fields': ('media_count_display',)
+        }),
+        ('Statistics', {
+            'fields': ('product_count_display',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    inlines = [BrandMediaInline]
+    
+    def get_queryset(self, request):
+        """Annotate queryset with product count"""
+        queryset = super().get_queryset(request)
+        return queryset.annotate(
+            total_products=Count('products', distinct=True),
+            total_media=Count('media_files', distinct=True)
+        )
+    
+    def brand_thumbnail(self, obj):
+        """Display brand thumbnail in list view"""
+        if obj.logo:
+            return format_html(
+                '<img src="{}" width="50" height="50" style="object-fit:contain; border-radius:4px;" />',
+                obj.logo.url
+            )
+        primary_media = obj.primary_image
+        if primary_media and primary_media.file:
+            return format_html(
+                '<img src="{}" width="50" height="50" style="object-fit:contain; border-radius:4px;" />',
+                primary_media.file.url
+            )
+        return format_html(
+            '<div style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:4px;font-size:20px;color:#999;">{}</div>',
+            obj.name[0].upper() if obj.name else '?'
+        )
+    brand_thumbnail.short_description = 'Logo'
+    brand_thumbnail.allow_tags = True
+    
+    def logo_preview(self, obj):
+        """Display logo preview in detail view"""
+        if obj and obj.logo:
+            return format_html(
+                '<img src="{}" width="200" style="max-height:150px; object-fit:contain; border:1px solid #ddd; border-radius:8px; padding:8px;" />',
+                obj.logo.url
+            )
+        return format_html('<span style="color:#999;">No logo uploaded</span>')
+    logo_preview.short_description = 'Logo Preview'
+    logo_preview.allow_tags = True
     
     def product_count(self, obj):
-        return obj.products.count()
+        """Display product count in list view"""
+        return getattr(obj, 'total_products', obj.products.count())
     product_count.short_description = "Products"
+    product_count.admin_order_field = 'total_products'
+    
+    def product_count_display(self, obj):
+        """Display detailed product count in detail view"""
+        active_count = obj.products.filter(status='active').count()
+        pending_count = obj.products.filter(status='pending').count()
+        total_count = obj.products.count()
+        return format_html(
+            '<div style="display:flex; gap:12px;">'
+            '<span><strong>Total:</strong> {}</span>'
+            '<span><strong>Active:</strong> {}</span>'
+            '<span><strong>Pending:</strong> {}</span>'
+            '</div>',
+            total_count, active_count, pending_count
+        )
+    product_count_display.short_description = "Product Statistics"
+    product_count_display.allow_tags = True
+    
+    def media_count_display(self, obj):
+        """Display media count and preview in detail view"""
+        media_count = obj.media_files.count()
+        if media_count == 0:
+            return format_html('<span style="color:#999;">No media uploaded</span>')
+        
+        # Show first 4 media thumbnails
+        preview_html = '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">'
+        for media in obj.media_files.all()[:4]:
+            if media.file and media.media_type == 'image':
+                preview_html += format_html(
+                    '<img src="{}" width="80" height="80" style="object-fit:cover; border-radius:4px; border:1px solid #ddd;" />',
+                    media.file.url
+                )
+            elif media.file and media.media_type == 'video':
+                preview_html += format_html(
+                    '<div style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:4px;border:1px solid #ddd;font-size:12px;color:#666;">🎬 Video</div>'
+                )
+        if media_count > 4:
+            preview_html += format_html(
+                '<div style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border-radius:4px;border:1px solid #ddd;font-size:14px;font-weight:bold;color:#999;">+{}</div>',
+                media_count - 4
+            )
+        preview_html += '</div>'
+        
+        return format_html(
+            '<div><strong>{} media file(s)</strong>{}</div>',
+            media_count, preview_html
+        )
+    media_count_display.short_description = "Media"
+    media_count_display.allow_tags = True
+    
+    def save_model(self, request, obj, form, change):
+        """Override save to handle any custom logic"""
+        super().save_model(request, obj, form, change)
+    
+    def delete_queryset(self, request, queryset):
+        """Delete associated media files when deleting brands"""
+        for brand in queryset:
+            # Delete logo file
+            if brand.logo:
+                brand.logo.delete(save=False)
+            # Delete all media files
+            for media in brand.media_files.all():
+                if media.file:
+                    media.file.delete(save=False)
+        super().delete_queryset(request, queryset)
+        
+
+@admin.register(BrandMedia)
+class BrandMediaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'brand', 'media_preview', 'media_type', 'is_primary', 'order', 'uploaded_at']
+    list_filter = ['media_type', 'is_primary', 'brand']
+    search_fields = ['brand__name', 'alt_text']
+    list_per_page = 25
+    readonly_fields = ['uploaded_at', 'file_preview']
+    fieldsets = (
+        ('Media Information', {
+            'fields': ('brand', 'file', 'file_preview', 'media_type', 'alt_text')
+        }),
+        ('Display Settings', {
+            'fields': ('is_primary', 'order')
+        }),
+        ('Timestamps', {
+            'fields': ('uploaded_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def media_preview(self, obj):
+        """Display media preview in list view"""
+        if obj.file and obj.media_type == 'image':
+            return format_html(
+                '<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:4px;" />',
+                obj.file.url
+            )
+        elif obj.file and obj.media_type == 'video':
+            return format_html(
+                '<div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:4px;font-size:24px;">🎬</div>'
+            )
+        return format_html('<span style="color:#999;">No file</span>')
+    media_preview.short_description = 'Preview'
+    media_preview.allow_tags = True
+    
+    def file_preview(self, obj):
+        """Display file preview in detail view"""
+        if obj.file and obj.media_type == 'image':
+            return format_html(
+                '<img src="{}" width="300" style="max-height:300px; object-fit:contain; border:1px solid #ddd; border-radius:8px; padding:8px;" />',
+                obj.file.url
+            )
+        elif obj.file and obj.media_type == 'video':
+            return format_html(
+                '<video width="300" controls style="border-radius:8px; border:1px solid #ddd;">'
+                '<source src="{}" type="video/mp4">'
+                'Your browser does not support the video tag.'
+                '</video>',
+                obj.file.url
+            )
+        return format_html('<span style="color:#999;">No file uploaded</span>')
+    file_preview.short_description = 'Preview'
+    file_preview.allow_tags = True
+    
+    def save_model(self, request, obj, form, change):
+        """If this media is set as primary, unset others"""
+        if obj.is_primary:
+            BrandMedia.objects.filter(brand=obj.brand).exclude(id=obj.id).update(is_primary=False)
+        super().save_model(request, obj, form, change)
+    
+    def delete_model(self, request, obj):
+        """Delete the file when deleting the model"""
+        if obj.file:
+            obj.file.delete(save=False)
+        super().delete_model(request, obj)
 
 
 @admin.register(Review)
@@ -336,3 +564,37 @@ class WishlistAdmin(admin.ModelAdmin):
     list_filter = ['created_at']
     search_fields = ['user__email', 'product__name']
     readonly_fields = ['created_at']
+
+
+@admin.register(AgeGroup)
+class AgeGroupAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'icon', 'min_age_years', 'max_age_years', 'order', 'is_active', 'media_count_display', 'product_count']
+    list_editable = ['icon', 'order', 'is_active']
+    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ['name', 'slug']
+    list_filter = ['is_active']
+    inlines = [AgeGroupMediaInline]
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'icon', 'order', 'is_active')
+        }),
+        ('Age Range', {
+            'fields': ('min_age_years', 'max_age_years'),
+            'description': 'Set age range in years. Leave blank for no limit.'
+        }),
+    )
+
+    def media_count_display(self, obj):
+        """Display number of media files"""
+        count = obj.media_files.count()
+        color = '#2b6cb0' if count > 0 else '#a0aec0'
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">📷 {}</span>',
+            color,
+            count
+        )
+    media_count_display.short_description = "Media Files"
+
+    def product_count(self, obj):
+        return obj.products.count()
+    product_count.short_description = "Products"
