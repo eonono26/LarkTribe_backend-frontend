@@ -10,13 +10,13 @@ export default function VendorPage() {
       <div className="flex gap-3">
         <Link
           href="/vendor/apply"
-          className="inline-block bg-[var(--color-signal)] text-[var(--color-ink)] font-bold uppercase text-sm tracking-wide px-6 py-3 rounded-full"
+          className="btn btn-signal"
         >
           Apply to sell
         </Link>
         <Link
           href="/vendor/login"
-          className="inline-block bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full"
+          className="btn btn-ink"
         >
           Vendor dashboard
         </Link>

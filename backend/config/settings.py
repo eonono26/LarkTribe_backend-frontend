@@ -130,5 +130,3 @@ MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "")
 MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY", "")
 MPESA_ENV = os.environ.get("MPESA_ENV", "sandbox")
 
-
-#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

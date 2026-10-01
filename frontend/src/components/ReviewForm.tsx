@@ -5,7 +5,7 @@ import { Star } from "lucide-react";
 import { api } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 
-export default function ReviewForm({ productId, onSubmitted }: { productId: number; onSubmitted?: () => void }) {
+export default function ReviewForm({ productId, onSubmitted }: { productId: number | string; onSubmitted?: () => void }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
@@ -56,7 +56,7 @@ export default function ReviewForm({ productId, onSubmitted }: { productId: numb
       {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
       <button
         disabled={saving}
-        className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase tracking-wide px-5 py-2.5 rounded-full disabled:opacity-40"
+        className="btn btn-ink btn-sm"
       >
         {saving ? "Submitting…" : "Submit review"}
       </button>

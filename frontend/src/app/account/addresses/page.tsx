@@ -207,7 +207,7 @@ export default function AddressesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-[var(--color-signal)] text-[var(--color-ink)] font-bold uppercase tracking-wide px-6 py-3 rounded-full text-sm disabled:opacity-40"
+                  className="btn btn-signal btn-sm"
                 >
                   {saving ? "Saving…" : "Save address"}
                 </button>

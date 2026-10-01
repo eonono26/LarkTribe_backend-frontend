@@ -11,7 +11,7 @@ interface CartContextValue {
   drawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
-  addItem: (productId: number, quantity?: number) => Promise<void>;
+  addItem: (productId: number | string, quantity?: number, variantId?: number | string | null) => Promise<void>;
   updateItem: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   refresh: () => Promise<void>;
@@ -39,8 +39,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
-  const addItem = useCallback(async (productId: number, quantity = 1) => {
-    const c = await api.addToCart(productId, quantity);
+  const addItem = useCallback(async (productId: number | string, quantity = 1, variantId?: number | string | null) => {
+    const c = await api.addToCart(productId, quantity, variantId);
     setCart(c);
     setDrawerOpen(true);
   }, []);

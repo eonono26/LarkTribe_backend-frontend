@@ -1,44 +1,33 @@
+import Link from "next/link";
 import { api } from "@/lib/api";
-import CategoryCard from "@/components/CategoryCard";
-import type { Category } from "@/lib/types";
+import type { Department } from "@/lib/types";
+
+const FALLBACK: Record<string, string> = {
+  women: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070&auto=format&fit=crop",
+  men: "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?q=80&w=2071&auto=format&fit=crop",
+  baby: "https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=2070&auto=format&fit=crop",
+  kids: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=2070&auto=format&fit=crop",
+};
 
 export default async function CategoriesPage() {
-  const categoriesData = await api.categories({ page_size: "100" }).catch(() => ({ results: [] as Category[], count: 0 }));
-  const categories = categoriesData.results || [];
-
-  // Group by department so the page reads like a catalogue rather than one flat grid.
-  const byDepartment = new Map<string, { name: string; categories: Category[] }>();
-  for (const cat of categories) {
-    const key = cat.department?.slug || "other";
-    if (!byDepartment.has(key)) byDepartment.set(key, { name: cat.department?.name || "Other", categories: [] });
-    byDepartment.get(key)!.categories.push(cat);
-  }
+  const departments = await api.departments().catch(() => [] as Department[]);
 
   return (
-    <main className="container-shell py-10">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-black mb-1">Shop by category</h1>
-        {/* <p className="text-sm text-neutral-500">{categories.length} categories</p> */}
-      </div>
-
-      {categories.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-neutral-500">No categories yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {[...byDepartment.entries()].map(([slug, group]) => (
-            <section key={slug}>
-              <h2 className="font-display text-xl font-bold mb-4">{group.name}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {group.categories.map((c) => (
-                  <CategoryCard key={c.id} category={c} />
-                ))}
+    <main className="bg-white text-black font-sans min-h-screen">
+      <div className="container-shell py-12">
+        <h1 className="font-editorial text-4xl mb-10">Collections</h1>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {departments.map((d: Department) => (
+            <Link key={d.slug} href={`/shop?department=${d.slug}`} className="group relative block overflow-hidden aspect-[3/4]">
+              <img src={d.primary_image?.file_url || FALLBACK[d.slug] || FALLBACK.kids} alt={d.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition" />
+              <div className="absolute inset-0 flex items-end justify-center pb-8 text-white">
+                <h2 className="font-editorial text-2xl tracking-wide">{d.name}</h2>
               </div>
-            </section>
+            </Link>
           ))}
         </div>
-      )}
+      </div>
     </main>
   );
 }

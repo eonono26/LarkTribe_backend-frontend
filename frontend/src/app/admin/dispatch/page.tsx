@@ -128,7 +128,7 @@ export default function AdminDispatchPage() {
                         <button
                           onClick={() => assign(d.id)}
                           disabled={!pickedDriver[d.id] || assigning === d.id}
-                          className="bg-[var(--color-ink)] text-white text-xs font-semibold px-3 py-1.5 rounded-full disabled:opacity-40"
+                          className="btn btn-ink btn-sm"
                         >
                           {assigning === d.id ? "…" : "Assign"}
                         </button>

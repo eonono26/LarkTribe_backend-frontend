@@ -55,6 +55,19 @@ export interface VendorProduct {
   sku: string;
   status: string;
   images?: VendorProductImage[];
+  // Shopping flow: Kids -> Baby -> Boys/Girls -> Age -> Category.
+  // Gender and age_groups are filters on the product itself — never
+  // separate categories (no "Baby Girls" category, etc).
+  gender: "girls" | "boys" | "unisex";
+  age_groups: number[];
+}
+
+export interface VendorAgeGroup {
+  id: number;
+  name: string;
+  slug: string;
+  stage: "baby" | "kids" | "teens";
+  stage_display?: string;
 }
 
 export interface VendorOrderItem {
@@ -108,6 +121,7 @@ export const vendorApi = {
       body: JSON.stringify({ fulfillment_status }),
     }),
   categories: () => authedRequest<{ results: { id: number; name: string; department: { name: string } }[] }>("/catalog/categories/"),
+  ageGroups: () => authedRequest<VendorAgeGroup[]>("/catalog/age-groups/"),
   salesDashboard: () => authedRequest("/vendors/sales-dashboard/"),
   pricingSuggestions: () => authedRequest("/ai/vendor/pricing-suggestions/"),
   demandForecast: () => authedRequest("/ai/vendor/demand-forecast/"),

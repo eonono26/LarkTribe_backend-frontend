@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
         {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
         <button
           disabled={loading}
-          className="w-full bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide py-3.5 rounded-full disabled:opacity-40"
+          className="btn btn-ink btn-block"
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>

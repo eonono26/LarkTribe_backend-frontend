@@ -134,20 +134,24 @@ export default function AccountProfilePage() {
   }
 
   return (
-    <main className="container-shell py-10 max-w-2xl">
-      <h1 className="font-display text-2xl font-black mb-1">My account</h1>
-      <p className="text-sm text-neutral-500 mb-6">
+    <main className="bg-stone-50 text-espresso pt-20 font-sans min-h-screen">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      <span className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Lark Tribe</span>
+      <h1 className="font-editorial text-3xl sm:text-4xl text-espresso mb-1">
+        {user ? `${user.first_name || user.username}` : "My Account"}
+      </h1>
+      <p className="text-sm text-stone-500 mb-6">
         {user ? `@${user.username}` : "\u00A0"}
       </p>
       <AccountNav />
 
       {loading ? (
-        <p className="text-neutral-400">Loading…</p>
+        <p className="text-stone-400">Loading…</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
           {/* Profile Picture Section */}
-          <div className="flex items-center gap-4 p-4 bg-[var(--color-mist)] rounded-lg">
-            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-neutral-200 flex-shrink-0">
+          <div className="flex items-center gap-4 p-5 bg-stone-100 rounded-xl">
+            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-stone-200 flex-shrink-0">
               {profilePicturePreview ? (
                 <Image
                   src={profilePicturePreview}
@@ -156,7 +160,7 @@ export default function AccountProfilePage() {
                   className="object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-2xl text-neutral-400">
+                <div className="w-full h-full flex items-center justify-center font-editorial text-2xl text-stone-400">
                   {user?.first_name?.[0] || user?.username?.[0] || "?"}
                 </div>
               )}
@@ -166,7 +170,7 @@ export default function AccountProfilePage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-sm bg-white px-4 py-1.5 rounded-full border border-neutral-200 hover:bg-neutral-50"
+                  className="text-xs uppercase tracking-wider bg-white px-4 py-1.5 rounded-full border border-stone-300 hover:border-espresso transition"
                 >
                   Upload
                 </button>
@@ -175,14 +179,14 @@ export default function AccountProfilePage() {
                     <button
                       type="button"
                       onClick={handleRemoveProfilePicture}
-                      className="text-sm text-neutral-500 px-4 py-1.5 rounded-full border border-neutral-200 hover:bg-neutral-50"
+                      className="text-xs uppercase tracking-wider text-stone-500 px-4 py-1.5 rounded-full border border-stone-300 hover:border-espresso transition"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleDeleteProfilePicture}
-                      className="text-sm text-red-600 px-4 py-1.5 rounded-full border border-red-200 hover:bg-red-50"
+                      className="text-xs uppercase tracking-wider text-terracotta px-4 py-1.5 rounded-full border border-terracotta/40 hover:bg-terracotta/5 transition"
                     >
                       Remove
                     </button>
@@ -196,7 +200,7 @@ export default function AccountProfilePage() {
                 onChange={handleProfilePictureChange}
                 className="hidden"
               />
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-stone-400">
                 {profilePicture ? "New photo selected" : "JPG, PNG or WEBP, max 5MB"}
               </p>
             </div>
@@ -207,13 +211,13 @@ export default function AccountProfilePage() {
               placeholder="First name"
               value={form.first_name}
               onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-              className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+              className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none focus:bg-stone-50 focus:ring-1 focus:ring-espresso text-sm"
             />
             <input
               placeholder="Last name"
               value={form.last_name}
               onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-              className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+              className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none focus:bg-stone-50 focus:ring-1 focus:ring-espresso text-sm"
             />
           </div>
           <input
@@ -221,36 +225,36 @@ export default function AccountProfilePage() {
             placeholder="Email address"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+            className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none focus:bg-stone-50 focus:ring-1 focus:ring-espresso text-sm"
           />
           <input
             placeholder="Phone number"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+            className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none focus:bg-stone-50 focus:ring-1 focus:ring-espresso text-sm"
           />
 
           {/* Preferences */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div>
-              <label className="text-xs text-neutral-500 block mb-1">Currency</label>
+              <label className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Currency</label>
               <select
                 value={form.preferred_currency}
                 onChange={(e) => setForm({ ...form, preferred_currency: e.target.value })}
-                className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+                className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none text-sm"
               >
                 <option value="KES">KES - Kenyan Shilling</option>
-                <option value="USD">USD - US Dollar</option>
+                {/* <option value="USD">USD - US Dollar</option>
                 <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
+                <option value="GBP">GBP - British Pound</option> */}
               </select>
             </div>
             <div>
-              <label className="text-xs text-neutral-500 block mb-1">Language</label>
+              <label className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Language</label>
               <select
                 value={form.preferred_language}
                 onChange={(e) => setForm({ ...form, preferred_language: e.target.value })}
-                className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+                className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none text-sm"
               >
                 <option value="en">English</option>
                 <option value="sw">Swahili</option>
@@ -258,26 +262,27 @@ export default function AccountProfilePage() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
-          {saved && <p className="text-sm text-green-700">Saved.</p>}
+          {error && <p className="text-sm text-terracotta">{error}</p>}
+          {saved && <p className="text-sm text-emerald-700">Saved.</p>}
 
-          <div className="flex items-center gap-4 pt-2">
+          <div className="flex items-center gap-6 pt-3">
             <button
               disabled={saving}
-              className="bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full disabled:opacity-40"
+              className="px-8 py-3.5 bg-espresso text-stone-50 hover:bg-stone-900 disabled:opacity-40 text-xs uppercase tracking-widest font-semibold transition"
             >
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? "Saving…" : "Save Changes"}
             </button>
             <button
               type="button"
               onClick={handleLogout}
-              className="text-sm font-semibold text-neutral-500 hover:text-[var(--color-flag)]"
+              className="text-xs uppercase tracking-widest text-stone-500 hover:text-terracotta transition"
             >
-              Log out
+              Log Out
             </button>
           </div>
         </form>
       )}
+      </div>
     </main>
   );
 }

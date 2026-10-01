@@ -41,11 +41,11 @@ export default function ChatbotWidget() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <div className="fixed bottom-20 lg:bottom-5 right-5 z-50 font-sans">
       {open && (
-        <div className="mb-3 w-[90vw] max-w-sm h-[28rem] bg-white border border-[var(--color-line)] rounded-xl shadow-2xl flex flex-col overflow-hidden">
-          <div className="bg-[var(--color-ink)] text-white px-4 py-3 flex items-center justify-between">
-            <span className="font-display font-bold text-sm">larktribe assistant</span>
+        <div className="mb-3 w-[90vw] max-w-sm h-[28rem] bg-stone-50 border border-stone-200 rounded-xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="bg-stone-900 text-stone-100 px-4 py-3 flex items-center justify-between">
+            <span className="font-editorial text-lg tracking-wide">Lark Tribe Concierge</span>
             <button onClick={() => setOpen(false)} aria-label="Close chat"><X size={18} /></button>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
@@ -53,7 +53,7 @@ export default function ChatbotWidget() {
               <div key={i} className={m.sender === "user" ? "text-right" : "text-left"}>
                 <span
                   className={`inline-block px-3 py-2 rounded-lg max-w-[85%] ${
-                    m.sender === "user" ? "bg-[var(--color-signal)]" : "bg-[var(--color-mist)]"
+                    m.sender === "user" ? "bg-stone-900 text-stone-50" : "bg-stone-200 text-espresso"
                   }`}
                 >
                   {m.text}
@@ -70,15 +70,15 @@ export default function ChatbotWidget() {
               </div>
             ))}
           </div>
-          <div className="border-t border-[var(--color-line)] p-2 flex gap-2">
+          <div className="border-t border-stone-200 p-2 flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Ask about products, orders, returns…"
-              className="flex-1 bg-[var(--color-mist)] rounded-full px-4 py-2 text-sm outline-none"
+              className="flex-1 bg-stone-100 rounded-full px-4 py-2 text-sm outline-none"
             />
-            <button onClick={send} disabled={sending} aria-label="Send" className="bg-[var(--color-ink)] text-white rounded-full p-2 disabled:opacity-40">
+            <button onClick={send} disabled={sending} aria-label="Send" className="bg-stone-900 text-stone-50 rounded-full p-2 disabled:opacity-40">
               <Send size={16} />
             </button>
           </div>
@@ -86,10 +86,10 @@ export default function ChatbotWidget() {
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Open shopping assistant"
-        className="bg-[var(--color-ink)] text-white rounded-full p-4 shadow-xl hover:opacity-90"
+        aria-label="Open Client Live Chat"
+        className="bg-stone-900 hover:bg-black text-stone-100 p-3.5 rounded-full shadow-xl hover:shadow-2xl transition-all duration-200"
       >
-        {open ? <X size={22} /> : <MessageCircle size={22} />}
+        {open ? <X size={20} strokeWidth={1.6} /> : <MessageCircle size={20} strokeWidth={1.6} />}
       </button>
     </div>
   );

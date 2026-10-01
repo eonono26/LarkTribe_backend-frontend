@@ -31,3 +31,21 @@ export function getInitials(name: string): string {
     .toUpperCase()
     .slice(0, 2);
 }
+
+// Shared department → brand-accent-color mapping used across the homepage,
+// shop PLP, and categories index so tiles, pills, and headers read as one
+// coherent set instead of every page inventing its own palette.
+const DEPT_ACCENTS: Record<string, string> = {
+  women: "var(--dept-women)",
+  men: "var(--dept-men)",
+  kids: "var(--dept-kids)",
+  baby: "var(--dept-kids)",
+  beauty: "var(--dept-beauty)",
+  maternity: "var(--dept-maternity)",
+  home: "var(--dept-home)",
+};
+
+export function deptAccent(slug?: string | null): string {
+  if (!slug) return "var(--color-accent)";
+  return DEPT_ACCENTS[slug] || "var(--color-accent)";
+}

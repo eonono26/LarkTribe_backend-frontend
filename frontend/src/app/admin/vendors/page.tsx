@@ -112,7 +112,7 @@ export default function AdminVendorsPage() {
                 {v.status !== "approved" && (
                   <button
                     onClick={() => approve(v.id)}
-                    className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase px-4 py-2 rounded-full"
+                    className="btn btn-ink btn-sm"
                   >
                     Approve
                   </button>

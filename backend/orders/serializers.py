@@ -1,11 +1,33 @@
 from rest_framework import serializers
+from catalog.utils import image_for_color
 from .models import Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_image = serializers.SerializerMethodField()
+    product_slug = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "product_name", "unit_price", "quantity", "subtotal", "fulfillment_status"]
+        fields = [
+            "id", "product", "product_name", "product_image", "product_slug",
+            "variant", "variant_label",
+            "unit_price", "quantity", "subtotal", "fulfillment_status",
+        ]
+
+    def get_product_image(self, obj):
+        if not obj.product:
+            return None
+        # Prefer the live variant's color; if the variant was later deleted,
+        # fall back to the "Color / Size" snapshot taken at purchase time.
+        if obj.variant:
+            color = obj.variant.color
+        else:
+            color = (obj.variant_label or "").split(" / ")[0]
+        return image_for_color(obj.product, color, self.context.get("request"))
+
+    def get_product_slug(self, obj):
+        return obj.product.slug if obj.product else None
 
 
 class VendorOrderItemSerializer(serializers.ModelSerializer):
@@ -19,6 +41,7 @@ class VendorOrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = [
             "id", "product", "product_name", "unit_price", "quantity", "subtotal",
+            "variant_label",
             "fulfillment_status", "order_number", "order_created_at", "shipping_name", "shipping_city",
         ]
         read_only_fields = ["id", "product", "product_name", "unit_price", "quantity", "subtotal"]
@@ -31,7 +54,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             "id", "order_number", "status", "payment_method", "subtotal", "shipping_fee",
-            "discount_total", "total", "shipping_name", "shipping_phone", "shipping_address",
+            "discount_total", "member_discount_total", "total", "shipping_name", "shipping_phone", "shipping_address",
             "shipping_city", "shipping_lat", "shipping_lng", "coupon_code", "guest_email", "items", "created_at",
         ]
         read_only_fields = ["order_number", "status", "subtotal", "total", "items", "created_at"]

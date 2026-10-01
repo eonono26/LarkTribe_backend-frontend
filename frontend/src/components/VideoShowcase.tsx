@@ -45,7 +45,7 @@ function VideoTile({ item }: { item: ShowcaseVideoItem }) {
       {!playing && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-black/50 rounded-full p-3 backdrop-blur-sm">
-            <Play size={24} className="text-white fill-white" />
+            {/* <Play size={24} className="text-white fill-white" /> */}
           </div>
         </div>
       )}
@@ -69,17 +69,13 @@ function VideoTile({ item }: { item: ShowcaseVideoItem }) {
 export default function VideoShowcase({ videos }: { videos: ShowcaseVideoItem[] }) {
   const items = videos
     .filter((v) => v.video_url)
-    .slice(-4); // Get only the last 4 videos
+    .slice(0, 3); // Three videos, one row
 
   if (items.length === 0) return null;
 
   return (
-    <section className="container-shell mt-3">
-      <div className="flex items-baseline justify-between mb-5">
-        <h2 className="font-display text-2xl font-bold">Watch & shop</h2>
-        {/* <span className="text-sm text-neutral-500">Tap a video to browse the look</span> */}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
         {items.map((item) => (
           <VideoTile key={item.id} item={item} />
         ))}

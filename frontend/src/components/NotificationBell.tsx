@@ -32,7 +32,7 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       <button aria-label="Notifications" onClick={() => setOpen((o) => !o)} className="relative hover:opacity-70">
-        <Bell size={22} />
+        <Bell size={24} strokeWidth={2.75}  />
         {unread > 0 && (
           <span className="absolute -top-2 -right-2 bg-[var(--color-flag)] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
             {unread}

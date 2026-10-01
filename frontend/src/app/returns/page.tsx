@@ -42,11 +42,11 @@ export default function ReturnsPage() {
           </p>
         </section>
 
-        <div className="border border-[var(--color-line)] rounded-lg p-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="surface-card p-5 flex flex-wrap items-center justify-between gap-3">
           <p className="font-semibold">Ready to start a return?</p>
           <Link
             href="/account/support?subject=Return%20request"
-            className="bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full"
+            className="btn btn-ink"
           >
             Open a return request
           </Link>

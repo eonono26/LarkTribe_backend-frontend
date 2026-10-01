@@ -1,208 +1,189 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingBag, Star, ImageOff, Plus, Check } from "lucide-react";
+import { Heart, ImageOff } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
-
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  compare_at_price?: number;
-  image?: string | null;
-  image_url?: string | null;
-  images?: any[];
-  rating_avg?: number;
-  rating_count?: number;
-  discount_percent?: number;
-  category_name?: string;
-  vendor_name?: string;
-  stock?: number;
-  status?: string;
-  colors?: string[];
-  sizes?: string[];
-  description?: string;
-}
+import { apiErrorMessage } from "@/lib/api";
+import QuickViewModal from "@/components/QuickViewModal";
+import ColorSwatch from "@/components/ColorSwatch";
+import type { ProductListItem } from "@/lib/types";
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductListItem;
   className?: string;
+}
+
+interface CardImage {
+  url: string;
+  color: string;
 }
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f8f0f0'/%3E%3Ctext x='200' y='200' font-family='Arial' font-size='16' fill='%23999' text-anchor='middle' dominant-baseline='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
 
+// Cycle interval for the "hover to see the rest of the photos" slideshow.
+const HOVER_CYCLE_MS = 1100;
+
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
-  const { addItem } = useCart();
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [hoverIndex, setHoverIndex] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const { formatPrice } = useLocalization();
-  const autoSlideInterval = useRef<NodeJS.Timeout | null>(null);
+  const { addItem } = useCart();
   const [isMobile, setIsMobile] = useState(false);
 
-  const { 
-    id, 
-    name, 
-    slug, 
-    price, 
-    compare_at_price, 
+  const {
+    id,
+    name,
+    slug,
+    price,
+    compare_at_price,
     image_url,
     image,
     images: productImages = [],
-    rating_avg = 4.5, 
-    rating_count = 0,
     discount_percent = 0,
-    category_name,
-    vendor_name,
     stock = 0,
     colors = [],
-    sizes = []
+    color_images = {},
+    color_variant_ids = {},
+    needs_size = false,
   } = product;
 
+  const numericPrice = Number(price) || 0;
+  const numericComparePrice = compare_at_price != null ? Number(compare_at_price) || 0 : null;
   const isInStock = stock > 0;
-  const discount = compare_at_price && price < compare_at_price 
-    ? Math.round(((compare_at_price - price) / compare_at_price) * 100)
+  const discount = numericComparePrice && numericPrice < numericComparePrice
+    ? Math.round(((numericComparePrice - numericPrice) / numericComparePrice) * 100)
     : discount_percent || 0;
 
-  // Extract image URL from various formats
-  const extractImageUrl = (img: any): string | null => {
+  const extractImageUrl = (img: unknown): string | null => {
     if (!img) return null;
-    
-    if (typeof img === 'string') {
-      return img.trim() || null;
+    if (typeof img === "string") return img.trim() || null;
+    if (typeof img === "object") {
+      const o = img as Record<string, unknown>;
+      if (o.image) return extractImageUrl(o.image);
+      if (typeof o.file_url === "string") return o.file_url;
+      if (typeof o.file === "string") return o.file;
+      if (typeof o.url === "string") return o.url;
     }
-    
-    if (typeof img === 'object') {
-      if (img.image) return extractImageUrl(img.image);
-      if (img.file_url) return img.file_url;
-      if (img.file) return img.file;
-      if (img.url) return img.url;
-    }
-    
     return null;
   };
 
-  // Build full URL - FIXED: Remove /api from the base URL
   const buildFullUrl = (path: string | null): string | null => {
     if (!path) return null;
-    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
-      return path;
-    }
-    // Remove /api from the base URL if present
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/api$/, '');
-    return path.startsWith('/') ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/api$/, "");
+    return path.startsWith("/") ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
   };
 
-  // Get all image URLs with full paths
-  const getImages = (): string[] => {
-    const urls: string[] = [];
-    
-    if (image_url) {
-      const url = extractImageUrl(image_url);
-      if (url) {
-        const fullUrl = buildFullUrl(url);
-        if (fullUrl) urls.push(fullUrl);
-      }
-    }
-    
-    if (image) {
-      const url = extractImageUrl(image);
-      if (url) {
-        const fullUrl = buildFullUrl(url);
-        if (fullUrl) urls.push(fullUrl);
-      }
-    }
-    
-    if (productImages && productImages.length > 0) {
-      for (const img of productImages) {
-        const url = extractImageUrl(img);
+  // Every photo this product has, each tagged with the color it shows (""
+  // for a general/untagged shot) — the single source used both for the
+  // default image and for the "hover to see the rest" slideshow.
+  const allImages = useMemo<CardImage[]>(() => {
+    const list: CardImage[] = [];
+
+    if (productImages?.length) {
+      for (const img of productImages as unknown[]) {
+        const url = buildFullUrl(extractImageUrl(img));
         if (url) {
-          const fullUrl = buildFullUrl(url);
-          if (fullUrl) urls.push(fullUrl);
+          const o = img && typeof img === "object" ? (img as Record<string, unknown>) : null;
+          const color = o && typeof o.color === "string" ? o.color : "";
+          list.push({ url, color });
         }
       }
     }
-    
-    // Remove duplicates
-    const validUrls = [...new Set(urls)].filter(url => url && url.trim() !== '');
-    
-    if (validUrls.length > 0) {
-      return validUrls;
+    if (image_url) {
+      const url = buildFullUrl(extractImageUrl(image_url));
+      if (url) list.push({ url, color: "" });
     }
-    
-    return [PLACEHOLDER_IMAGE];
-  };
+    if (image) {
+      const url = buildFullUrl(extractImageUrl(image));
+      if (url) list.push({ url, color: "" });
+    }
 
-  const images = getImages();
-  const hasMultipleImages = images.length > 1;
+    const seen = new Set<string>();
+    const deduped: CardImage[] = [];
+    for (const item of list) {
+      if (item.url && !seen.has(item.url)) {
+        seen.add(item.url);
+        deduped.push(item);
+      }
+    }
+    return deduped.length > 0 ? deduped : [{ url: PLACEHOLDER_IMAGE, color: "" }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productImages, image_url, image]);
 
-  // Check mobile
+  // Default color is the first swatch, like the reference (first swatch ring-selected on load).
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(colors[0]);
+
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    setIsMobile(window.innerWidth < 768);
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Auto-slide images - ONLY when hovering
+  // Photos for the color currently selected: that color's own shots first,
+  // then general shots — same convention as the product page gallery. Falls
+  // back to the API's color->image map, then to every photo, when a color
+  // has no dedicated photo tagged yet.
+  const galleryImages = useMemo<CardImage[]>(() => {
+    if (!selectedColor) return allImages;
+
+    const tagged = allImages.filter((i) => i.color.toLowerCase() === selectedColor.toLowerCase());
+    if (tagged.length > 0) {
+      const general = allImages.filter((i) => !i.color);
+      return [...tagged, ...general];
+    }
+
+    const mapped = color_images?.[selectedColor] ? buildFullUrl(color_images[selectedColor]) : null;
+    if (mapped) {
+      return [{ url: mapped, color: selectedColor }, ...allImages.filter((i) => i.url !== mapped)];
+    }
+
+    return allImages;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allImages, selectedColor, color_images]);
+
+  // Reset to the first photo whenever the color changes.
   useEffect(() => {
-    if (autoSlideInterval.current) {
-      clearInterval(autoSlideInterval.current);
-      autoSlideInterval.current = null;
-    }
+    setHoverIndex(0);
+  }, [selectedColor]);
 
-    const shouldSlide = hasMultipleImages && isHovering;
-    
-    if (shouldSlide) {
-      autoSlideInterval.current = setInterval(() => {
-        const nextIndex = (currentImageIndex + 1) % images.length;
-        setCurrentImageIndex(nextIndex);
-        setImageErrors(prev => ({
-          ...prev,
-          [nextIndex]: false
-        }));
-      }, 3000);
-    }
-
-    return () => {
-      if (autoSlideInterval.current) {
-        clearInterval(autoSlideInterval.current);
-        autoSlideInterval.current = null;
-      }
-    };
-  }, [isHovering, hasMultipleImages, images.length, currentImageIndex, images]);
-
-  // Reset to first image when hover ends
+  // While hovering, if this product has more than one photo for the
+  // selected color, cycle through the rest of them; revert to the first on
+  // mouse-leave.
   useEffect(() => {
-    if (!isHovering && hasMultipleImages) {
-      setCurrentImageIndex(0);
+    if (!isHovering || galleryImages.length <= 1) {
+      setHoverIndex(0);
+      return;
     }
-  }, [isHovering, hasMultipleImages]);
+    const interval = setInterval(() => {
+      setHoverIndex((i) => (i + 1) % galleryImages.length);
+    }, HOVER_CYCLE_MS);
+    return () => clearInterval(interval);
+  }, [isHovering, galleryImages.length]);
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isInStock) return;
-    
-    setIsAddingToCart(true);
-    try {
-      const productId = typeof id === 'string' ? parseInt(id, 10) : id;
-      await addItem(productId, 1);
-      setTimeout(() => setIsAddingToCart(false), 1500);
-    } catch (error) {
-      setIsAddingToCart(false);
-      console.error("Error adding to cart:", error);
-    }
-  };
+  const activeImage = galleryImages[hoverIndex] || galleryImages[0];
+  const currentImageKey = `${selectedColor || "default"}-${hoverIndex}`;
+  const hasCurrentImageError = imageErrors[currentImageKey] || false;
+  const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : activeImage?.url || PLACEHOLDER_IMAGE;
+
+  // Whether the currently selected color can be added straight to the bag
+  // (a resolvable variant, and no size to pick), vs. needing Quick View.
+  const resolvedVariantId = useMemo(() => {
+    if (colors.length === 0) return null;
+    if (!selectedColor) return null;
+    return color_variant_ids?.[selectedColor] ?? null;
+  }, [colors.length, selectedColor, color_variant_ids]);
+
+  const canQuickAdd = isInStock && !needs_size && (colors.length === 0 || resolvedVariantId != null);
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -210,223 +191,157 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     setIsWishlisted(!isWishlisted);
   };
 
-  const handleImageError = (index: number) => {
-    console.error(`[ProductCard ${id}] Image ${index} failed to load:`, images[index]);
-    setImageErrors(prev => ({
-      ...prev,
-      [index]: true
-    }));
+  const handleColorSelect = (e: React.MouseEvent, color: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedColor(color);
+    setAddError(null);
   };
 
-  const hasCurrentImageError = imageErrors[currentImageIndex] || false;
-  const displayImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : images[currentImageIndex] || PLACEHOLDER_IMAGE;
+  const handleImageError = () => {
+    setImageErrors((prev) => ({ ...prev, [currentImageKey]: true }));
+  };
+
+  // Center overlay button: adds the selected color straight to the bag when
+  // possible (no size to choose), otherwise opens Quick View so the shopper
+  // can pick a size — mirrors the backend's needs_size/color_variant_ids hint.
+  async function handlePrimaryAction(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canQuickAdd) {
+      setShowQuickView(true);
+      return;
+    }
+    setAdding(true);
+    setAddError(null);
+    try {
+      await addItem(id, 1, resolvedVariantId);
+    } catch (err) {
+      setAddError(apiErrorMessage(err, "Couldn't add this to your bag."));
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
-    <div 
-      className={`
-        group relative bg-white rounded-xl overflow-hidden 
-        shadow-sm hover:shadow-lg transition-all duration-300
-        border border-gray-100 hover:border-[#c96e6e]/20
-        ${className}
-      `}
+    <div
+      className={`group relative bg-white border border-stone-200 ${className}`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      {/* Image Container */}
-      <div className="relative w-full aspect-square bg-[#f8f0f0] overflow-hidden">
-        <Link href={`/product/${slug}`} className="block w-full h-full">
-          {/* Main Image */}
+      <Link href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`} className="block">
+        {/* Image */}
+        <div className="relative w-full aspect-square bg-stone-50 overflow-hidden">
           {!hasCurrentImageError ? (
             <Image
-              key={`${id}-${currentImageIndex}`}
-              src={displayImage}
+              key={currentImageKey}
+              src={finalImage}
               alt={name}
               fill
-              className={`
-                object-cover transition-all duration-700 ease-in-out
-                ${isHovering ? 'scale-105' : 'scale-100'}
-              `}
+              className="object-cover transition-opacity duration-300"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              priority={currentImageIndex === 0}
-              onError={() => handleImageError(currentImageIndex)}
-              unoptimized={displayImage.startsWith('data:')}
-              onLoad={() => {
-                if (imageErrors[currentImageIndex]) {
-                  setImageErrors(prev => ({
-                    ...prev,
-                    [currentImageIndex]: false
-                  }));
-                }
-              }}
+              onError={handleImageError}
+              unoptimized={finalImage.startsWith("data:")}
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
-              <ImageOff size={32} className="mb-1 opacity-50" />
-              <span className="text-[10px]">No Image</span>
+            <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
+              <ImageOff size={28} className="mb-1 opacity-50" />
+              <span className="text-xs">No image</span>
             </div>
           )}
 
-          {/* Out of Stock Overlay */}
-          {!isInStock && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <span className="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm">
-                Out of Stock
-              </span>
-            </div>
-          )}
-
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-0.5">
-            {discount > 0 && (
-              <span className="px-2 py-0.5 bg-[#e74c3c] text-white text-[9px] font-bold rounded-full uppercase tracking-wider">
-                -{discount}%
-              </span>
-            )}
-            {!isInStock && (
-              <span className="px-2 py-0.5 bg-gray-600 text-white text-[9px] font-bold rounded-full uppercase tracking-wider">
-                Sold Out
-              </span>
-            )}
-          </div>
-
-          {/* Progress dots - only show when hovering */}
-          {hasMultipleImages && isHovering && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {images.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setCurrentImageIndex(idx);
-                    setImageErrors(prev => ({
-                      ...prev,
-                      [idx]: false
-                    }));
-                  }}
-                  className={`
-                    h-1 rounded-full transition-all duration-300 cursor-pointer
-                    ${idx === currentImageIndex 
-                      ? 'w-4 bg-white' 
-                      : 'w-1.5 bg-white/50 hover:bg-white/80'
-                    }
-                  `}
-                  aria-label={`Go to image ${idx + 1}`}
+          {/* Dots — only when hovering has more than one photo to cycle through */}
+          {isHovering && galleryImages.length > 1 && (
+            <div className="absolute bottom-2 inset-x-0 flex items-center justify-center gap-1">
+              {galleryImages.map((_, i) => (
+                <span
+                  key={i}
+                  className={`h-1 w-1 rounded-full transition-colors ${i === hoverIndex ? "bg-espresso" : "bg-white/80"}`}
                 />
               ))}
             </div>
           )}
 
-          {/* Wishlist Button */}
+          {!isInStock && (
+            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+              <span className="text-espresso text-xs uppercase tracking-widest">Sold out</span>
+            </div>
+          )}
+
+          {discount > 0 && isInStock && (
+            <span className="absolute top-2.5 left-2.5 text-[10px] uppercase tracking-wider text-espresso">
+              -{discount}%
+            </span>
+          )}
+
           <button
             onClick={handleWishlist}
-            className={`
-              absolute top-2 right-2 bg-white hover:bg-[#f8e8e8] text-gray-600 hover:text-[#c96e6e] rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110
-              ${isHovering ? 'opacity-100' : 'opacity-0'}
-            `}
+            className={`absolute top-2.5 right-2.5 text-espresso transition-opacity ${
+              isHovering || isMobile ? "opacity-100" : "opacity-0"
+            }`}
             aria-label="Add to wishlist"
           >
-            <Heart size={15} className={isWishlisted ? 'fill-[#c96e6e] text-[#c96e6e]' : ''} />
+            <Heart size={16} className={isWishlisted ? "fill-espresso" : ""} />
           </button>
-        </Link>
-      </div>
 
-      {/* Product Info */}
-      <div className="p-2.5 space-y-0.5">
-        <Link href={`/product/${slug}`} className="block">
-          <div className="flex items-center gap-1 text-[8px] uppercase tracking-wider text-gray-400 font-medium truncate">
-            {vendor_name && <span className="truncate">{vendor_name}</span>}
-            {vendor_name && category_name && <span className="text-gray-300">•</span>}
-            {category_name && <span className="truncate">{category_name}</span>}
-          </div>
-
-          <h3 className="text-[11px] font-medium text-gray-800 line-clamp-1 hover:text-[#c96e6e] transition-colors">
-            {name}
-          </h3>
-
-          {rating_count > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={10}
-                    className={`
-                      ${i < Math.floor(rating_avg) 
-                        ? 'fill-[#f5a623] text-[#f5a623]' 
-                        : 'fill-gray-200 text-gray-200'
-                      }
-                    `}
-                  />
-                ))}
-              </div>
-              <span className="text-[9px] text-gray-400">({rating_count})</span>
+          {/* Primary action — center overlay on hover: "Quick add" straight to
+              the bag when the selected color/size resolves to a real variant,
+              else "Quick view" so the shopper can finish picking options. */}
+          {isInStock && (
+            <div
+              className={`absolute inset-x-0 bottom-0 flex items-center justify-center pb-0 bg-white/0 transition-opacity duration-200 ${
+                isHovering ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={handlePrimaryAction}
+                disabled={adding}
+                className="w-full bg-white/90 py-2 text-[11px] uppercase tracking-widest text-espresso hover:bg-white transition-colors disabled:opacity-60"
+              >
+                {adding ? "Adding…" : canQuickAdd ? "Quick add" : "Quick view"}
+              </button>
             </div>
           )}
+        </div>
 
-          <div className="flex items-center justify-between mt-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-gray-900">
-                {formatPrice(price)}
-              </span>
-              {compare_at_price && compare_at_price > price && (
-                <span className="text-[9px] text-gray-400 line-through">
-                  {formatPrice(compare_at_price)}
-                </span>
-              )}
-            </div>
-            
-            {isInStock ? (
-              <button
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-                className={`
-                  rounded-full p-1 transition-all duration-300
-                  flex items-center justify-center
-                  ${isAddingToCart 
-                    ? 'bg-green-500 text-white w-6 h-6' 
-                    : 'bg-[#c96e6e] hover:bg-[#a85555] text-white hover:scale-110 w-6 h-6'
-                  }
-                  shadow-sm hover:shadow-md
-                `}
-                aria-label="Add to cart"
-              >
-                {isAddingToCart ? (
-                  <Check size={12} className="animate-in fade-in zoom-in" />
-                ) : (
-                  <Plus size={12} />
-                )}
-              </button>
-            ) : (
-              <button
-                disabled
-                className="rounded-full p-1 bg-gray-300 text-white w-6 h-6 flex items-center justify-center cursor-not-allowed"
-                aria-label="Out of stock"
-              >
-                <span className="text-[8px] font-bold">✕</span>
-              </button>
+        {/* Price + name, plain text, no card padding chrome */}
+        <div className="pt-3 flex flex-col gap-0.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm text-espresso">{formatPrice(numericPrice)}</span>
+            {numericComparePrice !== null && numericComparePrice > numericPrice && (
+              <span className="text-xs text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
             )}
           </div>
+          <h3 className="text-xs uppercase tracking-wide text-espresso line-clamp-1">{name}</h3>
+        </div>
+      </Link>
 
-          {colors && colors.length > 0 && (
-            <div className="flex items-center gap-0.5 mt-0.5">
-              {colors.slice(0, 4).map((color, index) => (
-                <div
-                  key={index}
-                  className="w-2.5 h-2.5 rounded-full border border-gray-200"
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-              ))}
-              {colors.length > 4 && (
-                <span className="text-[7px] text-gray-400 font-medium">
-                  +{colors.length - 4}
-                </span>
-              )}
-            </div>
-          )}
-        </Link>
-      </div>
+      {/* Color swatches — clicking swaps the photo above and re-resolves the variant for Quick Add */}
+      {colors.length > 0 && (
+        <div className="flex items-center gap-1.5 pt-2 pb-1">
+          {colors.map((color) => (
+            <ColorSwatch
+              key={color}
+              color={color}
+              size={16}
+              shape="round"
+              selected={selectedColor === color}
+              onClick={(e) => handleColorSelect(e, color)}
+            />
+          ))}
+        </div>
+      )}
+
+      {addError && (
+        <p role="alert" className="text-[10px] text-red-600 pt-1 pb-2">
+          {addError}
+        </p>
+      )}
+
+      {showQuickView && (
+        <QuickViewModal slug={slug} initialColor={selectedColor} onClose={() => setShowQuickView(false)} />
+      )}
     </div>
   );
 }

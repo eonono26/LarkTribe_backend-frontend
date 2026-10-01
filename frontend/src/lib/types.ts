@@ -69,26 +69,26 @@ export interface AgeGroupMedia {
   uploaded_at: string;
 }
 
-export interface AgeGroup {
-  id: number;
-  name: string;
-  slug: string;
-  min_age_years: number | null;
-  max_age_years: number | null;
-  icon: string;
-  order: number;
-  is_active: boolean;
-  media_files: AgeGroupMedia[];
-  primary_image: AgeGroupMedia | null;
-  images: AgeGroupMedia[];
-  videos: AgeGroupMedia[];
-  product_count: number;
-  created_at: string;
-}
+// export interface AgeGroup {
+//   id: number;
+//   name: string;
+//   slug: string;
+//   min_age_years: number | null;
+//   max_age_years: number | null;
+//   icon: string;
+//   order: number;
+//   is_active: boolean;
+//   media_files: AgeGroupMedia[];
+//   primary_image: AgeGroupMedia | null;
+//   images: AgeGroupMedia[];
+//   videos: AgeGroupMedia[];
+//   product_count: number;
+//   created_at: string;
+// }
 
 
 export interface ProductListItem {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   price: string;
@@ -100,11 +100,26 @@ export interface ProductListItem {
   vendor_name: string;
   is_featured: boolean;
   images: ProductImage[];
+  // colors: distinct variant colors for this product, in creation order.
+  // color_images: color -> absolute image URL, populated only for colors
+  // that have at least one color-tagged ProductImage. A color present in
+  // `colors` but missing from `color_images` has no dedicated photo yet —
+  // fall back to `image`/`image_url` for it.
+  colors: string[];
+  color_images: Record<string, string>;
+  // color -> a representative ProductVariant id for that color (preferring
+  // an in-stock one). Lets a grid card's swatches/"Quick Add" resolve a
+  // real variant without opening the full product page.
+  color_variant_ids?: Record<string, number>;
+  // True when this product comes in sizes, so grid "Quick Add" must send the
+  // shopper through Quick View to pick one instead of guessing.
+  needs_size?: boolean;
   category_name: string;
   stock: number;
   status: string;
   image_url: string | null;
   age_groups: AgeGroup[];
+  gender: "girls" | "boys" | "unisex";
   
 }
 
@@ -112,6 +127,9 @@ export interface ProductImage {
   id: number;
   image: string;
   alt_text: string;
+  // Which color variant this photo shows (matches ProductVariant.color),
+  // or "" for a general/default shot not tied to a specific color.
+  color: string;
   order: number;
 }
 
@@ -132,6 +150,12 @@ export interface Review {
 
 export interface ProductDetail extends Omit<ProductListItem, "image"> {
   description: string;
+  features?: string[];
+  // Material composition shown under "Materials & Care" on the product
+  // page, e.g. "Nylon, Rubber" — set by the vendor/admin per product.
+  materials?: string;
+  care_instructions?: string;
+  size_guide?: SizeGuide | null;
   stock: number;
   sku: string;
   status: string;
@@ -139,14 +163,29 @@ export interface ProductDetail extends Omit<ProductListItem, "image"> {
   brand: { id: number; name: string; slug: string } | null;
   images: ProductImage[];
   variants: ProductVariant[];
+  available_sizes: string[];
   reviews: Review[];
   created_at: string;
+  gender: "girls" | "boys" | "unisex";
+}
+
+export interface SizeGuide {
+  id: number;
+  name: string;
+  guide_type: "clothes" | "shoes" | "kids" | "accessories" | "other";
+  columns: string[];
+  rows: string[][];
+  notes: string;
 }
 
 export interface CartItem {
   id: number;
   product: ProductListItem;
-  variant: number | null;
+  // Full variant detail (color/size/stock) when the item was added with a
+  // specific variant selected, so the cart drawer/checkout can show it.
+  variant: ProductVariant | null;
+  // Photo of the color the shopper picked (falls back to the first photo).
+  image: string | null;
   quantity: number;
   subtotal: string;
 }
@@ -539,4 +578,34 @@ export interface PaginatedUsers {
   next: string | null;
   previous: string | null;
   results: User[];
+}
+
+
+//age group types
+// AgeGroup is age-only. It does NOT carry gender — gender lives on
+// Product (see ProductListItem/ProductDetail below). An age group belongs
+// to a "stage" (baby/kids/teens) so the frontend knows which section to
+// show it under; the Baby Boys / Baby Girls split is done with
+// Product.gender, not by duplicating age groups per gender.
+export type AgeGroupStage = "baby" | "kids" | "teens";
+
+export interface AgeGroup {
+  id: number;
+  name: string;
+  slug: string;
+  stage: AgeGroupStage;
+  stage_display?: string;
+  icon: string;
+  order: number;
+  is_active: boolean;
+  min_age_years: number | null;
+  max_age_years: number | null;
+  product_count?: number;
+  created_at?: string;
+  media_files?: AgeGroupMedia[];
+  primary_image?: AgeGroupMedia | null;
+  images?: AgeGroupMedia[];
+  videos?: AgeGroupMedia[];
+  // For backward compatibility
+  media?: AgeGroupMedia[];
 }

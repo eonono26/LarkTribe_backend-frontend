@@ -17,15 +17,15 @@ export default function AboutPage() {
           curated selection with buyer protection built in.
         </p>
         <div className="grid sm:grid-cols-3 gap-4 pt-4">
-          <div className="border border-[var(--color-line)] rounded-lg p-5">
+          <div className="surface-card p-5">
             <p className="font-display text-2xl font-black">100+</p>
             <p className="text-xs text-neutral-500 mt-1">Vendors onboarded</p>
           </div>
-          <div className="border border-[var(--color-line)] rounded-lg p-5">
+          <div className="surface-card p-5">
             <p className="font-display text-2xl font-black">6</p>
             <p className="text-xs text-neutral-500 mt-1">Product departments</p>
           </div>
-          <div className="border border-[var(--color-line)] rounded-lg p-5">
+          <div className="surface-card p-5">
             <p className="font-display text-2xl font-black">Nairobi</p>
             <p className="text-xs text-neutral-500 mt-1">Headquartered</p>
           </div>

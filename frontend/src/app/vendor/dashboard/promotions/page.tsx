@@ -109,7 +109,7 @@ export default function VendorPromotionsPage() {
         </div>
         <button
           disabled={saving}
-          className="sm:col-span-2 md:col-span-4 bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full disabled:opacity-40 w-max"
+          className="sm:col-span-2 md:col-span-4 btn btn-ink w-max"
         >
           {saving ? "Creating…" : "Create coupon"}
         </button>

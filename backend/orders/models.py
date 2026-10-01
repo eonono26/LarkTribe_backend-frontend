@@ -27,6 +27,10 @@ class Order(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    member_discount_total = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text="5% member discount applied because the order was placed while signed in, on top of any coupon."
+    )
     total = models.DecimalField(max_digits=10, decimal_places=2)
     shipping_name = models.CharField(max_length=150)
     shipping_phone = models.CharField(max_length=20)
@@ -57,6 +61,16 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT, related_name="order_items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    variant = models.ForeignKey(
+        "catalog.ProductVariant",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_items",
+    )
+    # Snapshot of the chosen size/color at purchase time, e.g. "Black / M" —
+    # kept even if the variant is later edited or deleted.
+    variant_label = models.CharField(max_length=100, blank=True)
     product_name = models.CharField(max_length=200)  # snapshot at purchase time
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()

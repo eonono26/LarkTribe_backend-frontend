@@ -2,13 +2,14 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Category } from "@/lib/types";
 
-export default function CategoryCard({ category }: { category: Category }) {
+export default function CategoryCard({ category, accent }: { category: Category; accent?: string }) {
   const imageUrl = category.primary_image?.file_url || category.images?.[0]?.file_url || null;
 
   return (
     <Link
       href={`/categories/${category.slug}`}
-      className="group bg-white border border-[var(--color-line)] rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+      className="group bg-white border border-[var(--color-line)] rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-b-4"
+      style={accent ? { borderBottomColor: accent } : undefined}
     >
       <div className="relative aspect-square w-full bg-[var(--color-mist)] overflow-hidden">
         {imageUrl ? (

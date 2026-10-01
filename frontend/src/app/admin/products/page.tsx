@@ -27,11 +27,11 @@ export default function AdminProductModerationPage() {
 
   useEffect(() => load(status), [status]);
 
-  async function approve(id: number) {
+  async function approve(id: number | string) {
     await api.adminApproveProduct(id);
     load(status);
   }
-  async function reject(id: number) {
+  async function reject(id: number | string) {
     await api.adminRejectProduct(id);
     load(status);
   }
@@ -97,7 +97,7 @@ export default function AdminProductModerationPage() {
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => approve(p.id)}
-                    className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase px-4 py-2 rounded-full"
+                    className="btn btn-ink btn-sm"
                   >
                     Approve
                   </button>

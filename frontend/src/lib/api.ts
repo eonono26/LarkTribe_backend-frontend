@@ -1,4 +1,4 @@
-import type { Cart, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor, Brand, ShowcaseVideoItem, Address, PaymentMethod, WalletCoupon, CouponClaim, AgeGroup, DeliveryTracking, DeliveryAdmin, DriverMe, DriverAdmin, User, AuthResponse, RegisterData, PhoneOTPRequest, PhoneOTPVerify, SocialAuthData } from "./types";
+import type { Cart, Category, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor, Brand, ShowcaseVideoItem, Address, PaymentMethod, WalletCoupon, CouponClaim, AgeGroup, DeliveryTracking, DeliveryAdmin, DriverMe, DriverAdmin, User, AuthResponse, RegisterData, PhoneOTPRequest, PhoneOTPVerify, SocialAuthData } from "./types";
 import { getToken } from "./auth";
 import axios from "axios";
 
@@ -38,6 +38,8 @@ export const api = {
   // ==============================================================
   // AUTHENTICATION
   // ==============================================================
+
+  home: () => request<{ hero_campaigns: Campaign[]; departments: Department[]; age_groups: AgeGroup[]; new_arrivals: ProductListItem[]; categories: Category[] }>('/catalog/home/'),
   
   auth: {
     // Register new user
@@ -80,7 +82,7 @@ export const api = {
     // Update current user
     updateMe: (data: Partial<User> | FormData) => {
       const isFormData = data instanceof FormData;
-      const headers = isFormData ? {} : { "Content-Type": "application/json" };
+      const headers: Record<string, string> = isFormData ? {} : { "Content-Type": "application/json" };
       const body = isFormData ? data : JSON.stringify(data);
       return request<User>("/auth/me/", { 
         method: "PATCH", 
@@ -154,31 +156,52 @@ export const api = {
 
   categories: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return request<Paginated<{ id: number; name: string; slug: string; department: Department }>>(`/catalog/categories/${qs ? `?${qs}` : ""}`);
+    return request<Paginated<Category>>(`/catalog/categories/${qs ? `?${qs}` : ""}`);
   },
-  ageGroups: () => request<AgeGroup[]>(`/catalog/age-groups/`),
+  // Full category tree grouped by department — Kids -> Baby -> Dresses/Tops/...
+  categoryTree: () => request<(Category["department"] & { categories: Category[] })[]>(`/catalog/categories/tree/`),
+  categorySubcategories: (id: number | string) =>
+    request<{ parent: Category; subcategories: Category[]; count: number }>(`/catalog/categories/${id}/subcategories/`),
+  categoryProducts: (id: number | string, params: Record<string, string> = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request<Paginated<ProductListItem>>(`/catalog/categories/${id}/products/${qs ? `?${qs}` : ""}`);
+  },
+
+  // Age Groups - Standard list. AgeGroup is age-only (stage: baby/kids/teens);
+  // gender is never on AgeGroup — filter products by gender separately.
+  ageGroups: (params: Record<string, string> = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request<AgeGroup[]>(`/catalog/age-groups/${qs ? `?${qs}` : ""}`);
+  },
+  // Age groups for one stage, e.g. ageGroupsByStage("baby") -> 0-3 Months, 3-6 Months, ...
+  ageGroupsByStage: (stage: "baby" | "kids" | "teens" = "baby") =>
+    request<{ stage: string; age_groups: AgeGroup[]; count: number }>(
+      `/catalog/age-groups/by-stage/?stage=${stage}`
+    ),
+  ageGroupProducts: (id: number | string, params: Record<string, string> = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request<Paginated<ProductListItem>>(`/catalog/age-groups/${id}/products/${qs ? `?${qs}` : ""}`);
+  },
+
   products: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request<Paginated<ProductListItem>>(`/catalog/products/${qs ? `?${qs}` : ""}`);
   },
+  // Convenience endpoint for the Kids -> Baby -> Boys/Girls -> Age -> Category
+  // flow: /catalog/products/baby/?gender=girls&age=6-12-months&category=dresses
+  babyProducts: (params: Record<string, string> = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request<Paginated<ProductListItem>>(`/catalog/products/baby/${qs ? `?${qs}` : ""}`);
+  },
   product: (slug: string) => request<ProductDetail>(`/catalog/products/${slug}/`),
 
   // Brands
-  // brands: (params: Record<string, string> = {}) => {
-  //   const qs = new URLSearchParams(params).toString();
-  //   return request<Paginated<Brand>>(`/catalog/brands/${qs ? `?${qs}` : ""}`);
-  // },
-  // brand: (id: number) => request<Brand>(`/catalog/brands/${id}/`),
-  // brandProducts: (id: number) =>
-  //   request<{ brand: Brand; products: ProductListItem[]; count: number }>(`/catalog/brands/${id}/products/`),
-
-
   brands: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request<Paginated<Brand>>(`/catalog/brands/${qs ? `?${qs}` : ""}`);
   },
-  brand: (id: number) => request<Brand>(`/catalog/brands/${id}/`),
-  brandProducts: (id: number) =>
+  brand: (id: number | string) => request<Brand>(`/catalog/brands/${id}/`),
+  brandProducts: (id: number | string) =>
     request<{ brand: Brand; products: ProductListItem[]; count: number }>(`/catalog/brands/${id}/products/`),
 
 
@@ -187,8 +210,11 @@ export const api = {
   // ==============================================================
 
   cart: () => request<Cart>("/cart/"),
-  addToCart: (product_id: number, quantity = 1) =>
-    request<Cart>("/cart/items/", { method: "POST", body: JSON.stringify({ product_id, quantity }) }),
+  addToCart: (product_id: number | string, quantity = 1, variant_id?: number | string | null) =>
+    request<Cart>("/cart/items/", {
+      method: "POST",
+      body: JSON.stringify({ product_id, quantity, ...(variant_id ? { variant_id } : {}) }),
+    }),
   updateCartItem: (itemId: number, quantity: number) =>
     request<Cart>(`/cart/items/${itemId}/`, { method: "PATCH", body: JSON.stringify({ quantity }) }),
   removeCartItem: (itemId: number) =>
@@ -208,7 +234,7 @@ export const api = {
   // ==============================================================
 
   wishlist: () => request<Paginated<Wishlist>>("/catalog/wishlist/"),
-  addToWishlist: (product_id: number) =>
+  addToWishlist: (product_id: number | string) =>
     request<Wishlist>("/catalog/wishlist/", { method: "POST", body: JSON.stringify({ product_id }) }),
   removeFromWishlist: (id: number) => request<void>(`/catalog/wishlist/${id}/`, { method: "DELETE" }),
 
@@ -216,8 +242,8 @@ export const api = {
   // REVIEWS
   // ==============================================================
 
-  reviews: (productId: number) => request(`/catalog/products/${productId}/reviews/`),
-  addReview: (productId: number, rating: number, comment: string) =>
+  reviews: (productId: number | string) => request(`/catalog/products/${productId}/reviews/`),
+  addReview: (productId: number | string, rating: number, comment: string) =>
     request(`/catalog/products/${productId}/reviews/`, { method: "POST", body: JSON.stringify({ rating, comment }) }),
 
   // ==============================================================
@@ -225,8 +251,8 @@ export const api = {
   // ==============================================================
 
   recommendedForYou: () => request<ProductListItem[]>(`/ai/recommended-for-you/?session_key=${sessionKey()}`),
-  similarProducts: (productId: number) => request<ProductListItem[]>(`/ai/products/${productId}/similar/`),
-  frequentlyBoughtTogether: (productId: number) => request<ProductListItem[]>(`/ai/products/${productId}/frequently-bought-together/`),
+  similarProducts: (productId: number | string) => request<ProductListItem[]>(`/ai/products/${productId}/similar/`),
+  frequentlyBoughtTogether: (productId: number | string) => request<ProductListItem[]>(`/ai/products/${productId}/frequently-bought-together/`),
   smartSearch: (q: string) => request<{ query: string; used_query: string; corrected: boolean; results: ProductListItem[] }>(`/ai/search/?q=${encodeURIComponent(q)}`),
   imageSearch: (file: File) => {
     const fd = new FormData();
@@ -352,8 +378,8 @@ export const api = {
 
   adminModerationProducts: (status = "pending") =>
     request<Paginated<ProductDetail> | ProductDetail[]>(`/catalog/admin/products/?status=${status}`),
-  adminApproveProduct: (id: number) => request(`/catalog/admin/products/${id}/approve/`, { method: "POST" }),
-  adminRejectProduct: (id: number) => request(`/catalog/admin/products/${id}/reject/`, { method: "POST" }),
+  adminApproveProduct: (id: number | string) => request(`/catalog/admin/products/${id}/approve/`, { method: "POST" }),
+  adminRejectProduct: (id: number | string) => request(`/catalog/admin/products/${id}/reject/`, { method: "POST" }),
 
   // ==============================================================
   // BEHAVIOR TRACKING
@@ -401,6 +427,30 @@ export function mediaUrl(path: string | null): string {
   if (path.startsWith("http")) return path;
   const base = API_URL.replace(/\/api$/, "");
   return `${base}${path}`;
+}
+
+/**
+ * Turns the "API 400: {...}" errors thrown by request() into a sentence a
+ * shopper can read (e.g. "Only 2 of Linen Shirt (White / M) left in stock.").
+ */
+export function apiErrorMessage(err: unknown, fallback = "Something went wrong. Please try again."): string {
+  if (err instanceof Error) {
+    const m = /^API \d+: ([\s\S]*)$/.exec(err.message);
+    if (m) {
+      try {
+        const body = JSON.parse(m[1]);
+        if (typeof body === "string") return body;
+        if (Array.isArray(body) && typeof body[0] === "string") return body[0];
+        if (body && typeof body.detail === "string") return body.detail;
+        const first = body && typeof body === "object" ? Object.values(body)[0] : null;
+        if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+        if (typeof first === "string") return first;
+      } catch {
+        // not JSON — fall through
+      }
+    }
+  }
+  return fallback;
 }
 
 export function formatKES(amount: string | number): string {

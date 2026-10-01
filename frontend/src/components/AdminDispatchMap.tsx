@@ -9,7 +9,7 @@ import type { DriverAdmin, DeliveryAdmin } from "@/lib/types";
 const driverIcon = (busy: boolean) =>
   L.divIcon({
     className: "",
-    html: `<div style="background:${busy ? "#c96e6e" : "#2f6f4f"};width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:12px;">🛵</div>`,
+    html: `<div style="background:${busy ? "var(--color-accent)" : "#2f6f4f"};width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:12px;">🛵</div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });

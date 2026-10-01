@@ -128,7 +128,7 @@ export default function CouponsPage() {
                       <button
                         onClick={() => handleClaim(c.code)}
                         disabled={claiming === c.code}
-                        className="bg-[var(--color-signal)] text-[var(--color-ink)] px-4 py-2 rounded-full text-xs font-bold uppercase shrink-0 disabled:opacity-40"
+                        className="btn btn-signal btn-sm shrink-0"
                       >
                         {claiming === c.code ? "Saving…" : "Save coupon"}
                       </button>

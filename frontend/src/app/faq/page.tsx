@@ -42,7 +42,7 @@ export default function FAQPage() {
       <h1 className="font-display text-3xl font-black mb-2">Frequently asked questions</h1>
       <p className="text-sm text-neutral-500 mb-8">Answers to the things shoppers ask us most.</p>
 
-      <div className="divide-y divide-[var(--color-line)] border-t border-b border-[var(--color-line)]">
+      <div className="divide-y divide-[var(--color-line)] surface-card px-5 sm:px-6">
         {FAQS.map((item, i) => (
           <div key={i}>
             <button

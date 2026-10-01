@@ -6,23 +6,25 @@ import Header from "@/components/Header";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
 import ChatbotWidget from "@/components/ChatbotWidget";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 export const metadata: Metadata = {
-  title: "LarkTribe — Women, Kids, Beauty & Home marketplace",
-  description: "A multi-vendor marketplace for Women, Kids, Baby, Beauty, Maternity and Home & Lifestyle products in Kenya.",
+  title: "LarkTribe — Baby, Kids, Women & Men | Kenya",
+  description: "Kenya's family fashion marketplace. Minimal, editorial, effortless.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className="antialiased bg-white text-black">
         <LocalizationProvider>
           <CartProvider>
             <Header />
-            {children}
+            <main className="min-h-[60vh]">{children}</main>
             <Footer />
             <CartDrawer />
             <ChatbotWidget />
+            <WhatsAppButton />
           </CartProvider>
         </LocalizationProvider>
       </body>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
-import { vendorApi, VendorProduct, VendorProductImage } from "@/lib/vendor-api";
+import { vendorApi, VendorProduct, VendorProductImage, VendorAgeGroup } from "@/lib/vendor-api";
 import { mediaUrl } from "@/lib/api";
 
 interface CategoryOption {
@@ -13,12 +13,20 @@ interface CategoryOption {
   department: { name: string };
 }
 
+const GENDER_OPTIONS = [
+  { value: "unisex", label: "Unisex" },
+  { value: "girls", label: "Girls" },
+  { value: "boys", label: "Boys" },
+] as const;
+
 export default function EditProductPage() {
   const params = useParams();
   const productId = Number(params.id);
   const router = useRouter();
 
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [ageGroups, setAgeGroups] = useState<VendorAgeGroup[]>([]);
+  const [selectedAgeGroups, setSelectedAgeGroups] = useState<number[]>([]);
   const [images, setImages] = useState<VendorProductImage[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [form, setForm] = useState<Partial<VendorProduct> | null>(null);
@@ -28,6 +36,7 @@ export default function EditProductPage() {
 
   useEffect(() => {
     vendorApi.categories().then((r) => setCategories(r.results));
+    vendorApi.ageGroups().then(setAgeGroups).catch(() => setAgeGroups([]));
     vendorApi
       .myProducts()
       .then((r) => {
@@ -36,10 +45,21 @@ export default function EditProductPage() {
         if (product) {
           setForm(product);
           setImages(product.images ?? []);
+          setSelectedAgeGroups(
+            Array.isArray(product.age_groups)
+              ? product.age_groups.map((ag: any) => (typeof ag === "number" ? ag : ag.id))
+              : []
+          );
         }
       })
       .finally(() => setLoading(false));
   }, [productId]);
+
+  function toggleAgeGroup(id: number) {
+    setSelectedAgeGroups((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,6 +75,8 @@ export default function EditProductPage() {
         stock: form.stock,
         sku: form.sku,
         category: form.category,
+        gender: form.gender,
+        age_groups: selectedAgeGroups,
       });
       for (let i = 0; i < newImages.length; i++) {
         await vendorApi.uploadProductImage(productId, newImages[i], images.length === 0 && i === 0);
@@ -110,6 +132,44 @@ export default function EditProductPage() {
             </option>
           ))}
         </select>
+
+        <div>
+          <label className="text-sm font-semibold block mb-1">Gender</label>
+          <select
+            value={form.gender ?? "unisex"}
+            onChange={(e) => setForm({ ...form, gender: e.target.value as VendorProduct["gender"] })}
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+          >
+            {GENDER_OPTIONS.map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {ageGroups.length > 0 && (
+          <div>
+            <label className="text-sm font-semibold block mb-1">Age groups</label>
+            <div className="flex flex-wrap gap-2">
+              {ageGroups.map((ag) => (
+                <button
+                  type="button"
+                  key={ag.id}
+                  onClick={() => toggleAgeGroup(ag.id)}
+                  className={`border rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    selectedAgeGroups.includes(ag.id)
+                      ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white"
+                      : "border-[var(--color-line)]"
+                  }`}
+                >
+                  {ag.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <input
             required
@@ -181,7 +241,7 @@ export default function EditProductPage() {
         <div className="flex gap-3">
           <button
             disabled={saving}
-            className="bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full disabled:opacity-40"
+            className="btn btn-ink"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>

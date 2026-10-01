@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from django.db import transaction
 from rest_framework import generics, permissions, views, status
 from rest_framework.response import Response
@@ -7,11 +8,17 @@ from .models import Order, OrderItem, Coupon
 from .serializers import OrderSerializer, CheckoutSerializer
 from cart.views import get_or_create_cart
 
+# Standing incentive to check out signed in rather than as a guest — shown on the
+# storefront's Member Login tab and applied here whenever request.user is authenticated.
+MEMBER_DISCOUNT_PERCENT = Decimal("5")
+
 
 class CheckoutView(views.APIView):
     """
     Guest checkout: only guest_email required, no auth.
-    Member checkout: request.user is authenticated, guest_email ignored.
+    Member checkout: request.user is authenticated, guest_email ignored, and gets
+    an automatic MEMBER_DISCOUNT_PERCENT off the subtotal — the incentive to
+    register/sign in instead of checking out as a guest.
     Mirrors the "Member Login / Guest Checkout" toggle on the storefront.
     """
     permission_classes = [permissions.AllowAny]
@@ -28,15 +35,35 @@ class CheckoutView(views.APIView):
         if not request.user.is_authenticated and not data.get("guest_email"):
             raise ValidationError("guest_email is required for guest checkout.")
 
+        # Re-check stock for the exact color/size in the bag, so something that
+        # sold out since it was added is caught here with a clear message
+        # instead of becoming an order we can't fulfil.
+        for line in cart.items.select_related("product", "variant"):
+            available = line.variant.stock if line.variant else line.product.stock
+            if line.quantity > available:
+                label = (
+                    " / ".join(filter(None, [line.variant.color, line.variant.size]))
+                    if line.variant else ""
+                )
+                name = f"{line.product.name} ({label})" if label else line.product.name
+                if available <= 0:
+                    raise ValidationError(f"{name} is now out of stock. Please remove it from your bag.")
+                raise ValidationError(f"Only {available} of {name} left. Please lower the quantity.")
+
         subtotal = cart.total
-        discount_total = 0
+        coupon_discount = Decimal("0")
         coupon_code = data.get("coupon_code", "")
         if coupon_code:
             try:
                 coupon = Coupon.objects.get(code=coupon_code, active=True)
-                discount_total = coupon.amount_off or (subtotal * coupon.percent_off / 100)
+                coupon_discount = coupon.amount_off or (subtotal * coupon.percent_off / 100)
             except Coupon.DoesNotExist:
                 raise ValidationError("Invalid coupon code.")
+
+        member_discount = (
+            (subtotal * MEMBER_DISCOUNT_PERCENT / 100) if request.user.is_authenticated else Decimal("0")
+        )
+        discount_total = coupon_discount + member_discount
 
         shipping_fee = 0 if subtotal > 5000 else 250
         total = subtotal - discount_total + shipping_fee
@@ -50,6 +77,7 @@ class CheckoutView(views.APIView):
                 subtotal=subtotal,
                 shipping_fee=shipping_fee,
                 discount_total=discount_total,
+                member_discount_total=member_discount,
                 total=total,
                 shipping_name=data["shipping_name"],
                 shipping_phone=data["shipping_phone"],
@@ -59,11 +87,16 @@ class CheckoutView(views.APIView):
                 shipping_lng=data.get("shipping_lng"),
                 coupon_code=coupon_code,
             )
-            for item in cart.items.select_related("product", "product__vendor"):
+            for item in cart.items.select_related("product", "product__vendor", "variant"):
                 OrderItem.objects.create(
                     order=order,
                     vendor=item.product.vendor,
                     product=item.product,
+                    variant=item.variant,
+                    variant_label=(
+                        " / ".join(filter(None, [item.variant.color, item.variant.size]))
+                        if item.variant else ""
+                    ),
                     product_name=item.product.name,
                     unit_price=item.product.price,
                     quantity=item.quantity,

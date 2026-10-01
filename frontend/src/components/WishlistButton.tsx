@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 import type { Wishlist } from "@/lib/types";
 
-export default function WishlistButton({ productId, size = 20 }: { productId: number; size?: number }) {
+export default function WishlistButton({ productId, size = 20 }: { productId: number | string; size?: number }) {
   const [wishlistItemId, setWishlistItemId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 

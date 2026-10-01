@@ -119,7 +119,7 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
         <div className="p-5 border-t border-[var(--color-line)]">
           <button
             onClick={() => { onSave(picked); onClose(); }}
-            className="w-full bg-[var(--color-ink)] text-[var(--color-paper)] rounded-full py-3 font-semibold"
+            className="btn btn-ink btn-block"
           >
             {t("confirmLocation")}
           </button>

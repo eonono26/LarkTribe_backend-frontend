@@ -1,20 +1,53 @@
+from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Count
 from .models import (
-    Department, Category, Brand, BrandMedia, Product, ProductImage, 
-    ProductVariant, Review, Wishlist, DepartmentMedia, CategoryMedia, 
-    AgeGroup, AgeGroupMedia  # Added AgeGroupMedia import
+    Department, Category, Brand, BrandMedia, Product, ProductImage,
+    ProductVariant, Review, Wishlist, DepartmentMedia, CategoryMedia,
+    AgeGroup, AgeGroupMedia, SizeGuide
 )
+
+
+class ProductImageForm(forms.ModelForm):
+    """Restricts the color field to colors that actually exist as
+    variants on this product, so it can never drift out of sync with
+    ProductVariant.color (e.g. 'Black' vs 'black' silently breaking
+    the storefront's color_images lookup)."""
+
+    class Meta:
+        model = ProductImage
+        fields = ['image', 'color', 'alt_text', 'order']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._set_color_choices()
+
+    def _set_color_choices(self):
+        product = getattr(self, '_parent_product', None) or getattr(self.instance, 'product', None)
+
+        colors = []
+        if product and product.pk:
+            colors = list(
+                product.variants
+                .exclude(color='')
+                .values_list('color', flat=True)
+                .distinct()
+                .order_by('color')
+            )
+
+        choices = [('', '— General / no specific color —')] + [(c, c) for c in colors]
+        self.fields['color'] = forms.ChoiceField(choices=choices, required=False)
 
 
 class ProductImageInline(admin.TabularInline):
     """Inline editor for product images"""
     model = ProductImage
+    form = ProductImageForm
     extra = 1
-    fields = ['image', 'alt_text', 'order', 'image_preview']
+    fields = ['image', 'color', 'alt_text', 'order', 'image_preview']
     readonly_fields = ['image_preview']
-    
+
     def image_preview(self, obj):
         if obj and obj.image:
             return format_html(
@@ -24,6 +57,23 @@ class ProductImageInline(admin.TabularInline):
         return "No image"
     image_preview.short_description = "Preview"
 
+    def get_formset(self, request, obj=None, **kwargs):
+        """Passes the parent Product (obj) down to each row's form so the
+        color dropdown can be built from that product's variants, even for
+        new/unsaved image rows that have no obj.product yet."""
+        formset = super().get_formset(request, obj, **kwargs)
+        parent_product = obj
+
+        class ProductImageFormSetWithParent(formset):
+            def _construct_form(self, i, **fkwargs):
+                form = super()._construct_form(i, **fkwargs)
+                form._parent_product = parent_product
+                form._set_color_choices()
+                return form
+
+        return ProductImageFormSetWithParent
+
+        
 
 class ProductVariantInline(admin.TabularInline):
     """Inline editor for product variants"""
@@ -35,10 +85,10 @@ class ProductVariantInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'name', 'vendor', 'category', 'price', 'stock', 
+        'id', 'name', 'vendor', 'category', 'gender', 'price', 'stock',
         'status', 'is_featured', 'image_preview', 'rating_display'
     ]
-    list_filter = ['status', 'category__department', 'age_groups', 'is_featured', 'vendor']
+    list_filter = ['status', 'category__department', 'gender', 'age_groups', 'is_featured', 'vendor']
     search_fields = ['name', 'sku', 'vendor__store_name']
     list_editable = ['price', 'stock', 'status', 'is_featured']
     prepopulated_fields = {'slug': ('name',)}
@@ -48,7 +98,25 @@ class ProductAdmin(admin.ModelAdmin):
     actions = ["approve_products", "reject_products"]
     fieldsets = (
         ('Basic Information', {
-            'fields': ('vendor', 'category', 'brand', 'age_groups', 'name', 'slug', 'description')
+            'fields': ('vendor', 'category', 'brand', 'name', 'slug', 'description', 'features'),
+        }),
+        ('Materials, Care & Sizing', {
+            'fields': ('materials', 'care_instructions', 'size_guide'),
+            'description': (
+                "'Materials' shows as a short line under Materials & Care on the "
+                "product page (e.g. 'Nylon, Rubber'). Pick a Size Guide (create one "
+                "under Catalog → Size guides if needed — one per type, e.g. Shoes, "
+                "Clothes) to show a size chart next to the size selector."
+            ),
+        }),
+        ('Shopping Flow (Gender & Age)', {
+            'fields': ('gender', 'age_groups'),
+            'description': (
+                "This is how the product is reached through the Kids → Baby → "
+                "Boys/Girls → Age → Category flow. Gender and age groups are "
+                "filters on the product — do not create separate categories "
+                "like \"Baby Girls\" or \"Baby Boys\"."
+            ),
         }),
         ('Pricing & Stock', {
             'fields': ('price', 'compare_at_price', 'stock', 'sku')
@@ -127,6 +195,37 @@ class ProductAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'vendor', 'category', 'brand'
         ).prefetch_related('images')
+
+
+@admin.register(SizeGuide)
+class SizeGuideAdmin(admin.ModelAdmin):
+    """
+    Admin-managed size charts (e.g. one for Shoes, one for Clothes).
+    Attach a guide to a product from the Product edit page
+    (Materials, Care & Sizing section).
+
+    'Columns' and 'Rows' are simple JSON, e.g.:
+
+        Columns: ["Size", "EU", "UK", "US", "Foot length (cm)"]
+        Rows: [["36", "36", "3.5", "6", "22.9"], ["37", "37", "4", "6.5", "23.5"]]
+    """
+    list_display = ['name', 'guide_type', 'product_count', 'updated_at']
+    list_filter = ['guide_type']
+    search_fields = ['name']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        (None, {'fields': ('name', 'guide_type')}),
+        ('Table', {
+            'fields': ('columns', 'rows'),
+            'description': "Columns is a flat list of header labels. Rows is a list of lists (one list per row, values in the same order as Columns).",
+        }),
+        ('Notes', {'fields': ('notes',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
+    )
+
+    def product_count(self, obj):
+        return obj.products.count()
+    product_count.short_description = "Products using this guide"
 
 
 class DepartmentMediaInline(admin.TabularInline):
@@ -330,12 +429,14 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.products.count()
     product_count.short_description = "Products"
 
+
 class BrandMediaInline(admin.TabularInline):
     """Inline for brand media in brand admin"""
     model = BrandMedia
     extra = 1
     fields = ['file', 'media_type', 'alt_text', 'is_primary', 'order']
     show_change_link = True
+
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
@@ -345,14 +446,13 @@ class BrandAdmin(admin.ModelAdmin):
     search_fields = ['name', 'slug', 'description']
     prepopulated_fields = {'slug': ('name',)}
     list_per_page = 25
-    # Add logo_preview to readonly_fields
     readonly_fields = ['created_at', 'updated_at', 'product_count_display', 'media_count_display', 'logo_preview']
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'description', 'website', 'is_active')
         }),
         ('Brand Identity', {
-            'fields': ('logo', 'logo_preview')  # Now this will work
+            'fields': ('logo', 'logo_preview')
         }),
         ('Media', {
             'fields': ('media_count_display',)
@@ -368,7 +468,6 @@ class BrandAdmin(admin.ModelAdmin):
     inlines = [BrandMediaInline]
     
     def get_queryset(self, request):
-        """Annotate queryset with product count"""
         queryset = super().get_queryset(request)
         return queryset.annotate(
             total_products=Count('products', distinct=True),
@@ -376,7 +475,6 @@ class BrandAdmin(admin.ModelAdmin):
         )
     
     def brand_thumbnail(self, obj):
-        """Display brand thumbnail in list view"""
         if obj.logo:
             return format_html(
                 '<img src="{}" width="50" height="50" style="object-fit:contain; border-radius:4px;" />',
@@ -396,7 +494,6 @@ class BrandAdmin(admin.ModelAdmin):
     brand_thumbnail.allow_tags = True
     
     def logo_preview(self, obj):
-        """Display logo preview in detail view"""
         if obj and obj.logo:
             return format_html(
                 '<img src="{}" width="200" style="max-height:150px; object-fit:contain; border:1px solid #ddd; border-radius:8px; padding:8px;" />',
@@ -407,13 +504,11 @@ class BrandAdmin(admin.ModelAdmin):
     logo_preview.allow_tags = True
     
     def product_count(self, obj):
-        """Display product count in list view"""
         return getattr(obj, 'total_products', obj.products.count())
     product_count.short_description = "Products"
     product_count.admin_order_field = 'total_products'
     
     def product_count_display(self, obj):
-        """Display detailed product count in detail view"""
         active_count = obj.products.filter(status='active').count()
         pending_count = obj.products.filter(status='pending').count()
         total_count = obj.products.count()
@@ -429,12 +524,10 @@ class BrandAdmin(admin.ModelAdmin):
     product_count_display.allow_tags = True
     
     def media_count_display(self, obj):
-        """Display media count and preview in detail view"""
         media_count = obj.media_files.count()
         if media_count == 0:
             return format_html('<span style="color:#999;">No media uploaded</span>')
         
-        # Show first 4 media thumbnails
         preview_html = '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">'
         for media in obj.media_files.all()[:4]:
             if media.file and media.media_type == 'image':
@@ -461,16 +554,12 @@ class BrandAdmin(admin.ModelAdmin):
     media_count_display.allow_tags = True
     
     def save_model(self, request, obj, form, change):
-        """Override save to handle any custom logic"""
         super().save_model(request, obj, form, change)
     
     def delete_queryset(self, request, queryset):
-        """Delete associated media files when deleting brands"""
         for brand in queryset:
-            # Delete logo file
             if brand.logo:
                 brand.logo.delete(save=False)
-            # Delete all media files
             for media in brand.media_files.all():
                 if media.file:
                     media.file.delete(save=False)
@@ -498,7 +587,6 @@ class BrandMediaAdmin(admin.ModelAdmin):
     )
     
     def media_preview(self, obj):
-        """Display media preview in list view"""
         if obj.file and obj.media_type == 'image':
             return format_html(
                 '<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:4px;" />',
@@ -513,7 +601,6 @@ class BrandMediaAdmin(admin.ModelAdmin):
     media_preview.allow_tags = True
     
     def file_preview(self, obj):
-        """Display file preview in detail view"""
         if obj.file and obj.media_type == 'image':
             return format_html(
                 '<img src="{}" width="300" style="max-height:300px; object-fit:contain; border:1px solid #ddd; border-radius:8px; padding:8px;" />',
@@ -532,13 +619,11 @@ class BrandMediaAdmin(admin.ModelAdmin):
     file_preview.allow_tags = True
     
     def save_model(self, request, obj, form, change):
-        """If this media is set as primary, unset others"""
         if obj.is_primary:
             BrandMedia.objects.filter(brand=obj.brand).exclude(id=obj.id).update(is_primary=False)
         super().save_model(request, obj, form, change)
     
     def delete_model(self, request, obj):
-        """Delete the file when deleting the model"""
         if obj.file:
             obj.file.delete(save=False)
         super().delete_model(request, obj)
@@ -566,35 +651,172 @@ class WishlistAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
 
 
+# ==============================================================
+# AgeGroupAdmin
+# ==============================================================
 @admin.register(AgeGroup)
 class AgeGroupAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug', 'icon', 'min_age_years', 'max_age_years', 'order', 'is_active', 'media_count_display', 'product_count']
-    list_editable = ['icon', 'order', 'is_active']
-    prepopulated_fields = {'slug': ('name',)}
-    search_fields = ['name', 'slug']
-    list_filter = ['is_active']
-    inlines = [AgeGroupMediaInline]
+    list_display = [
+        "name",
+        "slug",
+        "stage",
+        "icon",
+        "age_range_display",
+        "order",
+        "is_active",
+        "media_count_display",
+        "product_count",
+    ]
+
+    list_editable = [
+        "icon",
+        "order",
+        "is_active",
+    ]
+
+    prepopulated_fields = {
+        "slug": ("name",),
+    }
+
+    search_fields = [
+        "name",
+        "slug",
+    ]
+
+    list_filter = [
+        "stage",
+        "is_active",
+    ]
+
+    ordering = [
+        "stage",
+        "order",
+    ]
+
+    inlines = [
+        AgeGroupMediaInline,
+    ]
+
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'slug', 'icon', 'order', 'is_active')
-        }),
-        ('Age Range', {
-            'fields': ('min_age_years', 'max_age_years'),
-            'description': 'Set age range in years. Leave blank for no limit.'
-        }),
+        (
+            "Basic Information",
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "icon",
+                    "order",
+                    "is_active",
+                )
+            },
+        ),
+        (
+            "Stage",
+            {
+                "fields": ("stage",),
+                "description": (
+                    "General age stage used by the frontend to group age "
+                    "groups under Baby / Kids / Teens navigation. This is "
+                    "age-only — gender lives on Product, not here."
+                ),
+            },
+        ),
+        (
+            "Age Range",
+            {
+                "fields": (
+                    "min_age_years",
+                    "max_age_years",
+                ),
+                "description": (
+                    "Define the actual age range. "
+                    "For example, Baby = 0–2 years and "
+                    "Toddler = 2–4 years."
+                ),
+            },
+        ),
     )
 
-    def media_count_display(self, obj):
-        """Display number of media files"""
-        count = obj.media_files.count()
-        color = '#2b6cb0' if count > 0 else '#a0aec0'
+    def age_range_display(self, obj):
+        """Display the age range in a friendly format."""
+
+        if obj.max_age_years is not None:
+            return format_html(
+                '<span style="font-weight: 600;">{}–{} years</span>',
+                obj.min_age_years,
+                obj.max_age_years,
+            )
+
         return format_html(
-            '<span style="color: {}; font-weight: bold;">📷 {}</span>',
-            color,
-            count
+            '<span style="font-weight: 600;">{}+ years</span>',
+            obj.min_age_years,
         )
+
+    age_range_display.short_description = "Age Range"
+    age_range_display.admin_order_field = "min_age_years"
+
+    def media_count_display(self, obj):
+        """Display the number of media files."""
+
+        count = obj.total_media
+
+        if count > 0:
+            return format_html(
+                '<span style="color: #2b6cb0; font-weight: 600;">'
+                '📷 {}'
+                "</span>",
+                count,
+            )
+
+        return format_html(
+            '<span style="color: #a0aec0;">📷 0</span>'
+        )
+
     media_count_display.short_description = "Media Files"
+    media_count_display.admin_order_field = "total_media"
 
     def product_count(self, obj):
-        return obj.products.count()
+        """Display number of products assigned to this age group."""
+
+        count = obj.total_products
+
+        if count > 0:
+            return format_html(
+                '<span style="font-weight: 600;">{}</span>',
+                count,
+            )
+
+        return format_html(
+            '<span style="color: #a0aec0;">0</span>'
+        )
+
     product_count.short_description = "Products"
+    product_count.admin_order_field = "total_products"
+
+    def get_queryset(self, request):
+        """Load product/media counts efficiently."""
+
+        queryset = super().get_queryset(request)
+
+        return queryset.annotate(
+            total_products=Count(
+                "products",
+                distinct=True,
+            ),
+            total_media=Count(
+                "media_files",
+                distinct=True,
+            ),
+        )
+
+    def delete_queryset(self, request, queryset):
+        """
+        Delete physical media files before deleting age groups.
+        """
+
+        for age_group in queryset:
+            for media in age_group.media_files.all():
+                if media.file:
+                    media.file.delete(save=False)
+
+        super().delete_queryset(request, queryset)

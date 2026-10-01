@@ -23,7 +23,7 @@ export default function HelpCenterPage() {
           <Link
             key={t.href}
             href={t.href}
-            className="border border-[var(--color-line)] rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 transition-all"
+            className="surface-card p-5 hover:-translate-y-0.5"
           >
             <t.icon size={22} className="mb-3" />
             <p className="font-display font-bold">{t.title}</p>

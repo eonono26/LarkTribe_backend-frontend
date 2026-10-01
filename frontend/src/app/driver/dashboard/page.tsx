@@ -149,14 +149,14 @@ export default function DriverDashboardPage() {
                     <span>{d.pickup_label}</span>
                   </div>
                   <div className="flex items-start gap-1.5 text-xs text-neutral-500 mb-3">
-                    <Navigation size={13} className="mt-0.5 shrink-0 text-[#c96e6e]" />
+                    <Navigation size={13} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
                     <span>{d.dropoff_label}</span>
                   </div>
                   {next && (
                     <button
                       onClick={() => act(d.id, next.action)}
                       disabled={actingOn === d.id}
-                      className="w-full flex items-center justify-center gap-1.5 bg-[var(--color-ink)] text-white text-xs font-semibold uppercase py-2.5 rounded-full disabled:opacity-40"
+                      className="btn btn-ink btn-block btn-sm"
                     >
                       <CheckCircle2 size={14} />
                       {actingOn === d.id ? "Updating…" : next.label}
@@ -189,13 +189,13 @@ export default function DriverDashboardPage() {
                     <span>{d.pickup_label}</span>
                   </div>
                   <div className="flex items-start gap-1.5 text-xs text-neutral-500 mb-3">
-                    <Navigation size={13} className="mt-0.5 shrink-0 text-[#c96e6e]" />
+                    <Navigation size={13} className="mt-0.5 shrink-0 text-[var(--color-accent)]" />
                     <span>{d.dropoff_label}</span>
                   </div>
                   <button
                     onClick={() => act(d.id, "accept")}
                     disabled={actingOn === d.id}
-                    className="w-full bg-[var(--color-ink)] text-white text-xs font-semibold uppercase py-2.5 rounded-full disabled:opacity-40"
+                    className="btn btn-ink btn-block btn-sm"
                   >
                     {actingOn === d.id ? "Accepting…" : "Accept job"}
                   </button>

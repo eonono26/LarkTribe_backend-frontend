@@ -145,7 +145,7 @@ export default function ProductImageGalleryAuto({
                 relative aspect-square rounded-lg overflow-hidden border-2 transition-all
                 ${selectedIndex === index 
                   ? 'border-[var(--color-ink)] ring-2 ring-[var(--color-ink)]/20' 
-                  : 'border-transparent hover:border-gray-300'
+                  : 'border-transparent hover:border-neutral-300'
                 }
               `}
             >

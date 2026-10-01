@@ -16,7 +16,60 @@ from .serializers import (
     AgeGroupMediaSerializer, BrandMediaSerializer
 )
 from .permissions import IsOwnerVendorOrReadOnly
-from .filters import ProductFilter
+from .filters import ProductFilter, CategoryFilter, BrandFilter
+from .pagination import LargePageNumberPagination
+from .utils import category_subtree_ids
+
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from catalog.models import Department, Category, Product, AgeGroup
+from promotions.models import Campaign
+from catalog.serializers import (
+    DepartmentSerializer, CategorySerializer, ProductListSerializer,
+    AgeGroupSerializer
+)
+
+from promotions.serializers import CampaignSerializer
+
+@api_view(['GET'])
+def home_data(request):
+    """
+    Consolidated home payload.
+    Everything the editorial home needs in a single round-trip.
+    """
+    # Hero campaigns
+    campaigns = Campaign.objects.filter(
+        placement='homepage_banner',
+        active=True,
+        is_live=True
+    ).select_related('department', 'coupon').order_by('-created_at')[:6]
+
+    # Departments with primary image
+    departments = Department.objects.filter(is_active=True).prefetch_related('media')
+
+    # Age groups
+    age_groups = AgeGroup.objects.filter(is_active=True).order_by('min_age_years')
+
+    # Trending / new arrivals
+    products = Product.objects.filter(
+        is_active=True,
+        status='published'
+    ).select_related('department', 'brand').prefetch_related(
+        'media', 'variants', 'age_groups'
+    ).order_by('-created_at')[:12]
+
+    # Build quick category trees for mega-menu pre-fetch
+    categories = Category.objects.filter(is_active=True).select_related('parent')
+
+    return Response({
+        'hero_campaigns': CampaignSerializer(campaigns, many=True, context={'request': request}).data,
+        'departments': DepartmentSerializer(departments, many=True, context={'request': request}).data,
+        'age_groups': AgeGroupSerializer(age_groups, many=True, context={'request': request}).data,
+        'new_arrivals': ProductListSerializer(products, many=True, context={'request': request}).data,
+        'categories': CategorySerializer(categories, many=True, context={'request': request}).data,
+    })
+
 
 
 class IsAdminUser(permissions.BasePermission):
@@ -148,47 +201,1021 @@ class AgeGroupMediaViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Primary media set successfully'})
 
 
+# ============================================================
+# AGE GROUP VIEWSET
+# ============================================================
+
 class AgeGroupViewSet(viewsets.ReadOnlyModelViewSet):
-    """Public list of shopper age segments (Baby, Kids, Teens, ...) for age-based shopping."""
-    queryset = AgeGroup.objects.filter(is_active=True)
+    """
+    Public age-group navigation.
+
+    Example:
+
+        /api/catalog/age-groups/?stage=baby
+
+    Returns:
+
+        0–3 Months
+        3–6 Months
+        6–12 Months
+        12–24 Months
+    """
+
     serializer_class = AgeGroupSerializer
-    permission_classes = [permissions.AllowAny]
+
+    permission_classes = [
+        permissions.AllowAny
+    ]
+
     pagination_class = None
-    filter_backends = [filters.OrderingFilter]
-    ordering = ['order']
-    
-    @action(detail=True, methods=['get'], url_path='products')
-    def get_products(self, request, pk=None):
-        """Get products for a specific age group"""
-        age_group = self.get_object()
-        products = age_group.products.filter(status=Product.Status.ACTIVE)
-        
-        # Apply filters
-        price_min = request.query_params.get('price_min')
-        price_max = request.query_params.get('price_max')
-        
-        if price_min:
-            products = products.filter(price__gte=price_min)
-        if price_max:
-            products = products.filter(price__lte=price_max)
-        
-        # Pagination
-        page = self.paginate_queryset(products)
-        if page is not None:
-            serializer = ProductListSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = ProductListSerializer(products, many=True, context={'request': request})
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'], url_path='with-product-counts')
-    def with_product_counts(self, request):
-        """Get all age groups with product counts"""
-        age_groups = self.get_queryset().annotate(
-            product_count=Count('products', filter=Q(products__status=Product.Status.ACTIVE))
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = [
+        "stage",
+        "is_active",
+    ]
+
+    ordering_fields = [
+        "order",
+        "min_age_years",
+        "max_age_years",
+        "name",
+    ]
+
+    ordering = [
+        "order",
+    ]
+
+    def get_queryset(self):
+
+        return (
+            AgeGroup.objects
+            .filter(is_active=True)
+            .prefetch_related("media_files")
         )
-        serializer = self.get_serializer(age_groups, many=True)
-        return Response(serializer.data)
+
+    # --------------------------------------------------------
+    # AGE GROUPS BY STAGE
+    # --------------------------------------------------------
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="by-stage"
+    )
+    def by_stage(self, request):
+        """
+        Example:
+
+            /api/catalog/age-groups/by-stage/?stage=baby
+        """
+
+        stage = request.query_params.get(
+            "stage",
+            "baby"
+        )
+
+        valid_stages = {
+            choice[0]
+            for choice in AgeGroup.Stage.choices
+        }
+
+        if stage not in valid_stages:
+
+            return Response({
+                "error": "Invalid stage.",
+                "valid_stages": list(
+                    valid_stages
+                ),
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        age_groups = self.get_queryset().filter(
+            stage=stage
+        )
+
+        serializer = self.get_serializer(
+            age_groups,
+            many=True
+        )
+
+        return Response({
+            "stage": stage,
+            "age_groups": serializer.data,
+            "count": age_groups.count(),
+        })
+
+    # --------------------------------------------------------
+    # AGE GROUP PRODUCTS
+    # --------------------------------------------------------
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="products"
+    )
+    def get_products(self, request, pk=None):
+
+        age_group = self.get_object()
+
+        products = (
+            Product.objects
+            .filter(
+                age_groups=age_group,
+                status=Product.Status.ACTIVE,
+            )
+            .select_related(
+                "vendor",
+                "category",
+                "category__department",
+                "brand",
+            )
+            .prefetch_related(
+                "images",
+                "variants",
+                "age_groups",
+            )
+        )
+
+        # ----------------------------------------------------
+        # GENDER
+        # ----------------------------------------------------
+
+        gender = request.query_params.get(
+            "gender"
+        )
+
+        if gender:
+
+            valid_genders = {
+                choice[0]
+                for choice in Product.Gender.choices
+            }
+
+            if gender not in valid_genders:
+
+                return Response({
+                    "error": "Invalid gender.",
+                    "valid_genders": list(
+                        valid_genders
+                    ),
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            products = products.filter(
+                gender=gender
+            )
+
+        # ----------------------------------------------------
+        # CATEGORY
+        # ----------------------------------------------------
+
+        category_slug = request.query_params.get(
+            "category"
+        )
+
+        if category_slug:
+            products = products.filter(
+                category__slug=category_slug
+            )
+
+        # ----------------------------------------------------
+        # PRICE
+        # ----------------------------------------------------
+
+        price_min = request.query_params.get(
+            "price_min"
+        )
+
+        price_max = request.query_params.get(
+            "price_max"
+        )
+
+        if price_min:
+            products = products.filter(
+                price__gte=price_min
+            )
+
+        if price_max:
+            products = products.filter(
+                price__lte=price_max
+            )
+
+        # ----------------------------------------------------
+        # ORDERING
+        # ----------------------------------------------------
+
+        ordering = request.query_params.get(
+            "ordering"
+        )
+
+        if ordering in [
+            "price",
+            "-price",
+            "created_at",
+            "-created_at",
+            "rating_avg",
+            "-rating_avg",
+        ]:
+            products = products.order_by(
+                ordering
+            )
+        else:
+            products = products.order_by(
+                "-created_at"
+            )
+
+        # ----------------------------------------------------
+        # PAGINATION
+        # ----------------------------------------------------
+
+        page = self.paginate_queryset(
+            products
+        )
+
+        if page is not None:
+
+            serializer = ProductListSerializer(
+                page,
+                many=True,
+                context={
+                    "request": request
+                },
+            )
+
+            return self.get_paginated_response(
+                serializer.data
+            )
+
+        serializer = ProductListSerializer(
+            products,
+            many=True,
+            context={
+                "request": request
+            },
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    # --------------------------------------------------------
+    # PRODUCT COUNTS
+    # --------------------------------------------------------
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="with-product-counts"
+    )
+    def with_product_counts(self, request):
+
+        age_groups = (
+            self.get_queryset()
+            .annotate(
+                product_count=Count(
+                    "products",
+                    filter=Q(
+                        products__status=
+                        Product.Status.ACTIVE
+                    ),
+                    distinct=True,
+                )
+            )
+        )
+
+        stage = request.query_params.get(
+            "stage"
+        )
+
+        if stage:
+            age_groups = age_groups.filter(
+                stage=stage
+            )
+
+        serializer = self.get_serializer(
+            age_groups,
+            many=True
+        )
+
+        return Response(
+            serializer.data
+        )
+
+
+# ============================================================
+# CATEGORY VIEWSET
+# ============================================================
+
+class CategoryViewSet(
+    viewsets.ReadOnlyModelViewSet
+):
+    """
+    Category navigation.
+
+    Categories remain product categories.
+
+    Example:
+
+        Kids
+          └── Baby
+                ├── Dresses
+                ├── Tops
+                ├── Rompers
+                ├── Trousers
+                └── Shoes
+
+    Gender and age remain filters.
+    """
+
+    serializer_class = CategorySerializer
+
+    permission_classes = [
+        permissions.AllowAny
+    ]
+
+    pagination_class = LargePageNumberPagination
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_class = CategoryFilter
+
+    search_fields = [
+        "name",
+        "department__name",
+    ]
+
+    ordering_fields = [
+        "order",
+        "name",
+    ]
+
+    ordering = [
+        "department__order",
+        "order",
+    ]
+
+    def get_queryset(self):
+
+        return (
+            Category.objects
+            .filter(is_active=True)
+            .select_related(
+                "department",
+                "parent",
+            )
+            .prefetch_related(
+                "children",
+                "media_files",
+            )
+        )
+
+    # --------------------------------------------------------
+    # PRODUCTS IN CATEGORY
+    # --------------------------------------------------------
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="products"
+    )
+    def get_products(self, request, pk=None):
+
+        category = self.get_object()
+
+        products = (
+            Product.objects
+            .filter(
+                category=category,
+                status=Product.Status.ACTIVE,
+            )
+            .select_related(
+                "vendor",
+                "category",
+                "category__department",
+                "brand",
+            )
+            .prefetch_related(
+                "images",
+                "variants",
+                "age_groups",
+            )
+        )
+
+        # ----------------------------------------------------
+        # GENDER FILTER
+        # ----------------------------------------------------
+
+        gender = request.query_params.get(
+            "gender"
+        )
+
+        if gender:
+
+            valid_genders = {
+                choice[0]
+                for choice in Product.Gender.choices
+            }
+
+            if gender not in valid_genders:
+
+                return Response({
+                    "error": "Invalid gender.",
+                    "valid_genders": list(
+                        valid_genders
+                    ),
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            products = products.filter(
+                gender=gender
+            )
+
+        # ----------------------------------------------------
+        # AGE FILTER
+        # ----------------------------------------------------
+
+        age_slug = request.query_params.get(
+            "age"
+        )
+
+        age_id = request.query_params.get(
+            "age_id"
+        )
+
+        if age_slug:
+
+            products = products.filter(
+                age_groups__slug=age_slug
+            )
+
+        elif age_id:
+
+            products = products.filter(
+                age_groups__id=age_id
+            )
+
+        # ----------------------------------------------------
+        # PRICE FILTER
+        # ----------------------------------------------------
+
+        price_min = request.query_params.get(
+            "price_min"
+        )
+
+        price_max = request.query_params.get(
+            "price_max"
+        )
+
+        if price_min:
+            products = products.filter(
+                price__gte=price_min
+            )
+
+        if price_max:
+            products = products.filter(
+                price__lte=price_max
+            )
+
+        # ----------------------------------------------------
+        # RATING
+        # ----------------------------------------------------
+
+        rating = request.query_params.get(
+            "rating"
+        )
+
+        if rating:
+
+            products = products.filter(
+                rating_avg__gte=rating
+            )
+
+        # Remove duplicates caused by ManyToMany
+        products = products.distinct()
+
+        # ----------------------------------------------------
+        # ORDERING
+        # ----------------------------------------------------
+
+        ordering = request.query_params.get(
+            "ordering"
+        )
+
+        allowed_ordering = [
+            "price",
+            "-price",
+            "created_at",
+            "-created_at",
+            "rating_avg",
+            "-rating_avg",
+        ]
+
+        if ordering in allowed_ordering:
+            products = products.order_by(
+                ordering
+            )
+        else:
+            products = products.order_by(
+                "-created_at"
+            )
+
+        # ----------------------------------------------------
+        # PAGINATION
+        # ----------------------------------------------------
+
+        page = self.paginate_queryset(
+            products
+        )
+
+        if page is not None:
+
+            serializer = ProductListSerializer(
+                page,
+                many=True,
+                context={
+                    "request": request
+                },
+            )
+
+            return self.get_paginated_response(
+                serializer.data
+            )
+
+        serializer = ProductListSerializer(
+            products,
+            many=True,
+            context={
+                "request": request
+            },
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    # --------------------------------------------------------
+    # SUBCATEGORIES
+    # --------------------------------------------------------
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="subcategories"
+    )
+    def get_subcategories(
+        self,
+        request,
+        pk=None
+    ):
+
+        category = self.get_object()
+
+        subcategories = (
+            category.children
+            .filter(is_active=True)
+            .select_related(
+                "department"
+            )
+            .prefetch_related(
+                "media_files"
+            )
+        )
+
+        serializer = CategorySerializer(
+            subcategories,
+            many=True,
+            context={
+                "request": request
+            },
+        )
+
+        return Response({
+            "parent": CategorySerializer(
+                category,
+                context={
+                    "request": request
+                }
+            ).data,
+
+            "subcategories": serializer.data,
+
+            "count": subcategories.count(),
+        })
+
+    # --------------------------------------------------------
+    # CATEGORY TREE
+    # --------------------------------------------------------
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="tree"
+    )
+    def get_category_tree(
+        self,
+        request
+    ):
+        """
+        Returns the category tree.
+
+        The frontend can use this to build:
+
+            Kids
+              ↓
+            Baby
+              ↓
+            Dresses
+            Tops
+            Rompers
+            Trousers
+            Shoes
+        """
+
+        departments = (
+            Department.objects
+            .filter(is_active=True)
+            .prefetch_related(
+                "media_files"
+            )
+        )
+
+        result = []
+
+        for department in departments:
+
+            root_categories = (
+                Category.objects
+                .filter(
+                    department=department,
+                    parent__isnull=True,
+                    is_active=True,
+                )
+                .select_related(
+                    "department"
+                )
+                .prefetch_related(
+                    "children",
+                    "media_files",
+                )
+                .order_by("order")
+            )
+
+            department_data = DepartmentSerializer(
+                department,
+                context={
+                    "request": request
+                }
+            ).data
+
+            department_data["categories"] = (
+                CategorySerializer(
+                    root_categories,
+                    many=True,
+                    context={
+                        "request": request
+                    },
+                ).data
+            )
+
+            result.append(
+                department_data
+            )
+
+        return Response(result)
+
+
+# ============================================================
+# PRODUCT VIEWSET
+# ============================================================
+
+class ProductViewSet(
+    viewsets.ModelViewSet
+):
+    """
+    Product API.
+
+    Supports:
+
+        gender
+        age
+        category
+        department
+        brand
+        price
+
+    Example:
+
+        /api/catalog/products/
+            ?gender=girls
+            &age=6-12-months
+            &category=dresses
+    """
+
+    serializer_class = ProductDetailSerializer
+
+    permission_classes = [
+        permissions.AllowAny
+    ]
+
+    lookup_field = "slug"
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_class = ProductFilter
+
+    search_fields = [
+        "name",
+        "description",
+        "brand__name",
+        "category__name",
+    ]
+
+    ordering_fields = [
+        "price",
+        "created_at",
+        "rating_avg",
+        "discount_percentage",
+    ]
+
+    ordering = [
+        "-created_at"
+    ]
+
+    def get_queryset(self):
+
+        queryset = (
+            Product.objects
+            .filter(
+                status=Product.Status.ACTIVE
+            )
+            .select_related(
+                "vendor",
+                "category",
+                "category__department",
+                "brand",
+            )
+            .prefetch_related(
+                "images",
+                "variants",
+                "reviews",
+                "age_groups",
+            )
+        )
+
+        # ----------------------------------------------------
+        # GENDER
+        # ----------------------------------------------------
+
+        gender = self.request.query_params.get(
+            "gender"
+        )
+
+        if gender:
+            queryset = queryset.filter(
+                gender=gender
+            )
+
+        # ----------------------------------------------------
+        # AGE
+        # ----------------------------------------------------
+
+        age = self.request.query_params.get(
+            "age"
+        )
+
+        if age:
+            queryset = queryset.filter(
+                age_groups__slug=age
+            )
+
+        age_id = self.request.query_params.get(
+            "age_id"
+        )
+
+        if age_id:
+            queryset = queryset.filter(
+                age_groups__id=age_id
+            )
+
+        # ----------------------------------------------------
+        # CATEGORY
+        # ----------------------------------------------------
+
+        category = self.request.query_params.get(
+            "category"
+        )
+
+        if category:
+            queryset = queryset.filter(
+                category_id__in=category_subtree_ids(category)
+            )
+
+        # ----------------------------------------------------
+        # DEPARTMENT
+        # ----------------------------------------------------
+
+        department = self.request.query_params.get(
+            "department"
+        )
+
+        if department:
+            queryset = queryset.filter(
+                category__department__slug=department
+            )
+
+        # ----------------------------------------------------
+        # DISTINCT
+        # ----------------------------------------------------
+
+        queryset = queryset.distinct()
+
+        # ----------------------------------------------------
+        # RATINGS / DISCOUNTS
+        # ----------------------------------------------------
+
+        queryset = queryset.annotate(
+            avg_rating=Avg(
+                "reviews__rating"
+            ),
+
+            discount_percentage=Case(
+
+                When(
+                    compare_at_price__isnull=False,
+                    compare_at_price__gt=F(
+                        "price"
+                    ),
+
+                    then=Round(
+                        (
+                            F("compare_at_price")
+                            - F("price")
+                        )
+                        * 100.0
+                        / F("compare_at_price"),
+                        0,
+                    ),
+                ),
+
+                default=Value(0),
+
+                output_field=DecimalField(
+                    max_digits=5,
+                    decimal_places=0,
+                ),
+            ),
+        )
+
+        return queryset
+
+    # --------------------------------------------------------
+    # SERIALIZER
+    # --------------------------------------------------------
+
+    def get_serializer_class(self):
+
+        if self.action == "list":
+            return ProductListSerializer
+
+        if self.action in [
+            "create",
+            "update",
+            "partial_update",
+        ]:
+            return ProductWriteSerializer
+
+        return ProductDetailSerializer
+
+    # --------------------------------------------------------
+    # PERMISSIONS
+    # --------------------------------------------------------
+
+    def get_permissions(self):
+
+        if self.action in [
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+        ]:
+            return [
+                permissions.IsAuthenticated(),
+                IsOwnerVendorOrReadOnly(),
+            ]
+
+        return [
+            permissions.AllowAny()
+        ]
+
+    # --------------------------------------------------------
+    # BABY SHOPPING
+    # --------------------------------------------------------
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="baby"
+    )
+    def baby(self, request):
+        """
+        Convenience endpoint for the exact
+        Baby shopping flow.
+
+        Examples:
+
+            /api/catalog/products/baby/
+
+            /api/catalog/products/baby/
+                ?gender=girls
+
+            /api/catalog/products/baby/
+                ?gender=girls
+                &age=6-12-months
+
+            /api/catalog/products/baby/
+                ?gender=girls
+                &age=6-12-months
+                &category=dresses
+        """
+
+        products = self.get_queryset()
+
+        # Force Baby age stage
+        products = products.filter(
+            age_groups__stage=AgeGroup.Stage.BABY
+        )
+
+        # Gender
+        gender = request.query_params.get(
+            "gender"
+        )
+
+        if gender:
+            products = products.filter(
+                gender=gender
+            )
+
+        # Age
+        age = request.query_params.get(
+            "age"
+        )
+
+        if age:
+            products = products.filter(
+                age_groups__slug=age
+            )
+
+        # Category
+        category = request.query_params.get(
+            "category"
+        )
+
+        if category:
+            products = products.filter(
+                category_id__in=category_subtree_ids(category)
+            )
+
+        products = products.distinct()
+
+        page = self.paginate_queryset(
+            products
+        )
+
+        if page is not None:
+
+            serializer = ProductListSerializer(
+                page,
+                many=True,
+                context={
+                    "request": request
+                },
+            )
+
+            return self.get_paginated_response(
+                serializer.data
+            )
+
+        serializer = ProductListSerializer(
+            products,
+            many=True,
+            context={
+                "request": request
+            },
+        )
+
+        return Response(
+            serializer.data
+        )
 
 
 class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -234,78 +1261,15 @@ class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """View for categories with hierarchical support"""
-    queryset = Category.objects.select_related("department").prefetch_related("children")
-    serializer_class = CategorySerializer
-    permission_classes = [permissions.AllowAny]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["department__slug", "parent"]
-    search_fields = ["name", "department__name"]
-    ordering_fields = ["order", "name"]
-    ordering = ["department__order", "order"]
-
-    @action(detail=True, methods=['get'], url_path='products')
-    def get_products(self, request, pk=None):
-        """Get products for a specific category"""
-        category = self.get_object()
-        products = Product.objects.filter(
-            category=category,
-            status=Product.Status.ACTIVE
-        )
-        
-        price_min = request.query_params.get('price_min')
-        price_max = request.query_params.get('price_max')
-        rating = request.query_params.get('rating')
-        
-        if price_min:
-            products = products.filter(price__gte=price_min)
-        if price_max:
-            products = products.filter(price__lte=price_max)
-        if rating:
-            products = products.filter(rating_avg__gte=rating)
-        
-        page = self.paginate_queryset(products)
-        if page is not None:
-            serializer = ProductListSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = ProductListSerializer(products, many=True, context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'], url_path='subcategories')
-    def get_subcategories(self, request, pk=None):
-        """Get all subcategories for a category"""
-        category = self.get_object()
-        subcategories = category.children.all()
-        serializer = CategorySerializer(subcategories, many=True, context={'request': request})
-        return Response({
-            'parent': CategorySerializer(category, context={'request': request}).data,
-            'subcategories': serializer.data,
-            'count': subcategories.count()
-        })
-
-    @action(detail=False, methods=['get'], url_path='tree')
-    def get_category_tree(self, request):
-        """Get the full category tree with departments"""
-        departments = Department.objects.filter(is_active=True)
-        result = []
-        for dept in departments:
-            categories = Category.objects.filter(department=dept, parent__isnull=True)
-            dept_data = DepartmentSerializer(dept, context={'request': request}).data
-            dept_data['categories'] = CategorySerializer(categories, many=True, context={'request': request}).data
-            result.append(dept_data)
-        return Response(result)
-
-
 class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     """View for brands"""
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = LargePageNumberPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ["name"]
-    filterset_fields = ["name"]
+    filterset_class = BrandFilter
 
     @action(detail=True, methods=['get'], url_path='products')
     def get_products(self, request, pk=None):
@@ -322,7 +1286,7 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
             'count': products.count()
         })
 
-# Add BrandMediaViewSet
+
 class BrandMediaViewSet(viewsets.ModelViewSet):
     """View for managing brand media"""
     serializer_class = BrandMediaSerializer
@@ -362,136 +1326,6 @@ class BrandMediaViewSet(viewsets.ModelViewSet):
         media.save()
         
         return Response({'message': 'Primary media set successfully'})
-
-
-class ProductViewSet(viewsets.ModelViewSet):
-    """
-    Public: list/retrieve active products only.
-    Vendors: manage their own products (any status) via /api/catalog/my-products/ instead.
-    """
-    queryset = Product.objects.filter(status=Product.Status.ACTIVE).select_related(
-        "vendor", "category", "category__department", "brand"
-    ).prefetch_related("images", "variants", "reviews", "age_groups")
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = ProductFilter
-    filterset_fields = [
-        "category__slug", "category__department__slug", "brand__slug", 
-        "vendor__slug", "is_featured", "price", "age_groups__slug"
-    ]
-    search_fields = ["name", "description", "brand__name", "category__name"]
-    ordering_fields = ["price", "created_at", "rating_avg", "discount_percentage"]
-    ordering = ["-created_at"]
-    permission_classes = [permissions.AllowAny]
-    lookup_field = 'slug'
-    lookup_value_regex = '[^/]+'
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return ProductListSerializer
-        elif self.action in ["create", "update", "partial_update"]:
-            return ProductWriteSerializer
-        return ProductDetailSerializer
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [permissions.IsAuthenticated(), IsOwnerVendorOrReadOnly()]
-        return [permissions.AllowAny()]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        queryset = queryset.annotate(
-            avg_rating=Avg('reviews__rating'),
-            discount_percentage=Case(
-                When(
-                    compare_at_price__isnull=False,
-                    compare_at_price__gt=F('price'),
-                    then=Round(
-                        (F('compare_at_price') - F('price')) * 100.0 / F('compare_at_price'),
-                        0
-                    )
-                ),
-                default=Value(0),
-                output_field=DecimalField(max_digits=5, decimal_places=0)
-            )
-        )
-        
-        return queryset
-
-    @action(detail=False, methods=['get'], url_path='featured')
-    def get_featured(self, request):
-        """Get featured products"""
-        products = self.get_queryset().filter(is_featured=True)[:20]
-        page = self.paginate_queryset(products)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(products, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'], url_path='new-arrivals')
-    def get_new_arrivals(self, request):
-        """Get new arrivals (products from the last 30 days)"""
-        from django.utils import timezone
-        from datetime import timedelta
-        
-        thirty_days_ago = timezone.now() - timedelta(days=30)
-        products = self.get_queryset().filter(created_at__gte=thirty_days_ago)[:20]
-        serializer = ProductListSerializer(products, many=True, context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'], url_path='on-sale')
-    def get_on_sale(self, request):
-        """Get products with discounts"""
-        products = self.get_queryset().exclude(compare_at_price__isnull=True).exclude(
-            compare_at_price__lte=F('price')
-        )[:20]
-        serializer = ProductListSerializer(products, many=True, context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'], url_path='top-rated')
-    def get_top_rated(self, request):
-        """Get top-rated products"""
-        products = self.get_queryset().filter(rating_count__gte=5).order_by('-rating_avg')[:20]
-        serializer = ProductListSerializer(products, many=True, context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def add_review(self, request, pk=None):
-        """Add a review to a product"""
-        product = self.get_object()
-        rating = request.data.get('rating')
-        comment = request.data.get('comment', '')
-        
-        if not rating:
-            return Response({'error': 'Rating is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            rating = int(rating)
-            if rating < 1 or rating > 5:
-                raise ValueError
-        except ValueError:
-            return Response({'error': 'Rating must be between 1 and 5'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        existing_review = Review.objects.filter(product=product, user=request.user).first()
-        if existing_review:
-            return Response({'error': 'You have already reviewed this product'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-        
-        review = Review.objects.create(
-            product=product,
-            user=request.user,
-            rating=rating,
-            comment=comment
-        )
-        
-        avg_rating = product.reviews.aggregate(Avg('rating'))['rating__avg']
-        product.rating_avg = avg_rating or 0
-        product.rating_count = product.reviews.count()
-        product.save()
-        
-        serializer = ReviewSerializer(review, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class MyProductsViewSet(viewsets.ModelViewSet):
@@ -576,7 +1410,7 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         image.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["post"], url_path="images/(?P<image_id>\d+)/set-primary")
+    @action(detail=True, methods=["post"], url_path=r"images/(?P<image_id>\d+)/set-primary")
     def set_primary_image(self, request, pk=None, image_id=None):
         """Set an image as primary"""
         product = self.get_object()

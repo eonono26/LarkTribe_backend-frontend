@@ -14,7 +14,7 @@ const pickupIcon = L.divIcon({
 
 const dropoffIcon = L.divIcon({
   className: "",
-  html: `<div style="background:#c96e6e;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
+  html: `<div style="background:var(--color-accent);width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 });

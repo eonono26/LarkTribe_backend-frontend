@@ -64,7 +64,7 @@ export default function ContactPage() {
           {status === "error" && <p className="text-sm text-[var(--color-flag)]">Something went wrong, please try again.</p>}
           <button
             disabled={status === "sending"}
-            className="bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full disabled:opacity-40"
+            className="btn btn-ink"
           >
             {status === "sending" ? "Sending…" : "Send message"}
           </button>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import Banner from "@/components/Banner";
+import { HeroBanner } from "@/components/Banner";
 import type { Coupon, Campaign, Department } from "@/lib/types";
 
 const STYLE_OPTIONS: { value: Campaign["style"]; label: string; hint: string }[] = [
@@ -122,7 +122,7 @@ export default function AdminPromotionsPage() {
             placeholder="% off"
             className="bg-[var(--color-mist)] rounded-lg px-3 py-2 text-sm outline-none w-24"
           />
-          <button onClick={createCoupon} className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase px-4 rounded-full">
+          <button onClick={createCoupon} className="btn btn-ink btn-sm">
             Create
           </button>
         </div>
@@ -253,7 +253,7 @@ export default function AdminPromotionsPage() {
             <button
               onClick={createCampaign}
               disabled={creating || !form.title}
-              className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase px-5 py-3 rounded-full disabled:opacity-40"
+              className="btn btn-ink btn-sm"
             >
               {creating ? "Creating…" : "Create banner"}
             </button>
@@ -262,7 +262,7 @@ export default function AdminPromotionsPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">Live preview</p>
             <div className="border border-dashed border-[var(--color-line)] rounded-lg p-4 bg-neutral-50">
-              <Banner campaign={previewCampaign} />
+              <HeroBanner campaign={previewCampaign} />
             </div>
           </div>
         </div>

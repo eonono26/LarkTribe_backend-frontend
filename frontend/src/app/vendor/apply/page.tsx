@@ -51,7 +51,7 @@ export default function VendorApplyPage() {
           We&apos;ll review your store and notify you once it&apos;s approved. You can already sign in to your
           vendor dashboard — it&apos;ll show &ldquo;pending approval&rdquo; until then.
         </p>
-        <Link href="/vendor/login" className="inline-block bg-[var(--color-ink)] text-white font-semibold uppercase text-sm px-6 py-3 rounded-full">
+        <Link href="/vendor/login" className="btn btn-ink">
           Go to vendor dashboard
         </Link>
       </main>
@@ -119,7 +119,7 @@ export default function VendorApplyPage() {
 
         <button
           disabled={loading}
-          className="w-full bg-[var(--color-signal)] text-[var(--color-ink)] font-bold uppercase text-sm tracking-wide py-3.5 rounded-full disabled:opacity-40"
+          className="btn btn-signal btn-block"
         >
           {loading ? "Submitting…" : "Submit application"}
         </button>

@@ -36,7 +36,7 @@ export default function VendorProductsPage() {
         <h2 className="font-display text-lg font-bold">Your products</h2>
         <Link
           href="/vendor/dashboard/products/new"
-          className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase tracking-wide px-4 py-2.5 rounded-full"
+          className="btn btn-ink btn-sm"
         >
           + Add product
         </Link>

@@ -11,16 +11,21 @@ const DeliveryTrackingMap = dynamic(() => import("./DeliveryTrackingMap"), { ssr
 const VEHICLE_ICON: Record<string, any> = { bicycle: Bike, bike: Bike, car: Car, van: Truck };
 
 const STATUS_LABEL: Record<string, string> = {
-  unassigned: "Finding you a driver",
-  assigned: "Driver assigned",
-  picked_up: "Order picked up",
-  en_route: "On the way",
+  unassigned: "Finding you a courier",
+  assigned: "Courier Assigned",
+  picked_up: "Order Picked Up",
+  en_route: "En Route To You",
   delivered: "Delivered",
   cancelled: "Cancelled",
-  failed: "Delivery failed",
+  failed: "Delivery Failed",
 };
 
-const TIMELINE_ORDER = ["assigned", "picked_up", "en_route", "delivered"];
+const TIMELINE_ORDER = [
+  { key: "assigned", label: "Assigned" },
+  { key: "picked_up", label: "Picked Up" },
+  { key: "en_route", label: "In Transit" },
+  { key: "delivered", label: "Delivered" },
+];
 
 const ACTIVE_STATUSES = new Set(["unassigned", "assigned", "picked_up", "en_route"]);
 
@@ -52,7 +57,7 @@ export default function LiveDeliveryTracker({ orderNumber }: { orderNumber: stri
 
   const VehicleIcon = tracking.driver ? VEHICLE_ICON[tracking.driver.vehicle_type] || Bike : Bike;
   const isActive = ACTIVE_STATUSES.has(tracking.status);
-  const stepIndex = TIMELINE_ORDER.indexOf(tracking.status);
+  const stepIndex = TIMELINE_ORDER.findIndex((s) => s.key === tracking.status);
 
   const pickup = { lat: parseFloat(tracking.pickup_lat), lng: parseFloat(tracking.pickup_lng) };
   const dropoff = tracking.dropoff_lat && tracking.dropoff_lng
@@ -63,72 +68,94 @@ export default function LiveDeliveryTracker({ orderNumber }: { orderNumber: stri
     : null;
 
   return (
-    <div className="mt-10 border-t border-[var(--color-line)] pt-6">
-      <p className="font-semibold text-[var(--color-ink)] mb-3">Delivery tracking</p>
+    <section className="mt-10">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold">Live Tracking</span>
+        {isActive && (
+          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-olive font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-olive animate-pulse" /> Live
+          </span>
+        )}
+      </div>
 
-      {isActive && (dropoff || driverPos) && (
-        <div className="h-64 rounded-xl overflow-hidden border border-[var(--color-line)] mb-4">
-          <DeliveryTrackingMap
-            pickup={pickup}
-            dropoff={dropoff}
-            driver={driverPos}
-            pickupLabel={tracking.pickup_label}
-            dropoffLabel={tracking.dropoff_label}
-            driverLabel={tracking.driver?.name}
-          />
-        </div>
-      )}
+      <div className="bg-stone-900 text-stone-100 rounded-2xl overflow-hidden shadow-xl">
+        {isActive && (dropoff || driverPos) && (
+          <div className="h-56 sm:h-64 relative border-b border-white/10">
+            <DeliveryTrackingMap
+              pickup={pickup}
+              dropoff={dropoff}
+              driver={driverPos}
+              pickupLabel={tracking.pickup_label}
+              dropoffLabel={tracking.dropoff_label}
+              driverLabel={tracking.driver?.name}
+            />
+          </div>
+        )}
 
-      <p className="text-sm font-semibold uppercase tracking-wide mb-4">{STATUS_LABEL[tracking.status] || tracking.status}</p>
+        <div className="p-5 sm:p-6">
+          <p className="font-editorial text-xl sm:text-2xl mb-5">{STATUS_LABEL[tracking.status] || tracking.status}</p>
 
-      {/* Status timeline, Bolt-trip style */}
-      {tracking.status !== "cancelled" && tracking.status !== "failed" && (
-        <div className="flex items-center mb-6">
-          {TIMELINE_ORDER.map((s, i) => (
-            <div key={s} className="flex-1 flex items-center">
-              <div className={`h-2.5 w-2.5 rounded-full ${i <= stepIndex ? "bg-[var(--color-ink)]" : "bg-[var(--color-line)]"}`} />
-              {i < TIMELINE_ORDER.length - 1 && (
-                <div className={`flex-1 h-0.5 ${i < stepIndex ? "bg-[var(--color-ink)]" : "bg-[var(--color-line)]"}`} />
+          {tracking.status !== "cancelled" && tracking.status !== "failed" && (
+            <div className="flex items-center mb-6">
+              {TIMELINE_ORDER.map((s, i) => (
+                <div key={s.key} className="flex-1 flex flex-col items-center relative">
+                  <div className="flex items-center w-full">
+                    <div className={`h-px flex-1 ${i === 0 ? "opacity-0" : i <= stepIndex ? "bg-white" : "bg-white/20"}`} />
+                    <div
+                      className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                        i <= stepIndex ? "bg-white" : "bg-white/20"
+                      }`}
+                    />
+                    <div className={`h-px flex-1 ${i === TIMELINE_ORDER.length - 1 ? "opacity-0" : i < stepIndex ? "bg-white" : "bg-white/20"}`} />
+                  </div>
+                  <span className={`mt-2 text-[10px] uppercase tracking-wider ${i <= stepIndex ? "text-stone-200" : "text-stone-500"}`}>
+                    {s.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tracking.driver && (
+            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
+              <div className="h-11 w-11 rounded-full bg-white/10 text-stone-100 flex items-center justify-center shrink-0">
+                <VehicleIcon size={19} strokeWidth={1.6} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{tracking.driver.name}</p>
+                <p className="text-xs text-stone-400">
+                  {tracking.driver.vehicle_type_display}
+                  {tracking.driver.vehicle_plate ? ` · ${tracking.driver.vehicle_plate}` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 text-xs font-medium shrink-0 text-stone-200">
+                <Star size={13} className="fill-amber-400 text-amber-400" />
+                {parseFloat(tracking.driver.rating_avg).toFixed(1)}
+              </div>
+              {tracking.driver.phone && (
+                <a
+                  href={`tel:${tracking.driver.phone}`}
+                  className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full border border-white/20 hover:bg-white/10 transition"
+                  aria-label="Call driver"
+                >
+                  <Phone size={15} strokeWidth={1.6} />
+                </a>
               )}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {tracking.driver && (
-        <div className="flex items-center gap-3 bg-[var(--color-mist)] rounded-xl p-4 mb-4">
-          <div className="h-11 w-11 rounded-full bg-[var(--color-ink)] text-white flex items-center justify-center shrink-0">
-            <VehicleIcon size={20} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">{tracking.driver.name}</p>
-            <p className="text-xs text-neutral-500">
-              {tracking.driver.vehicle_type_display}
-              {tracking.driver.vehicle_plate ? ` · ${tracking.driver.vehicle_plate}` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs font-semibold shrink-0">
-            <Star size={13} className="fill-[var(--color-signal)] text-[var(--color-signal)]" />
-            {parseFloat(tracking.driver.rating_avg).toFixed(1)}
-          </div>
-          {tracking.driver.phone && (
-            <a href={`tel:${tracking.driver.phone}`} className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full border border-[var(--color-line)]" aria-label="Call driver">
-              <Phone size={15} />
-            </a>
+          {tracking.events.length > 0 && (
+            <ol className="space-y-2 text-xs text-stone-400 mt-5 pt-5 border-t border-white/10">
+              {[...tracking.events].reverse().map((e) => (
+                <li key={e.id} className="flex justify-between">
+                  <span className="text-stone-300">{STATUS_LABEL[e.status] || e.status}{e.note ? ` — ${e.note}` : ""}</span>
+                  <span>{new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                </li>
+              ))}
+            </ol>
           )}
         </div>
-      )}
-
-      {tracking.events.length > 0 && (
-        <ol className="space-y-2 text-xs text-neutral-500">
-          {[...tracking.events].reverse().map((e) => (
-            <li key={e.id} className="flex justify-between">
-              <span>{STATUS_LABEL[e.status] || e.status}{e.note ? ` — ${e.note}` : ""}</span>
-              <span>{new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }

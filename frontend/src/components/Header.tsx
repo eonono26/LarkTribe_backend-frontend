@@ -1,1045 +1,314 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
-import { 
-  ShoppingBag, 
-  User, 
-  Heart, 
-  MapPin, 
-  ChevronDown, 
-  Menu, 
-  Search,
-  X,
-  DollarSign,
-  Sparkles,
-  Tag,
-  Truck,
-  Shield,
-  Clock,
-  TrendingUp,
-  ArrowRight
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Menu, Search, X, Heart, ShoppingBag, ChevronDown, User2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { isLoggedIn, auth, type AuthUser } from "@/lib/auth";
-import { api } from "@/lib/api";
-import { useLocalization } from "@/lib/localization-context";
-import NotificationBell from "./NotificationBell";
-import LocationModal from "./LocationModal";
-import Image from "next/image";
+import { api, mediaUrl } from "@/lib/api";
+import type { Wishlist, ProductListItem } from "@/lib/types";
+import { MegaPanel, MobileMenuBody, buildTree, type MenuData } from "@/components/MegaMenu";
 
-const DEPT_COLOR: Record<string, string> = {
-  women: "var(--dept-women)",
-  kids: "var(--dept-kids)",
-  beauty: "var(--dept-beauty)",
-  maternity: "var(--dept-maternity)",
-  "home-lifestyle": "var(--dept-home)",
-};
+const NAV_LINKS = [
+  { href: "/shop?stage=baby", label: "Babies", source: { stage: "baby" } },
+  { href: "/shop?stage=kids", label: "Kids", source: { stage: "kids" } },
+  { href: "/shop?department=women", label: "Women", source: { department: "women" } },
+  { href: "/shop?department=men", label: "Men", source: { department: "men" } },
+ 
+  
+] as const;
 
-const DEFAULT_LOCATION = { label: "Nairobi, Kenya", lat: -1.2921, lng: 36.8219 };
-
-const TRENDING_SEARCHES = [
-  "Baby Dresses",
-  "Women's Tops",
-  "Kids Shoes",
-  "Maternity Wear",
-  "Baby Onesies",
-  "Women's Dresses",
-  "Accessories",
-  "Beauty Products"
+const GENDER_QUICK = (stage: string) => [
+  { label: "Girls", href: `/shop?stage=${stage}&gender=girls` },
+  { label: "Boys", href: `/shop?stage=${stage}&gender=boys` },
+  { label: "Unisex", href: `/shop?stage=${stage}&gender=unisex` },
 ];
 
 export default function Header() {
-  const [categories, setCategories] = useState<any[]>([]);
-  const [ageGroups, setAgeGroups] = useState<any[]>([]);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [location, setLocation] = useState(DEFAULT_LOCATION);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [currencyOpen, setCurrencyOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const router = useRouter();
   const { itemCount, openDrawer } = useCart();
-  const { currency: selectedCurrency, language: selectedLanguage, currencies: CURRENCIES, languages: LANGUAGES, setCurrency, setLanguage, formatPrice, t } = useLocalization();
-  const currencyRef = useRef<HTMLDivElement>(null);
-  const languageRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const mobileNavRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<ProductListItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [menus, setMenus] = useState<Record<string, MenuData>>({});
+  const [closedMenu, setClosedMenu] = useState<string | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
 
-  // Load recent searches from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("recent_searches");
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch (e) {
-        setRecentSearches([]);
-      }
-    }
-  }, []);
+    let cancelled = false;
+    let allCats: ReturnType<typeof api.categories> | null = null;
+    const loadAll = () => allCats ??= api.categories({ page_size: "300" });
 
-  // Save recent searches
-  const saveRecentSearch = (query: string) => {
-    if (!query.trim()) return;
-    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
-    setRecentSearches(updated);
-    localStorage.setItem("recent_searches", JSON.stringify(updated));
-  };
-
-  // Handle search submission
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      saveRecentSearch(searchQuery.trim());
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-    }
-  };
-
-  // Clear recent searches
-  const clearRecentSearches = () => {
-    setRecentSearches([]);
-    localStorage.removeItem("recent_searches");
-  };
-
-  // Close mobile nav on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (mobileNavRef.current && !mobileNavRef.current.contains(event.target as Node)) {
-        setMobileNavOpen(false);
-      }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setSearchFocused(false);
-      }
-      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
-        setCurrencyOpen(false);
-      }
-      if (languageRef.current && !languageRef.current.contains(event.target as Node)) {
-        setLanguageOpen(false);
-      }
+    const put = (label: string, data: MenuData) => {
+      if (!cancelled) setMenus(prev => ({ ...prev, [label]: data }));
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
-  // Prevent body scroll when mobile nav is open
-  useEffect(() => {
-    if (mobileNavOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileNavOpen]);
-
-  useEffect(() => {
-    async function loadCategories() {
-      try {
-        const data = await api.categories();
-        setCategories(data.results || []);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
+    NAV_LINKS.forEach(link => {
+      const src = link.source;
+      if (!src) return;
+      if ("department" in src) {
+        api.categories({ department: src.department, page_size: "300" })
+          .then(r => put(link.label, { nodes: buildTree(`department=${src.department}`, r.results || []), quick: [] }))
+          .catch(() => {});
+        return;
       }
-    }
-
-    async function loadAgeGroups() {
-      try {
-        const data = await api.ageGroups();
-        setAgeGroups(Array.isArray(data) ? data : (data as any).results || []);
-      } catch (error) {
-        console.error('Error fetching age groups:', error);
-      }
-    }
-    
-    loadCategories();
-    loadAgeGroups();
-    const loggedInStatus = isLoggedIn();
-    setLoggedIn(loggedInStatus);
-    
-    // Load user data if logged in
-    if (loggedInStatus) {
-      auth.me()
-        .then((userData) => {
-          setUser(userData);
+      Promise.all([loadAll(), api.categories({ stage: src.stage, page_size: "300" }), api.ageGroupsByStage(src.stage)])
+        .then(([all, inStage, ages]) => {
+          const nodes = buildTree(`stage=${src.stage}`, all.results || [], new Set((inStage.results || []).map(c => c.id)));
+          const ageLinks = (ages.age_groups || [])
+            .filter(a => a.is_active !== false && (a.product_count ?? 0) > 0)
+            .sort((x, y) => (x.order ?? 0) - (y.order ?? 0))
+            .map(a => ({ label: a.name, href: `/shop?stage=${src.stage}&age_group=${encodeURIComponent(a.slug)}` }));
+          const quick = [{ title: "Shop for", links: GENDER_QUICK(src.stage) }];
+          if (ageLinks.length) quick.push({ title: "Shop by age", links: ageLinks });
+          put(link.label, { nodes, quick });
         })
-        .catch(() => {
-          // If we can't get user data, user might not be authenticated
-          setLoggedIn(false);
-        });
-    }
-    
-    const saved = localStorage.getItem("duka_location");
-    if (saved) setLocation(JSON.parse(saved));
+        .catch(() => {});
+    });
+    return () => { cancelled = true; };
   }, []);
 
-  // Listen for auth state changes
   useEffect(() => {
-    const handleAuthChange = () => {
-      const loggedInStatus = isLoggedIn();
-      setLoggedIn(loggedInStatus);
-      if (loggedInStatus) {
-        auth.me()
-          .then((userData) => setUser(userData))
-          .catch(() => setLoggedIn(false));
-      } else {
-        setUser(null);
-      }
-    };
-
-    window.addEventListener('authChange', handleAuthChange);
-    return () => window.removeEventListener('authChange', handleAuthChange);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  function saveLocation(loc: typeof DEFAULT_LOCATION) {
-    setLocation(loc);
-    localStorage.setItem("duka_location", JSON.stringify(loc));
-  }
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    auth.me().then(setUser).catch(() => {});
+    api.wishlist().then(r => {
+      const items = Array.isArray(r) ? r : (r as { results: Wishlist[] }).results;
+      setWishlistCount(items.length);
+    }).catch(() => {});
+  }, []);
 
-  function handleCurrencyChange(currency: typeof CURRENCIES[0]) {
-    setCurrency(currency.code);
-    setCurrencyOpen(false);
-  }
-
-  function handleLanguageChange(language: typeof LANGUAGES[0]) {
-    setLanguage(language.code);
-    setLanguageOpen(false);
-  }
-
-  const duplicatedCategories = categories.length > 0 ? [...categories, ...categories, ...categories] : [];
-
-  // Helper to get user initials
-  const getUserInitials = () => {
-    if (!user) return "?";
-    if (user.first_name && user.last_name) {
-      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setSearchOpen(false); setSearchQuery("");
+      }
     }
-    if (user.first_name) return user.first_name[0].toUpperCase();
-    return user.username?.[0]?.toUpperCase() || "?";
-  };
+    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); } }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("mousedown", handleClick); document.removeEventListener("keydown", handleKey); };
+  }, []);
 
-  // Helper to get user display name
-  const getUserDisplayName = () => {
-    if (!user) return "Account";
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    }
-    if (user.first_name) return user.first_name;
-    return user.username;
-  };
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) { setSuggestions([]); setSearching(false); return; }
+    setSearching(true);
+    const handle = setTimeout(() => {
+      api.smartSearch(q).then(r => setSuggestions((r.results || []).slice(0, 5)))
+        .catch(() => setSuggestions([])).finally(() => setSearching(false));
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    setSearchOpen(false); setSearchQuery("");
+  }
+
+  function goToSuggestion(product: ProductListItem) {
+    setSearchOpen(false); setSearchQuery("");
+    router.push(`/product/${product.slug}`);
+  }
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      {/* Promo Bar - Modern Soft Gradient */}
-      <div className="bg-gradient-to-r from-[#f8e8e8] via-[#f5e6d3] to-[#e8d5d5] text-[#4a3728] text-xs md:text-sm font-medium py-1.5 md:py-2.5 overflow-hidden">
+    <>
+     <header className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-transparent transition-all duration-300 ${scrolled ? 'border-stone-200' : ''}`}>
         <div className="container-shell">
-          <div className="promo-marquee-wrapper">
-            <div className="promo-marquee-track flex items-center gap-4 md:gap-8">
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#d4a5a5] flex-shrink-0"></span>
-                <span className="truncate">{t("freeDelivery")}</span>
-              </span>
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#c4a882] flex-shrink-0"></span>
-                <span className="truncate">{t("payWithMpesa")}</span>
-              </span>
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#b8a0a0] flex-shrink-0"></span>
-                <span className="truncate">{t("newVendors")}</span>
-              </span>
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#d4a5a5] flex-shrink-0"></span>
-                <span className="truncate">{t("exclusiveDeals")}</span>
-              </span>
-              {/* Duplicate for seamless scroll */}
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#c4a882] flex-shrink-0"></span>
-                <span className="truncate">{t("freeDelivery")}</span>
-              </span>
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#b8a0a0] flex-shrink-0"></span>
-                <span className="truncate">{t("payWithMpesa")}</span>
-              </span>
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#d4a5a5] flex-shrink-0"></span>
-                <span className="truncate">{t("newVendors")}</span>
-              </span>
-              <span className="flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
-                <span className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#c4a882] flex-shrink-0"></span>
-                <span className="truncate">{t("exclusiveDeals")}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+          <div className="relative flex items-center h-16 lg:h-20">
 
-      {/* Mobile Header */}
-      <div className="md:hidden">
-        <div className="container-shell py-2">
-          {/* Top row with logo and actions */}
-          <div className="flex items-center justify-between gap-2">
-            <button 
-              onClick={() => setMobileNavOpen((o) => !o)} 
-              aria-label="Menu" 
-              className="p-1.5 rounded-lg hover:bg-[#f8e8e8] transition-colors shrink-0"
-            >
-              <Menu size={22} className="text-gray-700" />
-            </button>
-            
-            <Link href="/" className="flex items-center shrink-0">
-              <span className="text-xl font-bold text-[#c96e6e]">
-                LarkTribe
-              </span>
-            </Link>
-            
-            <div className="flex items-center gap-1 ml-auto shrink-0">
-              <NotificationBell />
-              <button 
-                aria-label="Cart" 
-                onClick={openDrawer} 
-                className="p-1.5 rounded-lg hover:bg-[#f8e8e8] transition-colors relative"
-              >
-                <ShoppingBag size={20} className="text-gray-700" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-[#c96e6e] text-white text-[9px] font-bold rounded-full h-4.5 w-4.5 flex items-center justify-center shadow-lg">
-                    {itemCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Location and Search row */}
-          <div className="flex flex-col gap-2 mt-2">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setLocationOpen(true)}
-                className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 px-2 py-1 rounded-lg hover:bg-[#f8e8e8] transition-colors"
-              >
-                <MapPin size={14} className="shrink-0 text-[#c96e6e]" />
-                <span className="text-gray-600">{t("deliverTo")}</span>
-                <span className="font-semibold text-gray-800 max-w-[80px] truncate">{location.label}</span>
-                <ChevronDown size={12} className="text-gray-400" />
-              </button>
-              
-              <div className="flex items-center gap-1">
-                {/* Language selector */}
-                <button
-                  onClick={() => setLanguageOpen(!languageOpen)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-[#f8e8e8] transition-colors text-xs"
-                >
-                  <span className="text-sm leading-none">{selectedLanguage.flag}</span>
-                  <ChevronDown size={10} className="text-gray-400" />
-                </button>
-
-                {/* Currency selector */}
-                <button
-                  onClick={() => setCurrencyOpen(!currencyOpen)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-[#f8e8e8] transition-colors text-xs font-medium"
-                >
-                  <span>{selectedCurrency.symbol}</span>
-                  <ChevronDown size={10} className="text-gray-400" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Search Bar with suggestions */}
-            <div className="relative" ref={searchRef}>
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t("searchPlaceholderShort")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setSearchFocused(true)}
-                    className="w-full py-2 pl-9 pr-3 rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#c96e6e] focus:border-transparent text-sm"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </form>
-
-              {/* Search Suggestions */}
-              {searchFocused && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                  {/* Recent Searches */}
-                  {recentSearches.length > 0 && (
-                    <div className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                          <Clock size={12} />
-                          {t("recentSearches")}
-                        </span>
-                        <button
-                          onClick={clearRecentSearches}
-                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          {t("clearAll")}
-                        </button>
-                      </div>
-                      <div className="space-y-1">
-                        {recentSearches.map((item, index) => (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              setSearchQuery(item);
-                              saveRecentSearch(item);
-                              window.location.href = `/search?q=${encodeURIComponent(item)}`;
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f8e8e8] transition-colors flex items-center gap-3 text-sm"
-                          >
-                            <Clock size={14} className="text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-700">{item}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Trending Searches */}
-                  <div className="p-3 border-t border-gray-100">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <TrendingUp size={12} className="text-[#c96e6e]" />
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {t("trendingNow")}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {TRENDING_SEARCHES.map((item, index) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setSearchQuery(item);
-                            saveRecentSearch(item);
-                            window.location.href = `/search?q=${encodeURIComponent(item)}`;
-                          }}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#f8e8e8] hover:bg-[#c96e6e] hover:text-white transition-all duration-200 text-gray-700 border border-[#e8d5d5] hover:border-[#c96e6e]"
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* View All */}
-                  <div className="p-3 border-t border-gray-100 bg-[#f8e8e8]/30">
-                    <button
-                      onClick={() => {
-                        if (searchQuery.trim()) {
-                          saveRecentSearch(searchQuery.trim());
-                          window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-                        }
-                      }}
-                      className="w-full text-center text-sm font-medium text-[#c96e6e] hover:text-[#a85555] transition-colors flex items-center justify-center gap-1"
-                    >
-                      <span>{t("viewAllResults")}</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Language Dropdown */}
-        {languageOpen && (
-          <div className="absolute left-4 right-4 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-60 overflow-y-auto">
-            {LANGUAGES.map((language) => (
-              <button
-                key={language.code}
-                onClick={() => {
-                  handleLanguageChange(language);
-                  setLanguageOpen(false);
-                }}
-                className={`
-                  w-full px-4 py-2.5 text-left hover:bg-[#f8e8e8] transition-colors flex items-center justify-between
-                  ${selectedLanguage.code === language.code ? 'bg-[#f8e8e8] text-[#c96e6e]' : 'text-gray-700'}
-                `}
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-lg">{language.flag}</span>
-                  <span className="font-medium text-sm">{language.native_name}</span>
-                </span>
-                <span className="text-xs text-gray-500">{language.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Mobile Currency Dropdown */}
-        {currencyOpen && (
-          <div className="absolute right-4 left-4 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-60 overflow-y-auto">
-            {CURRENCIES.map((currency) => (
-              <button
-                key={currency.code}
-                onClick={() => {
-                  handleCurrencyChange(currency);
-                  setCurrencyOpen(false);
-                }}
-                className={`
-                  w-full px-4 py-2.5 text-left hover:bg-[#f8e8e8] transition-colors flex items-center justify-between
-                  ${selectedCurrency.code === currency.code ? 'bg-[#f8e8e8] text-[#c96e6e]' : 'text-gray-700'}
-                `}
-              >
-                <span className="flex items-center gap-3">
-                  <span className="font-semibold">{currency.symbol}</span>
-                  <span className="text-sm">{currency.code}</span>
-                </span>
-                <span className="text-xs text-gray-500">{currency.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Mobile Slide-in Navigation - Left to Right */}
-      <div 
-        ref={mobileNavRef}
-        className={`
-          fixed top-0 left-0 h-full w-[300px] max-w-[80vw] bg-white shadow-2xl z-[100] 
-          transform transition-transform duration-300 ease-in-out
-          ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:hidden
-        `}
-      >
-        {/* Close button */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <span className="text-lg font-bold text-[#c96e6e]">LarkTribe</span>
-          <button
-            onClick={() => setMobileNavOpen(false)}
-            className="p-2 rounded-lg hover:bg-[#f8e8e8] transition-colors"
-          >
-            <X size={22} className="text-gray-600" />
-          </button>
-        </div>
-
-        <nav className="overflow-y-auto h-[calc(100%-64px)] p-4">
-          {/* User Profile Section in Mobile Nav */}
-          <div className="pb-4 border-b border-gray-100 mb-2">
-            {loggedIn && user ? (
-              <Link 
-                href="/account/profile" 
-                onClick={() => setMobileNavOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-[#f8e8e8] hover:bg-[#f0e0e0] transition-colors group"
-              >
-                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#c96e6e] flex-shrink-0">
-                  {user.profile_picture_url ? (
-                    <Image
-                      src={user.profile_picture_url}
-                      alt={getUserDisplayName()}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold">
-                      {getUserInitials()}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-800 truncate">{getUserDisplayName()}</p>
-                  <p className="text-xs text-gray-500 truncate">@{user.username}</p>
-                </div>
-                <ChevronDown size={16} className="text-gray-400 rotate-[-90deg]" />
-              </Link>
-            ) : (
-              <Link 
-                href="/login" 
-                onClick={() => setMobileNavOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-[#f8e8e8] hover:bg-[#f0e0e0] transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <User size={22} className="text-gray-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Sign In</p>
-                  <p className="text-xs text-gray-500">Access your account</p>
-                </div>
-                <ChevronDown size={16} className="text-gray-400 rotate-[-90deg] ml-auto" />
-              </Link>
-            )}
-          </div>
-
-          {ageGroups.length > 0 && (
-            <div className="flex flex-wrap gap-2 py-2 border-b border-gray-100 mb-2">
-              {ageGroups.map((g) => (
-                <Link
-                  key={g.id}
-                  href={`/shop/age/${g.slug}`}
-                  onClick={() => setMobileNavOpen(false)}
-                  className="flex items-center gap-1 whitespace-nowrap text-xs font-semibold px-3 py-1.5 hover:bg-[#f8e8e8] rounded-lg"
-                >
-                  <span>{g.icon}</span>
-                  <span>{g.name}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-          
-          {categories.map((c) => (
-            <Link
-              key={c.id}
-              href={`/category/${c.slug}`}
-              onClick={() => setMobileNavOpen(false)}
-              className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 hover:bg-[#f8e8e8] px-3 rounded-lg transition-colors"
-            >
-              <span style={{ color: DEPT_COLOR[c.department?.slug] ?? "var(--color-ink)" }}>
-                {c.name}
-              </span>
-              <ChevronDown size={14} className="rotate-[-90deg] text-gray-400" />
-            </Link>
-          ))}
-          
-          <Link 
-            href="/deals" 
-            onClick={() => setMobileNavOpen(false)} 
-            className="flex items-center justify-between py-3 border-b border-gray-100 hover:bg-[#f8e8e8] px-3 rounded-lg transition-colors"
-          >
-            <span className="text-[#c96e6e] font-bold">{t("deals")} 🔥</span>
-            <ChevronDown size={14} className="rotate-[-90deg] text-gray-400" />
-          </Link>
-          
-          <Link 
-            href="/brands" 
-            onClick={() => setMobileNavOpen(false)} 
-            className="flex items-center justify-between py-3 border-b border-gray-100 hover:bg-[#f8e8e8] px-3 rounded-lg transition-colors"
-          >
-            <span className="text-gray-600">{t("brands")}</span>
-            <ChevronDown size={14} className="rotate-[-90deg] text-gray-400" />
-          </Link>
-
-           <Link 
-                href="/categories" 
-                onClick={() => setMobileNavOpen(false)} 
-                className="flex items-center justify-between py-3 border-b border-gray-100 hover:bg-[#f8e8e8] px-3 rounded-lg transition-colors"
-              >
-                <span className="text-gray-600">Categories</span>
-                <ChevronDown size={14} className="rotate-[-90deg] text-gray-400" />
-              </Link>
-          
-          <Link 
-            href="/vendor" 
-            onClick={() => setMobileNavOpen(false)} 
-            className="flex items-center justify-between py-3 hover:bg-[#f8e8e8] px-3 rounded-lg transition-colors"
-          >
-            <span className="text-gray-600">{t("sellOnLarkTribe")}</span>
-            <ChevronDown size={14} className="rotate-[-90deg] text-gray-400" />
-          </Link>
-
-          {/* Download App CTA inside mobile nav */}
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <Link
-              href="/download"
-              onClick={() => setMobileNavOpen(false)}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#c96e6e] to-[#a85555] text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300"
-            >
-              <svg 
-                viewBox="0 0 512 512" 
-                className="w-5 h-5 fill-current"
-              >
-                <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/>
-              </svg>
-              <span>Download the App Now</span>
-            </Link>
-          </div>
-        </nav>
-      </div>
-
-      {/* Mobile Nav Overlay */}
-      {mobileNavOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-[99] md:hidden"
-          onClick={() => setMobileNavOpen(false)}
-        />
-      )}
-
-      {/* Desktop Header */}
-      <div className="hidden md:block">
-        <div className="container-shell py-4">
-          {/* Desktop main row */}
-          <div className="flex items-center gap-6">
-            {/* Logo - Text */}
-            <Link href="/" className="flex items-center shrink-0">
-              <span className="text-2xl font-bold text-[#c96e6e] hover:opacity-80 transition-opacity">
-                LarkTribe
-              </span>
-            </Link>
-
-            {/* Location */}
-            <button
-              onClick={() => setLocationOpen(true)}
-              className="flex items-center gap-2 text-sm font-medium shrink-0 hover:opacity-70 max-w-[170px] font-body px-3 py-2 rounded-lg hover:bg-[#f8e8e8] transition-colors group"
-            >
-              <MapPin size={18} className="shrink-0 text-[#c96e6e] group-hover:scale-110 transition-transform" />
-              <span className="text-left leading-tight">
-                <span className="block text-xs text-gray-500 font-normal">
-                  {t("deliverTo")}
-                </span>
-                <span className="block text-sm font-semibold truncate text-gray-800">
-                  {location.label}
-                </span>
-              </span>
-              <ChevronDown size={14} className="shrink-0 text-gray-400" />
+            {/* Mobile hamburger */}
+            <button aria-label="Menu" onClick={() => setMobileOpen(true)} className="p-2 -ml-2 lg:hidden">
+              <Menu className="w-5 h-5" strokeWidth={1.5} />
             </button>
 
-            {/* Search Bar with suggestions */}
-            <div className="flex-1 relative" ref={searchRef}>
-              <form onSubmit={handleSearch}>
-                <div className={`
-                  relative flex items-center rounded-full transition-all duration-300
-                  ${searchFocused 
-                    ? 'ring-2 ring-[#c96e6e] shadow-lg shadow-[#c96e6e]/15' 
-                    : 'hover:shadow-md'
-                  }
-                `}>
-                  <Search 
-                    size={20} 
-                    className={`absolute left-4 transition-colors duration-300 ${
-                      searchFocused ? 'text-[#c96e6e]' : 'text-gray-400'
-                    }`} 
-                  />
-                  <input
-                    type="text"
-                    placeholder={t("searchPlaceholder")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setSearchFocused(true)}
-                    className={`
-                      w-full py-3 pl-12 pr-4 rounded-full border-2 transition-all duration-300
-                      ${searchFocused 
-                        ? 'border-[#c96e6e] bg-white' 
-                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                      }
-                      focus:outline-none text-sm placeholder-gray-400
-                    `}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-20 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <X size={18} />
-                    </button>
-                  )}
-                  <button 
-                    type="submit"
-                    className="absolute right-2 bg-[#c96e6e] hover:bg-[#a85555] text-white px-6 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    Search
-                  </button>
-                </div>
-              </form>
-
-              {/* Search Suggestions - Desktop */}
-              {searchFocused && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                  {/* Recent Searches */}
-                  {recentSearches.length > 0 && (
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                          <Clock size={14} />
-                          {t("recentSearches")}
-                        </span>
-                        <button
-                          onClick={clearRecentSearches}
-                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          {t("clearAll")}
-                        </button>
-                      </div>
-                      <div className="space-y-1">
-                        {recentSearches.map((item, index) => (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              setSearchQuery(item);
-                              saveRecentSearch(item);
-                              window.location.href = `/search?q=${encodeURIComponent(item)}`;
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f8e8e8] transition-colors flex items-center gap-3 text-sm"
-                          >
-                            <Clock size={16} className="text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-700">{item}</span>
-                          </button>
-                        ))}
+            {/* Desktop nav */}
+            <nav className="hidden lg:flex items-center gap-8 flex-1">
+              {NAV_LINKS.map(link => {
+                const menu = menus[link.label];
+                if (menu && menu.nodes.length > 0) {
+                  return (
+                    <div key={link.label} className="group py-6 -my-6" onMouseLeave={() => setClosedMenu(null)}>
+                      <Link href={link.href} onClick={() => setClosedMenu(link.label)}
+                        className="flex items-center gap-1 text-[11px] tracking-[0.12em] uppercase font-medium text-stone-600 hover:text-black transition border-b border-transparent group-hover:border-black pb-0.5">
+                        {link.label}
+                        <ChevronDown className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:rotate-180 transition" strokeWidth={1.5} />
+                      </Link>
+                      <div className={`absolute inset-x-0 top-full w-full bg-white border-t border-stone-100 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.18)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 ${closedMenu === link.label ? 'hidden' : ''}`}>
+                        <MegaPanel label={link.label} href={link.href} data={menu} onNavigate={() => setClosedMenu(link.label)} />
                       </div>
                     </div>
-                  )}
-
-                  {/* Trending Searches */}
-                  <div className="p-4 border-t border-gray-100">
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <TrendingUp size={14} className="text-[#c96e6e]" />
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {t("trendingNow")}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {TRENDING_SEARCHES.map((item, index) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setSearchQuery(item);
-                            saveRecentSearch(item);
-                            window.location.href = `/search?q=${encodeURIComponent(item)}`;
-                          }}
-                          className="px-4 py-2 rounded-full text-sm font-medium bg-[#f8e8e8] hover:bg-[#c96e6e] hover:text-white transition-all duration-200 text-gray-700 border border-[#e8d5d5] hover:border-[#c96e6e]"
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* View All */}
-                  <div className="p-4 border-t border-gray-100 bg-[#f8e8e8]/30">
-                    <button
-                      onClick={() => {
-                        if (searchQuery.trim()) {
-                          saveRecentSearch(searchQuery.trim());
-                          window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-                        }
-                      }}
-                      className="w-full text-center text-sm font-medium text-[#c96e6e] hover:text-[#a85555] transition-colors flex items-center justify-center gap-2"
-                    >
-                      <span>{t("seeAllResults")}</span>
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right actions */}
-            <div className="flex items-center gap-3 ml-auto shrink-0">
-              {/* Language Selector */}
-              <div className="relative" ref={languageRef}>
-                <button
-                  onClick={() => setLanguageOpen(!languageOpen)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-[#f8e8e8] transition-colors text-sm font-medium"
-                >
-                  <span className="text-lg leading-none">{selectedLanguage.flag}</span>
-                  <span className="hidden xl:inline">{selectedLanguage.code.toUpperCase()}</span>
-                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${languageOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {languageOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden z-50 max-h-80 overflow-y-auto">
-                    {LANGUAGES.map((language) => (
-                      <button
-                        key={language.code}
-                        onClick={() => handleLanguageChange(language)}
-                        className={`
-                          w-full px-4 py-2.5 text-left hover:bg-[#f8e8e8] transition-colors flex items-center justify-between
-                          ${selectedLanguage.code === language.code ? 'bg-[#f8e8e8] text-[#c96e6e]' : 'text-gray-700'}
-                        `}
-                      >
-                        <span className="flex items-center gap-3">
-                          <span className="text-xl">{language.flag}</span>
-                          <span className="font-medium">{language.native_name}</span>
-                        </span>
-                        <span className="text-sm text-gray-500">{language.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Currency Selector */}
-              <div className="relative" ref={currencyRef}>
-                <button
-                  onClick={() => setCurrencyOpen(!currencyOpen)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-[#f8e8e8] transition-colors text-sm font-medium"
-                >
-                  <DollarSign size={18} className="text-gray-600" />
-                  <span>{selectedCurrency.symbol}</span>
-                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {currencyOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden z-50 max-h-80 overflow-y-auto">
-                    {CURRENCIES.map((currency) => (
-                      <button
-                        key={currency.code}
-                        onClick={() => handleCurrencyChange(currency)}
-                        className={`
-                          w-full px-4 py-2.5 text-left hover:bg-[#f8e8e8] transition-colors flex items-center justify-between
-                          ${selectedCurrency.code === currency.code ? 'bg-[#f8e8e8] text-[#c96e6e]' : 'text-gray-700'}
-                        `}
-                      >
-                        <span className="flex items-center gap-3">
-                          <span className="font-semibold">{currency.symbol}</span>
-                          <span>{currency.code}</span>
-                        </span>
-                        <span className="text-sm text-gray-500">{currency.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Link
-                href="/deals"
-                className="hidden xl:block text-sm font-semibold text-[#c96e6e] hover:text-[#a85555] transition-colors"
-              >
-                {t("deals")} 🔥
-              </Link>
-
-              <Link
-                href="/brands"
-                className="hidden xl:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Brands
-              </Link>
-
-                <Link
-                href="/categories"
-                className="hidden xl:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Categories
-              </Link>
-
-              <Link
-                href="/vendor"
-                className="hidden xl:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Sell
-              </Link>
-              
-              {/* Account Button with Profile Picture */}
-              <Link 
-                href={loggedIn ? "/account" : "/login"} 
-                aria-label="Account" 
-                className="relative group"
-              >
-                {loggedIn && user?.profile_picture_url ? (
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-[#c96e6e] transition-all duration-200">
-                    <Image
-                      src={user.profile_picture_url}
-                      alt={getUserDisplayName()}
-                      width={40}
-                      height={40}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                ) : (
-                  <div className="p-2 rounded-full hover:bg-[#f8e8e8] transition-colors">
-                    <User size={22} className="text-gray-700 group-hover:text-[#c96e6e] transition-colors" />
-                  </div>
-                )}
-              </Link>
-              
-              <Link 
-                href={loggedIn ? "/account/wishlist" : "/login"} 
-                aria-label="Wishlist" 
-                className="p-2 rounded-full hover:bg-[#f8e8e8] transition-colors relative group"
-              >
-                <Heart size={22} className="text-gray-700 group-hover:text-[#c96e6e] transition-colors" />
-              </Link>
-              
-              <NotificationBell />
-              
-              <button 
-                aria-label="Cart" 
-                onClick={openDrawer} 
-                className="p-2 rounded-full hover:bg-[#f8e8e8] transition-colors relative group"
-              >
-                <ShoppingBag size={22} className="text-gray-700 group-hover:text-[#c96e6e] transition-colors" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#c96e6e] text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
-                    {itemCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Shop by age - with Download App CTA on the far right */}
-          {/* {ageGroups.length > 0 && (
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1">
-                {ageGroups.map((g) => (
-                  <Link
-                    key={g.id}
-                    href={`/shop/age/${g.slug}`}
-                    className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold border border-[var(--color-line)] rounded px-3 py-1.5 hover:bg-[#f8e8e8] hover:border-[#e8d5d5] transition-colors"
-                  >
-                    <span>{g.icon}</span>
-                    <span>{g.name}</span>
+                  );
+                }
+                return (
+                  <Link key={link.label} href={link.href}
+                    className="text-[11px] tracking-[0.12em] uppercase font-medium text-stone-600 hover:text-black transition border-b border-transparent hover:border-black pb-0.5">
+                    {link.label}
                   </Link>
-                ))}
-              </div>
-              
-              //Download App CTA - Animated 
-              <div className="shrink-0 ml-4 animate-pulse">
-                <Link
-                  href="/download"
-                  className="group flex items-center gap-2 bg-gradient-to-r from-[#c96e6e] to-[#a85555] text-white px-4 py-1.5 rounded text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
-                >
-                  <svg 
-                    viewBox="0 0 512 512" 
-                    className="w-4 h-4 fill-current animate-bounce"
-                  >
-                    <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/>
-                  </svg>
-                  <span>Download the App Now</span>
-                  <svg 
-                    viewBox="0 0 512 512" 
-                    className="w-4 h-4 fill-current group-hover:translate-x-1 transition-transform duration-200"
-                  >
-                    <path d="M337.9 256L159.6 77.7c-7.8-7.8-20.5-7.8-28.3 0s-7.8 20.5 0 28.3l178.1 178.1-178.1 178.1c-7.8 7.8-7.8 20.5 0 28.3s20.5 7.8 28.3 0L337.9 256z"/>
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          )} */}
+                );
+              })}
+            </nav>
 
-          {/* Desktop category nav - Auto-scrolling marquee */}
-          {categories.length > 0 && (
-            <div className="mt-3 overflow-hidden">
-              <div className="category-marquee-wrapper">
-                <div className="category-marquee-track flex items-center gap-8 animate-marquee">
-                  {duplicatedCategories.map((c, index) => (
-                    <Link
-                      key={`${c.id}-${index}`}
-                      href={`/category/${c.slug}`}
-                      className="category-marquee-item text-sm font-medium whitespace-nowrap hover:opacity-70 transition-opacity px-2 py-1"
-                      style={{
-                        color: DEPT_COLOR[c.department?.slug] ?? "#333333",
-                      }}
-                    >
-                      {c.name}
-                    </Link>
+            {/* Centered logo */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <Link href="/" className="flex flex-col items-center">
+                <span className="font-editorial text-2xl lg:text-3xl tracking-[0.18em] uppercase font-medium text-black">Lark Tribe</span>
+                <span className="text-[9px] tracking-[0.35em] uppercase text-stone-400 -mt-1 hidden sm:block">Nairobi</span>
+              </Link>
+            </div>
+
+            {/* Right utilities */}
+            <div className="ml-auto flex items-center gap-1 sm:gap-3">
+              <button onClick={() => setSearchOpen(true)} className="hidden lg:block text-[11px] tracking-[0.12em] uppercase font-medium text-stone-600 hover:text-black transition px-2 py-2">
+                Search
+              </button>
+              <button onClick={() => setSearchOpen(true)} className="lg:hidden p-2">
+                <Search className="w-5 h-5" strokeWidth={1.5} />
+              </button>
+
+              <div className="hidden sm:block group/account relative py-6 -my-6">
+                {user ? (
+                  <button className="flex items-center gap-2 hover:text-black transition">
+                    {/* <span className="hidden xl:inline text-[11px] tracking-wide max-w-[100px] truncate">{user.first_name || user.username}</span> */}
+                    {user.profile_picture_url ? (
+                      <img src={user.profile_picture_url} alt="" className="w-7 h-7 object-cover" />
+                    ) : (
+                      <span className="w-7 h-7 bg-black text-white flex items-center justify-center"><User2 className="w-3.5 h-3.5" strokeWidth={1.5} /></span>
+                    )}
+                  </button>
+                ) : (
+                  <button className="flex items-center gap-2 hover:text-black transition">
+                    <span className="hidden xl:inline text-[11px] tracking-[0.12em] uppercase">Account</span>
+                    <span className="w-7 h-7 bg-black text-white flex items-center justify-center"><User2 className="w-3.5 h-3.5" strokeWidth={1.5} /></span>
+                  </button>
+                )}
+                <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/account:opacity-100 group-hover/account:visible transition-all duration-150 z-40">
+                  <div className="w-48 bg-white border border-stone-200 shadow-lg text-[13px]">
+                    {user ? (
+                      <>
+                        <div className="px-4 py-3 border-b border-stone-100">
+                          <p className="text-[11px] text-stone-400">Signed in as</p>
+                          <p className="font-medium truncate">{user.first_name || user.username}</p>
+                        </div>
+                        <Link href="/account" className="block px-4 py-2.5 hover:bg-stone-50 transition">Profile</Link>
+                        <Link href="/account/orders" className="block px-4 py-2.5 hover:bg-stone-50 transition">Orders</Link>
+                        <Link href="/account/wishlist" className="block px-4 py-2.5 hover:bg-stone-50 transition">Wishlist</Link>
+                        <button onClick={() => { auth.logout(); router.push("/"); }} className="block w-full text-left px-4 py-2.5 text-stone-400 hover:text-black hover:bg-stone-50 transition border-t border-stone-100">Sign Out</button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/login" className="block px-4 py-2.5 hover:bg-stone-50 transition">Sign In</Link>
+                        <Link href="/register" className="block px-4 py-2.5 hover:bg-stone-50 transition">Register</Link>
+                        <Link href="/orders" className="block px-4 py-2.5 hover:bg-stone-50 transition border-t border-stone-100">Track Order</Link>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/account/wishlist" className="p-2 relative hover:text-black transition">
+                <Heart className="w-5 h-5" strokeWidth={1.4} />
+                {wishlistCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />}
+              </Link>
+
+              <button onClick={openDrawer} className="p-2 relative hover:text-black transition">
+                <ShoppingBag className="w-5 h-5" strokeWidth={1.4} />
+                {itemCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Search overlay */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[100]">
+          <div ref={searchBoxRef} className="absolute left-1/2 -translate-x-1/2 top-16 lg:top-20 w-full max-w-2xl bg-white border-b border-stone-200 shadow-xl">
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 h-14 px-5 border-b border-stone-100">
+              <Search className="w-4 h-4 text-stone-400" strokeWidth={1.5} />
+              <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400" placeholder="Search products, categories..." />
+              <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery(""); }}><X className="w-4 h-4 text-stone-400 hover:text-black" /></button>
+            </form>
+            <div className="max-h-[70vh] overflow-y-auto p-5">
+              {searchQuery.trim() ? (
+                searching ? <p className="text-xs text-stone-400 py-4">Searching…</p> :
+                suggestions.length === 0 ? <p className="text-xs text-stone-400 py-4">No results.</p> :
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {suggestions.map(p => (
+                    <button key={p.id} onClick={() => goToSuggestion(p)} className="text-left group">
+                      <div className="aspect-[3/4] bg-stone-50 overflow-hidden mb-2">
+                        {p.image ? <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" /> : <div className="w-full h-full bg-stone-100" />}
+                      </div>
+                      <p className="text-[12px] text-stone-800 line-clamp-2">{p.name}</p>
+                      <p className="text-[12px] text-stone-500 mt-0.5">KES {parseFloat(p.price).toLocaleString("en-KE")}</p>
+                    </button>
                   ))}
                 </div>
-              </div>
+              ) : (
+                <p className="text-xs text-stone-400">Type to search…</p>
+              )}
             </div>
-          )}
-
-          {categories.length === 0 && (
-            <div className="mt-3">
-              <div className="text-sm text-gray-400 py-2 px-2">Loading categories...</div>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <LocationModal open={locationOpen} onClose={() => setLocationOpen(false)} onSave={saveLocation} initialLocation={location} />
-    </header>
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-[85vw] max-w-sm bg-white flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-stone-200">
+              <span className="font-editorial text-xl tracking-[0.15em] uppercase">Lark Tribe</span>
+              <button onClick={() => setMobileOpen(false)}><X className="w-5 h-5" strokeWidth={1.5} /></button>
+            </div>
+            <nav className="flex-1 overflow-y-auto py-2">
+              {NAV_LINKS.map(link => {
+                const menu = menus[link.label];
+                if (menu && menu.nodes.length > 0) {
+                  const open = mobileExpanded === link.label;
+                  return (
+                    <div key={link.label}>
+                      <button onClick={() => setMobileExpanded(open ? null : link.label)} className="w-full flex items-center justify-between px-5 py-3.5 text-sm uppercase tracking-wide border-b border-stone-50">
+                        <span>{link.label}</span>
+                        <ChevronDown className={`w-4 h-4 transition ${open ? 'rotate-180' : ''}`} />
+                      </button>
+                      {open && <MobileMenuBody data={menu} href={link.href} label={link.label} onNavigate={() => setMobileOpen(false)} />}
+                    </div>
+                  );
+                }
+                return <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} className="block px-5 py-3.5 text-sm uppercase tracking-wide border-b border-stone-50">{link.label}</Link>;
+              })}
+            </nav>
+            <div className="border-t border-stone-200 p-5 space-y-3 text-sm">
+              {user ? (
+                <Link href="/account" onClick={() => setMobileOpen(false)} className="block font-medium">{user.first_name || user.username} — Account</Link>
+              ) : (
+                <div className="flex gap-3">
+                  <Link href="/login" onClick={() => setMobileOpen(false)} className="font-medium">Sign In</Link>
+                  <span className="text-stone-300">/</span>
+                  <Link href="/register" onClick={() => setMobileOpen(false)} className="font-medium">Register</Link>
+                </div>
+              )}
+              <Link href="/account/wishlist" onClick={() => setMobileOpen(false)} className="block text-stone-500">Wishlist</Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

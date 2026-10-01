@@ -64,7 +64,7 @@ function NewTicketForm({ onCreated }: { onCreated: () => void }) {
       {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
       <button
         disabled={saving}
-        className="bg-[var(--color-ink)] text-white font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full disabled:opacity-40"
+        className="btn btn-ink"
       >
         {saving ? "Sending…" : "Send message"}
       </button>

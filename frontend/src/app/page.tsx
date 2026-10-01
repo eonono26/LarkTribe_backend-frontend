@@ -1,285 +1,245 @@
 import Link from "next/link";
-import Image from "next/image"; // Add this import
 import { api } from "@/lib/api";
+import type { Department, ProductListItem, AgeGroup, Campaign, ShowcaseVideoItem } from "@/lib/types";
+import HeroCarousel from "@/components/HeroCarousel";
 import ProductCard from "@/components/ProductCard";
 import RecommendedRow from "@/components/RecommendedRow";
-import { BannerGroup } from "@/components/Banner";
-import DepartmentCarousel from "@/components/DepartmentCarousel";
-import AgeGroupNav from "@/components/AgeGroupNav";
 import VideoShowcase from "@/components/VideoShowcase";
-import { Smartphone, Truck, RotateCcw, ShieldCheck } from "lucide-react";
-import type { Brand, Campaign, Department, ProductListItem, ShowcaseVideoItem, AgeGroup } from "@/lib/types";
 
-// Fallback colors for departments if image is not available
-const DEPT_COLORS = {
-  women: "var(--dept-women)",
-  kids: "var(--dept-kids)",
-  beauty: "var(--dept-beauty)",
-  maternity: "var(--dept-maternity)",
-  "home-lifestyle": "var(--dept-home)",
+const FALLBACK_IMG = {
+  hero: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop",
+  baby: "https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=2070&auto=format&fit=crop",
+  kids: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=2070&auto=format&fit=crop",
+  women: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070&auto=format&fit=crop",
+  men: "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?q=80&w=2071&auto=format&fit=crop",
 };
 
-const DEPT_LABELS = {
-  women: "Women",
-  kids: "Kids",
-  beauty: "Beauty",
-  maternity: "Maternity",
-  "home-lifestyle": "Home & Lifestyle",
-};
+const FALLBACK_HERO: Campaign[] = [
+  {
+    id: -1,
+    title: "The Kinship Edit",
+    description: "Minimal outerwear and soft tailoring for the whole family.",
+    placement: "homepage_banner",
+    style: "hero",
+    background_color: "#0A0A0A",
+    cta_label: "Explore",
+    image: FALLBACK_IMG.hero,
+    link_url: "/shop",
+    department: null,
+    coupon: null,
+    is_ai_generated: false,
+    active: true,
+    starts_at: new Date().toISOString(),
+    ends_at: null,
+    is_live: true,
+    created_at: new Date().toISOString(),
+  },
+];
+
+function CategoryBlock({
+  href,
+  image,
+  title,
+  subtitle,
+}: {
+  href: string;
+  image: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group relative block overflow-hidden aspect-[4/5] lg:aspect-[3/4]"
+    >
+      <img
+        src={image}
+        alt={title}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition" />
+      <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 lg:pb-12 text-white">
+        <h3 className="font-editorial text-2xl lg:text-4xl tracking-wide">
+          {title}
+        </h3>
+
+        {subtitle && (
+          <p className="text-[11px] tracking-[0.2em] uppercase mt-2 opacity-80">
+            {subtitle}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
 
 export default async function Home() {
-  // Fetch data with better error handling
-  const [productsData, campaignsData, departmentsData, recommendedData, dealsData, brandsData, showcaseVideoData, ageGroupsResult] = await Promise.all([
-    api.products({ ordering: "-created_at" }).catch((err) => {
-      console.error("Failed to fetch products:", err);
-      return { results: [], count: 0 };
-    }),
-    api.campaigns().catch((err) => {
-      console.error("Failed to fetch campaigns:", err);
-      return { results: [] as Campaign[] };
-    }),
-    api.departments().catch((err) => {
-      console.error("Failed to fetch departments:", err);
-      return [] as Department[];
-    }),
-    api.recommendedForYou().catch((err) => {
-      console.error("Failed to fetch recommended:", err);
-      return [] as ProductListItem[];
-    }),
-    api.products({ on_sale: "true", ordering: "-discount_percent" }).catch((err) => {
-      console.error("Failed to fetch deals:", err);
-      return { results: [] as ProductListItem[], count: 0 };
-    }),
-    api.brands({ has_products: "true" }).catch((err) => {
-      console.error("Failed to fetch brands:", err);
-      return { results: [] as Brand[], count: 0 };
-    }),
-    api.showcaseVideos().catch((err) => {
-      console.error("Failed to fetch showcase videos:", err);
-      return { results: [] as ShowcaseVideoItem[], count: 0 };
-    }),
-    api.ageGroups().catch((err) => {
-      console.error("Failed to fetch age groups:", err);
-      return [] as AgeGroup[];
-    }),
-  ]);
+  // Use the new consolidated endpoint if available, else fall back to parallel calls
+  let heroCampaigns: Campaign[] = [];
+  let departments: Department[] = [];
+  let ageGroups: AgeGroup[] = [];
+  let products: ProductListItem[] = [];
 
-  // Extract data from responses
-  const products = productsData?.results || [];
-  const campaigns = campaignsData?.results || [];
-  const departments = departmentsData || [];
-  const recommended = recommendedData || [];
-  const deals = (dealsData?.results || []).slice(0, 10);
-  const brands = (brandsData?.results || []).slice(0, 12);
-  const showcaseVideos = showcaseVideoData?.results || [];
-  const ageGroupsData = ageGroupsResult || [];
+  try {
+    const home = await api.home();
 
-  // If departments are not available from API, use fallback
-  const deptData = departments.length > 0 ? departments : 
-    Object.entries(DEPT_LABELS).map(([slug, name]) => ({
-      id: 0,
-      name,
-      slug,
-      order: 0,
-      description: null,
-      is_active: true,
-      media_files: [],
-      primary_image: null,
-      images: [],
-      videos: [],
-      category_count: 0,
-      product_count: 0,
-      created_at: "",
-      updated_at: "",
-    }));
+    heroCampaigns = home.hero_campaigns || [];
+    departments = home.departments || [];
+    ageGroups = home.age_groups || [];
+    products = home.new_arrivals || [];
+  } catch {
+    const [p, d, a, c] = await Promise.all([
+      api
+        .products({ ordering: "-created_at" })
+        .catch(() => ({ results: [] as ProductListItem[] })),
 
-  // Debug logging (remove in production)
-  console.log("Products fetched:", products.length);
-  console.log("First product:", products[0]);
+      api
+        .departments()
+        .catch(() => [] as Department[]),
+
+      api
+        .ageGroups()
+        .catch(() => [] as AgeGroup[]),
+
+      api
+        .campaigns()
+        .catch(() => ({ results: [] as Campaign[] })),
+    ]);
+
+    products = p.results || [];
+    departments = d || [];
+    ageGroups = a || [];
+
+    heroCampaigns = (c.results || []).filter(
+      (c) =>
+        c.placement === "homepage_banner" &&
+        c.is_live &&
+        c.image
+    );
+  }
+
+  // Shoppable "Watch & shop" videos — never let a failure here break the homepage
+  const showcaseVideos: ShowcaseVideoItem[] = await api
+    .showcaseVideos()
+    .then((r) => r.results || [])
+    .catch(() => []);
+
+  const women = departments.find((d) => d.slug === "women");
+  const men = departments.find((d) => d.slug === "men");
+
+  const babyGroups = ageGroups.filter(
+    (a) => a.stage === "baby"
+  );
+
+  const kidsGroups = ageGroups.filter(
+    (a) => a.stage === "kids" || a.stage === "teens"
+  );
+
+  const babyImg =
+    babyGroups.find((a) => a.primary_image)?.primary_image?.file_url ||
+    FALLBACK_IMG.baby;
+
+  const kidsImg =
+    kidsGroups.find((a) => a.primary_image)?.primary_image?.file_url ||
+    FALLBACK_IMG.kids;
+
+  const slides =
+    heroCampaigns.length > 0
+      ? heroCampaigns
+      : FALLBACK_HERO;
 
   return (
-    <main>
-      {/* Promo strip — sits right under the header */}
-      <BannerGroup campaigns={campaigns} placement="homepage_banner" styles={["strip"]} />
+    <main className="bg-white text-black font-sans pt-16 lg:pt-20">
+      {/* HERO CAROUSEL */}
+      <HeroCarousel
+        campaigns={slides}
+        slideInterval={7000}
+      />
 
-      {/* Campaign banners */}
-      <div className="mt-4 md:mt-6">
-        <BannerGroup
-          campaigns={campaigns}
-          placement="homepage_banner"
-          styles={["hero", "split", "countdown", "card"]}
+      {/* FAMILY GRID — 4 massive blocks, edge-to-edge on mobile, 2×2 on desktop */}
+      <section className="grid grid-cols-2 gap-4 pt-4 container-shell  lg:grid-cols-4">
+        <CategoryBlock
+          href="/shop?stage=baby"
+          image={babyImg}
+          title="Baby"
+          subtitle="0 – 24 Months"
         />
-      </div>
 
-      {/* Department Carousel - Horizontal scrolling with auto-scroll */}
-      <section className="container-shell mt-3">
-        <DepartmentCarousel 
-          departments={deptData}
-          colors={DEPT_COLORS}
-          labels={DEPT_LABELS}
+        <CategoryBlock
+          href="/shop?stage=kids"
+          image={kidsImg}
+          title="Kids"
+          subtitle="2 – 14 Years"
+        />
+
+        <CategoryBlock
+          href="/shop?department=women"
+          image={
+            women?.primary_image?.file_url ||
+            FALLBACK_IMG.women
+          }
+          title="Women"
+        />
+
+        <CategoryBlock
+          href="/shop?department=men"
+          image={
+            men?.primary_image?.file_url ||
+            FALLBACK_IMG.men
+          }
+          title="Men"
         />
       </section>
 
-      {/* Shop by age — Baby, Kids, Teens, etc. */}
-      <section className="container-shell mt-3">
-        <AgeGroupNav ageGroups={ageGroupsData} />
-      </section>
-
-      {/* Trust badges strip */}
-      <section className="container-shell mt-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-[var(--color-mist)] rounded-xl p-5">
-          <div className="flex items-center gap-2.5">
-            <Smartphone size={20} className="shrink-0" />
-            <span className="text-xs sm:text-sm font-semibold">Pay with M-Pesa</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Truck size={20} className="shrink-0" />
-            <span className="text-xs sm:text-sm font-semibold">Fast Kenya-wide delivery</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <RotateCcw size={20} className="shrink-0" />
-            <span className="text-xs sm:text-sm font-semibold">7-day easy returns</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck size={20} className="shrink-0" />
-            <span className="text-xs sm:text-sm font-semibold">Verified vendors</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Today's deals */}
-      {deals.length > 0 && (
-        <section className="container-shell mt-3">
-          <div className="flex items-baseline justify-between mb-5">
-            <h2 className="font-display text-2xl font-bold">
-              Today&apos;s deals <span className="text-[var(--color-flag)]">🔥</span>
+      {/* NEW ARRIVALS — sparse, no badges, editorial spacing */}
+      {products.length > 0 && (
+        <section className="py-8 lg:py-16 container-shell">
+          <div className="flex items-end justify-between mb-10 lg:mb-14">
+            <h2 className="font-editorial text-3xl lg:text-5xl tracking-tight">
+              New In
             </h2>
-            <Link href="/deals" className="text-sm font-semibold underline">View all</Link>
+
+            <Link
+              href="/shop"
+              className="text-[11px] tracking-[0.15em] uppercase text-stone-500 hover:text-black transition border-b border-transparent hover:border-black pb-0.5"
+            >
+              View All
+            </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {deals.map((p: ProductListItem) => (
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 lg:gap-x-6">
+            {products.slice(0, 8).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Just landed products */}
-      <section className="container-shell mt-3">
-        <div className="flex items-baseline justify-between mb-5">
-          <h2 className="font-display text-2xl font-bold">Just landed</h2>
-          <Link href="/category/women" className="text-sm font-semibold underline">View all</Link>
-        </div>
-        {products.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-neutral-500">
-              No products yet — run <code className="bg-[var(--color-mist)] px-1 py-0.5 rounded">python manage.py seed_demo</code> on
-              the backend, or add products from the vendor dashboard.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {products.map((p: ProductListItem) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        )}
+      {/* WATCH & SHOP — shoppable videos, right after New In */}
+      <section className="py-8 lg:py-12 container-shell">
+      <VideoShowcase videos={showcaseVideos} />
       </section>
 
-      {/* Shoppable video showcase — dedicated video content, own upload */}
-      <VideoShowcase videos={showcaseVideos} />
+      {/* RECOMMENDED FOR YOU — personalized picks from the AI recommendation engine */}
 
-      {/* Recommended products - only show if there are products */}
-      {recommended.length > 0 && (
-        <RecommendedRow 
-          title="Recommended for you" 
-          kind="recommended"
-          products={recommended}
-        />
-      )}
+      <section className="container-shell py-8 lg:py-12">
+         <RecommendedRow title="Just For You" kind="recommended" />
+      </section>
+     
 
-      {/* Top brands strip */}
-     {/* Top brands strip */}
-{brands.length > 0 && (
-  <section className="container-shell mt-3">
-    <div className="flex items-baseline justify-between mb-5">
-      <h2 className="font-display text-2xl font-bold">Top brands</h2>
-      {/* <Link href="/brands" className="text-sm font-semibold underline">View all</Link> */}
-    </div>
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-      {brands.map((b: Brand) => (
+      {/* EDITORIAL STATEMENT — thin strip, lots of whitespace */}
+      <section className="border-t border-stone-200 py-20 lg:py-28 text-center container-shell">
+        <h2 className="font-editorial text-2xl lg:text-4xl tracking-tight max-w-2xl mx-auto leading-snug">
+          Designed for modern kinship. Made in Kenya, worn everywhere.
+        </h2>
+
         <Link
-          key={b.id}
-          href={`/brand/${b.id}`}
-          className="group relative border border-[var(--color-line)] rounded-lg overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all bg-white aspect-square"
+          href="/about"
+          className="inline-block mt-6 text-[11px] tracking-[0.15em] uppercase text-stone-500 hover:text-black transition border-b border-transparent hover:border-black pb-0.5"
         >
-          {/* Brand Image/Logo - Covers the whole card */}
-          <div className="absolute inset-0 w-full h-full">
-            {b.primary_image ? (
-              <Image
-                src={b.primary_image.file_url}
-                alt={b.primary_image.alt_text || b.name}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 768px) 33vw, 16vw"
-              />
-            ) : b.logo_url ? (
-              <Image
-                src={b.logo_url}
-                alt={b.name}
-                fill
-                className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 768px) 33vw, 16vw"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                <span className="text-6xl font-bold text-gray-300">
-                  {b.name.charAt(0)}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          {/* Dark overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
-          {/* Brand Info - Bottom overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-            <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 text-center">
-              <p className="font-display font-bold text-sm text-white truncate">
-                {b.name}
-              </p>
-              <p className="text-[10px] text-white/80">
-                {b.product_count} item{b.product_count === 1 ? "" : "s"}
-              </p>
-            </div>
-          </div>
+          Read Our Story
         </Link>
-      ))}
-    </div>
-  </section>
-)}
-
-      {/* Newsletter / app promo banner */}
-<section className="container-shell mt-8">
-  <div className="rounded-xl bg-gradient-to-r from-[#c96e6e] via-[#d4787a] to-[#e8a0a0] text-white px-6 py-10 sm:px-12 sm:py-14 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-lg">
-    <div>
-      <h2 className="font-display text-2xl sm:text-3xl font-black mb-2 flex items-center gap-2">
-        Never miss a deal
-        <span className="text-2xl">✨</span>
-      </h2>
-      <p className="text-sm text-white/90 max-w-md">
-        Get notified about new drops, flash sales, and vendor arrivals — right from your account notifications.
-      </p>
-    </div>
-    <Link
-      href="/account/notifications"
-      className="bg-white text-[#c96e6e] font-semibold uppercase text-sm tracking-wide px-6 py-3 rounded-full shrink-0 hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-md"
-    >
-      Manage notifications
-    </Link>
-  </div>
-</section>
+      </section>
     </main>
   );
 }

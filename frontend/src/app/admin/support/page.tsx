@@ -59,7 +59,7 @@ export default function AdminSupportPage() {
                     placeholder="Reply…"
                     className="flex-1 bg-[var(--color-mist)] rounded-lg px-3 py-2 text-sm outline-none"
                   />
-                  <button onClick={() => sendReply(t.id)} className="bg-[var(--color-ink)] text-white text-xs font-semibold uppercase px-4 rounded-full">
+                  <button onClick={() => sendReply(t.id)} className="btn btn-ink btn-sm">
                     Reply
                   </button>
                   <button onClick={() => resolve(t.id)} className="border border-[var(--color-line)] text-xs font-semibold uppercase px-4 rounded-full">

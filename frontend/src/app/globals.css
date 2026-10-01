@@ -1,176 +1,184 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
+@theme {
+  --color-stone-50: #FAFAFA;
+  --color-stone-100: #F5F5F5;
+  --color-stone-200: #E5E5E5;
+  --color-stone-300: #D4D4D4;
+  --color-stone-400: #A3A3A3;
+  --color-stone-500: #737373;
+  --color-stone-600: #525252;
+  --color-stone-700: #404040;
+  --color-stone-800: #262626;
+  --color-stone-900: #171717;
+  --color-stone-950: #0A0A0A;
+
+  --color-espresso: #0A0A0A;
+  --color-terracotta: #8B3A2A;
+
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-editorial: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
 :root {
-  --color-ink: #0B0B0C;
-  --color-paper: #ffffff;
-  --color-promo:#000000;
-  --color-mist: #F4F4F2;
-  --color-signal: #FFE400;
-  --color-flag: #E8331F;
-  --color-line: #E3E3E0;
+  --color-ink: #0A0A0A;
+  --color-ink-soft: #525252;
+  --color-paper: #FFFFFF;
+  --color-mist: #F5F5F5;
+  --color-accent: #8B3A2A;
+  --color-accent-dark: #6B2A1E;
+  --color-accent-tint: #F3EAE8;
+  --color-line: #E5E5E5;
 
-  --dept-women: #333;
-  --dept-kids: #333;
-  --dept-beauty: #333;
-  --dept-maternity: #333;
-  --dept-home: #333;
+  --color-signal: #0A0A0A;
+  --color-signal-dark: #000000;
 
-  --font-display: "Plus Jakarta Sans", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 0px;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --fs-root: 15px;
+  --fs-body: 1rem;
+  --lh-body: 1.5;
 }
 
-.font-display {
-  font-family: var(--font-display);
+html {
+  font-size: var(--fs-root);
+  -webkit-text-size-adjust: 100%;
 }
 
-.font-body {
-  font-family: var(--font-body);
-}
-
-
-html,
-body {
+html, body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
+img, video { max-width: 100%; height: auto; }
+input, textarea, select, button { font: inherit; max-width: 100%; }
 
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.font-display {
+h1, h2, h3, h4, h5, h6, .font-display {
   font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-weight: 500;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 ::selection {
-  background: var(--color-signal);
-  color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
 }
 
 .container-shell {
-  max-width: 1400px;
+  max-width: 1600px;
   margin-inline: auto;
-  padding-inline: clamp(16px, 3vw, 32px);
+  padding-inline: clamp(8px, 2.5vw, 24px);
+  /*  */
+  /* padding-inline: clamp(16px, 3.5vw, 48px); */
 }
 
-.marquee-track {
-  animation: marquee 22s linear infinite;
-}
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track { animation: none; }
-}
-
-:focus-visible {
-  outline: 3px solid var(--color-ink);
-  outline-offset: 2px;
-}
-
-
-/*promo css */
-.promo-marquee-wrapper {
-  overflow: hidden;
-}
-
-.promo-marquee-track {
-  display: flex;
+/* Buttons — Zara uses sharp rectangles, never pills */
+.btn {
+  display: inline-flex;
   align-items: center;
-  width: max-content;
-  gap: 24px;
-  padding-inline: clamp(16px, 3vw, 32px); /* Same as .container-shell */
-  animation: marquee 22s linear infinite;
-
-  font-size: 11px;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
   font-weight: 500;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  padding-block: 6px;
+  border-radius: 0;
+  padding: 0.85rem 1.6rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  white-space: nowrap;
+}
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-block { display: flex; width: 100%; }
+.btn-sm { padding: 0.55rem 1.1rem; font-size: 0.7rem; }
+.btn-lg { padding: 1rem 2rem; font-size: 0.85rem; }
+
+.btn-primary {
+  background: var(--color-ink);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-ink-soft);
 }
 
-/* category css */
-
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+.btn-outline {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--color-ink);
+  color: #fff;
 }
 
-.animate-marquee {
-  animation: marquee 100s linear infinite;
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink-soft);
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: normal;
+  padding: 0.5rem 0.75rem;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-ink);
+  background: var(--color-mist);
 }
 
-.category-marquee-wrapper {
-  overflow: hidden;
-  position: relative;
+.surface-card {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 0;
+  box-shadow: none;
+  transition: box-shadow 0.25s var(--ease-out);
+}
+.surface-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
-.category-marquee-track {
-  display: flex;
-  width: max-content;
+.badge-accent {
+  background: var(--color-ink);
+  color: #fff;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
 }
 
-.category-marquee-track:hover {
-  animation-play-state: paused;
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Optional: Add gradient fade on edges */
-.category-marquee-wrapper::before,
-.category-marquee-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40px;
-  z-index: 2;
-  pointer-events: none;
+.animate-fade-up {
+  animation: fadeUp 0.6s var(--ease-out) both;
 }
-
-.category-marquee-wrapper::before {
-  left: 0;
-  background: linear-gradient(to right, white, transparent);
-}
-
-.category-marquee-wrapper::after {
-  right: 0;
-  background: linear-gradient(to left, white, transparent);
-}
-
-
-
-
-/* Add to globals.css or a custom CSS file */
-.scrollbar-thin::-webkit-scrollbar {
-  height: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 8px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 8px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
