@@ -1340,7 +1340,7 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         return Product.objects.filter(vendor=self.request.user.vendor_profile).select_related(
             "category", "category__department", "brand"
         ).prefetch_related("images", "variants", "age_groups").annotate(
-            discount_percent=Case(
+            discount_pct=Case(
                 When(
                     compare_at_price__isnull=False,
                     compare_at_price__gt=F('price'),
@@ -1390,16 +1390,30 @@ class MyProductsViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Image size should not exceed 5MB"}, 
                           status=status.HTTP_400_BAD_REQUEST)
         
+        color = (request.data.get("color") or "").strip()
+        view = request.data.get("view") or ProductImage.View.FRONT
+        if view not in ProductImage.View.values:
+            return Response(
+                {"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         make_primary = request.data.get("is_primary") in ("true", "True", "1", True)
-        next_order = product.images.count()
-        
+        group = ProductImage.group(product.id, color)
+        order = request.data.get("order")
+        order = int(order) if str(order or "").isdigit() else group.count()
+
+        image = ProductImage.objects.create(
+            product=product,
+            image=image_file,
+            color=color,
+            view=view,
+            alt_text=request.data.get("alt_text", "") or product.name,
+            order=order,
+        )
         if make_primary:
-            product.images.update(order=models.F('order') + 1)
-            order = 0
-        else:
-            order = next_order
-            
-        image = ProductImage.objects.create(product=product, image=image_file, order=order)
+            ProductImage.set_primary(image)
+            image.refresh_from_db()
         serializer = ProductImageSerializer(image, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -1415,11 +1429,8 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         """Set an image as primary"""
         product = self.get_object()
         image = get_object_or_404(product.images, id=image_id)
-        
-        product.images.update(order=models.F('order') + 1)
-        image.order = 0
-        image.save()
-        
+        ProductImage.set_primary(image)
+
         return Response({'message': 'Primary image set successfully'}, status=status.HTTP_200_OK)
 
 

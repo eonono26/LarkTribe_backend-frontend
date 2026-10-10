@@ -21,9 +21,10 @@ function BannerLink({
 /**
  * Compact Hero Banner
  *
- * Short, wide promotional carousel banner.
- * The same compact proportions are used across
- * mobile, tablet and desktop.
+ * All banners use the exact same responsive height.
+ * Images are forced to fill the entire banner using
+ * object-cover, so different source image dimensions
+ * will never create dark/empty space.
  */
 export function HeroBanner({
   campaign,
@@ -43,7 +44,11 @@ export function HeroBanner({
           group
           relative
           w-full
-          aspect-[16/4]
+          h-[150px]
+          sm:h-[180px]
+          md:h-[220px]
+          lg:h-[260px]
+          xl:h-[280px]
           overflow-hidden
           bg-[var(--color-mist)]
           shadow-md
@@ -62,6 +67,7 @@ export function HeroBanner({
           sizes="100vw"
           className="
             object-cover
+            object-center
             transition-transform
             duration-[1200ms]
             ease-out
@@ -79,6 +85,7 @@ export function HeroBanner({
             from-black/50
             via-black/15
             to-transparent
+            pointer-events-none
           "
         />
       </div>
@@ -102,7 +109,6 @@ export function BannerGroup({
   styles?: Campaign["style"][];
   slideInterval?: number;
 }) {
-  // Filter campaigns
   const matches = campaigns.filter(
     (c) =>
       c.placement === placement &&
@@ -118,12 +124,25 @@ export function BannerGroup({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  // No campaigns
+  /**
+   * Prevent invalid index if campaigns change
+   */
+  useEffect(() => {
+    if (currentIndex >= matches.length) {
+      setCurrentIndex(0);
+    }
+  }, [matches.length, currentIndex]);
+
+  /**
+   * No campaigns
+   */
   if (matches.length === 0) {
     return null;
   }
 
-  // Single campaign
+  /**
+   * Single campaign
+   */
   if (matches.length === 1) {
     return (
       <div className="w-full px-0 pt-2">
@@ -145,7 +164,7 @@ export function BannerGroup({
       setIsTransitioning(true);
       setCurrentIndex(index);
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         setIsTransitioning(false);
       }, 700);
     },
@@ -174,41 +193,45 @@ export function BannerGroup({
   useEffect(() => {
     if (isPaused) return;
 
-    const timer = setInterval(() => {
+    const timer = window.setInterval(() => {
       goToNext();
     }, slideInterval);
 
-    return () => clearInterval(timer);
+    return () => window.clearInterval(timer);
   }, [goToNext, slideInterval, isPaused]);
 
   return (
     <div className="w-full px-0 pt-2">
       <div
-        className="relative group"
+        className="relative group w-full"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* ================================
+        {/* ==========================================
             SLIDES
-            ================================ */}
-        <div className="relative overflow-hidden">
+            ========================================== */}
+        <div className="relative w-full overflow-hidden">
           <div
             className="
               flex
+              w-full
               transition-transform
               duration-700
               ease-in-out
             "
             style={{
-              transform: `translateX(-${
-                currentIndex * 100
-              }%)`,
+              transform: `translateX(-${currentIndex * 100}%)`,
             }}
           >
             {matches.map((campaign, index) => (
               <div
                 key={campaign.id || index}
-                className="min-w-full"
+                className="
+                  relative
+                  min-w-full
+                  w-full
+                  flex-shrink-0
+                "
               >
                 <HeroBanner
                   campaign={campaign}
@@ -219,9 +242,9 @@ export function BannerGroup({
           </div>
         </div>
 
-        {/* ================================
+        {/* ==========================================
             PREVIOUS ARROW
-            ================================ */}
+            ========================================== */}
         <button
           type="button"
           aria-label="Previous slide"
@@ -231,13 +254,13 @@ export function BannerGroup({
             left-2
             top-1/2
             -translate-y-1/2
-            z-10
+            z-20
 
             flex
-            h-8
-            w-8
-            md:h-9
-            md:w-9
+            h-9
+            w-9
+            md:h-10
+            md:w-10
 
             items-center
             justify-center
@@ -246,7 +269,6 @@ export function BannerGroup({
             bg-white/90
 
             shadow-md
-
             backdrop-blur-sm
 
             transition-all
@@ -271,9 +293,9 @@ export function BannerGroup({
           />
         </button>
 
-        {/* ================================
+        {/* ==========================================
             NEXT ARROW
-            ================================ */}
+            ========================================== */}
         <button
           type="button"
           aria-label="Next slide"
@@ -283,13 +305,13 @@ export function BannerGroup({
             right-2
             top-1/2
             -translate-y-1/2
-            z-10
+            z-20
 
             flex
-            h-8
-            w-8
-            md:h-9
-            md:w-9
+            h-9
+            w-9
+            md:h-10
+            md:w-10
 
             items-center
             justify-center
@@ -298,7 +320,6 @@ export function BannerGroup({
             bg-white/90
 
             shadow-md
-
             backdrop-blur-sm
 
             transition-all
@@ -322,43 +343,6 @@ export function BannerGroup({
             "
           />
         </button>
-
-        {/* ================================
-            SLIDE INDICATORS
-            ================================ */}
-        <div
-          className="
-            absolute
-            bottom-2
-            left-1/2
-            -translate-x-1/2
-            z-10
-
-            flex
-            items-center
-            gap-1.5
-          "
-        >
-          {matches.map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              aria-label={`Go to slide ${index + 1}`}
-              onClick={() => goToSlide(index)}
-              className={`
-                h-1.5
-                rounded-full
-                transition-all
-                duration-300
-                ${
-                  index === currentIndex
-                    ? "w-5 bg-white"
-                    : "w-1.5 bg-white/60 hover:bg-white/80"
-                }
-              `}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );

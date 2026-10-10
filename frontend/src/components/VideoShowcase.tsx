@@ -24,7 +24,7 @@ function VideoTile({ item }: { item: ShowcaseVideoItem }) {
   return (
     <Link
       href={href}
-      className="group relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-neutral-900"
+      className="group relative w-full aspect-[4/5] overflow-hidden bg-neutral-900"
     >
       <video
         ref={videoRef}
@@ -75,7 +75,7 @@ export default function VideoShowcase({ videos }: { videos: ShowcaseVideoItem[] 
 
   return (
     <section>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-1">
         {items.map((item) => (
           <VideoTile key={item.id} item={item} />
         ))}

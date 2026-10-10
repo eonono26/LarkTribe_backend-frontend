@@ -1,4 +1,4 @@
-import type { ProductImage, ProductVariant } from "./types";
+import type { ColorGallery, ProductImage, ProductVariant } from "./types";
 
 const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL"];
 
@@ -108,4 +108,36 @@ export function imagesForColor<T extends Pick<ProductImage, "color">>(
   if (tagged.length === 0) return images;
   const general = images.filter((i) => !i.color);
   return [...tagged, ...general];
+}
+
+const byGalleryOrder = (a: ProductImage, b: ProductImage) =>
+  Number(!!b.is_primary) - Number(!!a.is_primary) || a.order - b.order || a.id - b.id;
+
+/**
+ * The gallery for ONE color - only that color's photos, primary (front) shot
+ * first, then the remaining views in display order. Unlike `imagesForColor`
+ * it never mixes in other colors' photos.
+ *
+ * Source of truth is the API's `color_galleries` (already ordered); the flat
+ * `images` list is used when that is missing. A color with no photos of its
+ * own falls back to the general (untagged) shots, else an empty list.
+ */
+export function galleryForColor(
+  images: ProductImage[],
+  color: string | null,
+  galleries?: ColorGallery[] | null
+): ProductImage[] {
+  if (!color) {
+    return [...images].sort(byGalleryOrder);
+  }
+
+  const fromApi = galleries?.find((g) => same(g.color, color));
+  if (fromApi && fromApi.images.length > 0) {
+    return [...fromApi.images].sort(byGalleryOrder);
+  }
+
+  const own = images.filter((i) => same(i.color, color));
+  if (own.length > 0) return own.sort(byGalleryOrder);
+
+  return images.filter((i) => !i.color).sort(byGalleryOrder);
 }

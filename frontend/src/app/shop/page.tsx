@@ -78,9 +78,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const activeFilterCount = ["gender", "age_group", "price_range", "size", "category", "brand", "on_sale"].filter((k) => params[k]).length;
 
   return (
-    <main className="bg-white text-black font-sans min-h-screen">
+    <main className="bg-white container-shell text-black pt-20 font-sans min-h-screen">
       {/* Slim department band — image only for adult depts */}
-      {isAdultDept && (
+      {/* {isAdultDept && (
         <div className="relative h-40 lg:h-56 overflow-hidden">
           <img src={BAND_IMG[department]} alt={heading} className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/30" />
@@ -88,9 +88,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             <h1 className="font-editorial text-3xl lg:text-5xl text-white tracking-wide">{heading}</h1>
           </div>
         </div>
-      )}
+      )} */}
 
-      <div className="container-shell pt-8 pb-4">
+      <div className="pt-8 pb-4">
         {/* {!isAdultDept && (
           <div className="flex items-end justify-between mb-6">
             <h1 className="font-editorial text-3xl lg:text-4xl tracking-tight">{heading}</h1>
@@ -125,7 +125,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         sort={sort}
       />
 
-      <div className="container-shell py-8">
+      <div className="py-8">
         <div>
           <div className="w-full">
             {products.length === 0 ? (

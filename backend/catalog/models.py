@@ -1,4 +1,6 @@
-from django.db import models
+from django.db import models, transaction
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.core.validators import FileExtensionValidator
 from django.utils.text import slugify
 from vendors.models import Vendor
@@ -879,8 +881,25 @@ class Product(models.Model):
 # ============================================================
 
 
-# catalog/models.py — ProductImage
 class ProductImage(models.Model):
+    """
+    One photo of a product.
+
+    Photos are grouped per color (``color`` matches ``ProductVariant.color``;
+    blank = a general shot not tied to a color). Inside a color group each
+    photo records which angle it shows (``view``), where it sits in that
+    color's gallery (``order``, lowest first) and whether it is the color's
+    primary photo (``is_primary`` - at most one per product + color, enforced
+    both here and by a database constraint).
+    """
+
+    class View(models.TextChoices):
+        FRONT = "front", "Front"
+        BACK = "back", "Back"
+        SIDE = "side", "Side"
+        DETAIL = "detail", "Detail"
+        OTHER = "other", "Other"
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to="products/")
     alt_text = models.CharField(max_length=200, blank=True)
@@ -889,13 +908,99 @@ class ProductImage(models.Model):
         blank=True,
         help_text="Which color variant this photo shows, e.g. 'Black'. Leave blank for a general/default shot.",
     )
-    order = models.PositiveIntegerField(default=0)
+    view = models.CharField(
+        max_length=10,
+        choices=View.choices,
+        default=View.FRONT,
+        help_text="Angle shown: front, back, side, detail or other.",
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="The lead photo for this color (shown first). Only one per color.",
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Position inside this color's gallery - lowest first.",
+    )
 
     class Meta:
-        ordering = ["order"]
+        ordering = ["-is_primary", "order", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "color"],
+                condition=models.Q(is_primary=True),
+                name="one_primary_image_per_product_color",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.product.name} - Image {self.order}"
+        label = f"{self.color} " if self.color else ""
+        return f"{self.product.name} - {label}{self.get_view_display()} ({self.order})"
+
+    # --- primary bookkeeping -------------------------------------------------
+
+    @classmethod
+    def group(cls, product_id, color):
+        """All photos of one product + color (color compared case-insensitively)."""
+        return cls.objects.filter(product_id=product_id, color__iexact=(color or "").strip())
+
+    @classmethod
+    def set_primary(cls, image):
+        """Make `image` the primary of its color and move it to the front of that
+        color's gallery (other colors are untouched)."""
+        with transaction.atomic():
+            others = list(
+                cls.group(image.product_id, image.color)
+                .exclude(pk=image.pk)
+                .order_by("order", "id")
+            )
+            image.is_primary = True
+            image.order = 0
+            image.save()  # demotes the previous primary
+            for n, other in enumerate(others, start=1):
+                if other.order != n:
+                    other.order = n
+                    cls.objects.filter(pk=other.pk).update(order=n)
+
+    @classmethod
+    def ensure_primary(cls, product_id, color):
+        """If a non-empty color group has no primary photo, promote its first one."""
+        siblings = cls.group(product_id, color)
+        if siblings.exists() and not siblings.filter(is_primary=True).exists():
+            first = siblings.order_by("order", "id").first()
+            cls.objects.filter(pk=first.pk).update(is_primary=True)
+
+    def save(self, *args, **kwargs):
+        self.color = (self.color or "").strip()
+        update_fields = kwargs.get("update_fields")
+
+        with transaction.atomic():
+            old_color = None
+            if self.pk:
+                old_color = (
+                    ProductImage.objects.filter(pk=self.pk)
+                    .values_list("color", flat=True)
+                    .first()
+                )
+
+            siblings = self.group(self.product_id, self.color).exclude(pk=self.pk)
+
+            if self.is_primary:
+                siblings.filter(is_primary=True).update(is_primary=False)
+            elif update_fields is None and not siblings.filter(is_primary=True).exists():
+                # The first photo of a color becomes its primary automatically.
+                self.is_primary = True
+
+            super().save(*args, **kwargs)
+
+            # Moved to another color: the color it left must not lose its primary.
+            if old_color is not None and old_color.lower() != self.color.lower():
+                self.ensure_primary(self.product_id, old_color)
+
+
+@receiver(post_delete, sender=ProductImage)
+def _promote_primary_after_delete(sender, instance, **kwargs):
+    ProductImage.ensure_primary(instance.product_id, instance.color)
 
 
 # ============================================================

@@ -20,14 +20,13 @@ export default function RecommendedRow({
   productId,
   products: initialProducts,
 }: RecommendedRowProps) {
-  const [products, setProducts] = useState<ProductListItem[]>(initialProducts || []);
+  const [fetchedProducts, setFetchedProducts] = useState<ProductListItem[] | null>(null);
   const [loading, setLoading] = useState(!initialProducts);
   const [error, setError] = useState<string | null>(null);
+  const products = initialProducts ?? fetchedProducts ?? [];
 
   useEffect(() => {
     if (initialProducts) {
-      setProducts(initialProducts);
-      setLoading(false);
       return;
     }
 
@@ -50,13 +49,13 @@ export default function RecommendedRow({
         }
 
         if (cancelled) return;
-        setProducts(data || []);
+        setFetchedProducts(data || []);
         setError(null);
       } catch (err) {
         if (cancelled) return;
         console.error(`Failed to fetch ${kind} products:`, err);
         setError("Failed to load recommendations");
-        setProducts([]);
+        setFetchedProducts([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -70,8 +69,8 @@ export default function RecommendedRow({
 
   if (loading) {
     return (
-      <section className="container-shell py-8 lg:py-12">
-        <h2 className="font-editorial text-2xl lg:text-3xl tracking-tight mb-8">{title}</h2>
+      <section className="py-8 lg:py-12">
+        <h2 className="font-editorial text-2xl lg:text-3xl tracking-tight mb-2">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-10">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -90,8 +89,8 @@ export default function RecommendedRow({
   }
 
   return (
-    <section className="py-8 lg:py-12">
-      <div className="flex items-end justify-between mb-8 lg:mb-10">
+    <section>
+      <div className="flex items-end justify-between mb-8 lg:mb-4">
         <h2 className="font-editorial text-5xl lg:text-5xl tracking-tight">{title}</h2>
         <Link
           href="/shop"
@@ -100,8 +99,8 @@ export default function RecommendedRow({
           View All
         </Link>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
-        {products.slice(0, 10).map((product) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-x-1 gap-y-3">
+        {products.slice(0, 12).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

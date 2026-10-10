@@ -16,6 +16,7 @@ urlpatterns = [
     path("api/ai/", include("ai_services.urls")),
     path("api/localization/", include("localization.urls")),
     path("api/delivery/", include("delivery.urls")),
+    path("api/admin-panel/", include("adminpanel.urls")),
 ]
 
 if settings.DEBUG:

@@ -99,16 +99,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   }
 
   return (
-    <main className="bg-white text-black pt-24 font-sans">
-      <div className="container-shell pt-4 pb-16">
+    <main className="bg-white text-black pt-20 font-sans">
+      <div className="container-shell pt-2 pb-16">
         {/* Breadcrumb — minimal */}
-        <div className="mb-6">
-          <Link href="/shop" className="text-[11px] tracking-widest uppercase text-stone-500 hover:text-black transition">
-            ← Back to Shop
+        <div className="mb-6 container-shellheader">
+          <Link href="/shop" className="text-2xl tracking-widest text-stone-500 hover:text-black transition">
+            Shop<span className="text-black text-2xl ml-2">+</span>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        <div className="grid container-shellheader grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           {/* ================= INFO — LEFT on desktop, sticky ================= */}
           <div className="lg:col-span-5 lg:order-1 lg:sticky lg:top-24">
             <div className="flex flex-col gap-5">
@@ -246,6 +246,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           </div>
 
           {/* ================= GALLERY — RIGHT on desktop, capped size ================= */}
+         
           <div className="lg:col-span-7 lg:order-2 flex lg:justify-center">
             <div className="w-full max-w-[420px] lg:max-w-[460px]">
               <ProductImageGallery
@@ -256,10 +257,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               />
             </div>
           </div>
+
         </div>
 
         {/* Reviews */}
-        <section className="mt-20 pt-12 border-t border-stone-200 max-w-2xl">
+        <section className="mt-20 container-shellheader pt-12 border-t border-stone-200 max-w-2xl">
           <h2 className="font-editorial text-xl mb-6">Reviews</h2>
           {reviews.length > 0 ? (
             <div className="space-y-6 mb-10">
@@ -276,12 +278,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <ReviewForm productId={product.id} />
         </section>
 
-        {similar.length > 0 && (
+        {/* {similar.length > 0 && (
           <RecommendedRow title="You May Also Like" kind="similar" productId={product.id} products={similar} />
         )}
         {fbt.length > 0 && (
           <RecommendedRow title="Complete the Look" kind="fbt" productId={product.id} products={fbt} />
-        )}
+        )} */}
       </div>
 
       {/* Sticky mobile bottom bar */}

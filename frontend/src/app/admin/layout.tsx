@@ -1,70 +1,81 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
-import { auth, isLoggedIn, type AuthUser } from "@/lib/auth";
+import '@/admin-ui/admin.css';
 
-const NAV = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/vendors", label: "Vendors" },
-  { href: "/admin/products", label: "Moderation" },
-  { href: "/admin/dispatch", label: "Dispatch" },
-  { href: "/admin/promotions", label: "Promotions" },
-  { href: "/admin/support", label: "Support" },
-];
+import { useEffect } from 'react';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { Logo } from '@/admin-ui/components/logo';
+import { ThemeProvider } from '@/admin-ui/theme/theme-provider';
+import { FeedbackProvider } from '@/admin-ui/components/feedback';
+import { usePathname, useRouter } from '@/admin-ui/routes/hooks';
+import { DashboardLayout } from '@/admin-ui/layouts/dashboard-layout';
+import { AdminAuthProvider, useAdminAuth } from '@/admin-ui/auth/admin-auth';
+
+// ----------------------------------------------------------------------
+
+function FullPageSpinner() {
+  return (
+    <Box sx={{ flex: 1, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <CircularProgress />
+    </Box>
+  );
+}
+
+function NoAccess() {
+  const { user, logout } = useAdminAuth();
+  const router = useRouter();
+  return (
+    <Container maxWidth="xs" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, textAlign: 'center' }}>
+      <Logo sx={{ alignSelf: 'center' }} />
+      <Typography variant="h5">No admin access</Typography>
+      <Typography sx={{ color: 'text.secondary' }}>
+        You&apos;re signed in as <b>{user?.username}</b>, but this account isn&apos;t an administrator.
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center' }}>
+        <Button variant="contained" color="inherit" onClick={() => router.push('/')}>Back to store</Button>
+        <Button variant="outlined" color="inherit" onClick={() => { logout(); router.replace('/admin/login'); }}>Use another account</Button>
+      </Box>
+    </Container>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  const { status } = useAdminAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [checked, setChecked] = useState(false);
+  const isLogin = pathname === '/admin/login';
 
   useEffect(() => {
-    if (pathname === "/admin/login") {
-      setChecked(true);
-      return;
+    if (status === 'admin' && isLogin) {
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.replace(next && next.startsWith('/admin') ? next : '/admin');
     }
-    if (!isLoggedIn()) {
-      router.push("/admin/login");
-      return;
+    if (status === 'anonymous' && !isLogin) {
+      router.replace(`/admin/login?next=${encodeURIComponent(pathname)}`);
     }
-    auth
-      .me()
-      .then((u) => {
-        if (u.role !== "admin") {
-          router.push("/admin/login");
-          return;
-        }
-        setUser(u);
-      })
-      .catch(() => router.push("/admin/login"))
-      .finally(() => setChecked(true));
-  }, [pathname, router]);
+  }, [status, isLogin, pathname, router]);
 
-  if (pathname === "/admin/login") return <>{children}</>;
-  if (!checked) return <main className="container-shell py-16 text-neutral-400">Loading admin…</main>;
+  if (status === 'loading') return <FullPageSpinner />;
+  if (isLogin) return status === 'admin' ? <FullPageSpinner /> : <>{children}</>;
+  if (status === 'anonymous') return <FullPageSpinner />;
+  if (status === 'forbidden') return <NoAccess />;
+  return <DashboardLayout>{children}</DashboardLayout>;
+}
 
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="container-shell py-10 grid md:grid-cols-[200px_1fr] gap-10">
-      <aside>
-        <p className="font-display font-black text-lg mb-1">Admin</p>
-        {user && <p className="text-xs text-neutral-400 mb-6">{user.username}</p>}
-        <nav className="space-y-1">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block text-sm font-semibold px-3 py-2 rounded-lg ${
-                pathname === item.href ? "bg-[var(--color-ink)] text-white" : "hover:bg-[var(--color-mist)]"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-      <div>{children}</div>
-    </div>
+    <ThemeProvider>
+      <FeedbackProvider>
+        <AdminAuthProvider>
+          <Shell>{children}</Shell>
+        </AdminAuthProvider>
+      </FeedbackProvider>
+    </ThemeProvider>
   );
 }

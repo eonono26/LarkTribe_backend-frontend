@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "ai_services",
     "localization",
     "delivery",
+    "adminpanel",
 ]
 
 MIDDLEWARE = [

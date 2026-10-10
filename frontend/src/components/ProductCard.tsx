@@ -36,7 +36,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const [addError, setAddError] = useState<string | null>(null);
   const { formatPrice } = useLocalization();
   const { addItem } = useCart();
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" && window.innerWidth < 768
+  );
 
   const {
     id,
@@ -123,7 +125,6 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const [selectedColor, setSelectedColor] = useState<string | undefined>(colors[0]);
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
     const onResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -151,27 +152,25 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allImages, selectedColor, color_images]);
 
-  // Reset to the first photo whenever the color changes.
-  useEffect(() => {
-    setHoverIndex(0);
-  }, [selectedColor]);
-
   // While hovering, if this product has more than one photo for the
   // selected color, cycle through the rest of them; revert to the first on
   // mouse-leave.
   useEffect(() => {
-    if (!isHovering || galleryImages.length <= 1) {
-      setHoverIndex(0);
-      return;
-    }
+    if (!isHovering || galleryImages.length <= 1) return;
     const interval = setInterval(() => {
       setHoverIndex((i) => (i + 1) % galleryImages.length);
     }, HOVER_CYCLE_MS);
     return () => clearInterval(interval);
   }, [isHovering, galleryImages.length]);
 
-  const activeImage = galleryImages[hoverIndex] || galleryImages[0];
-  const currentImageKey = `${selectedColor || "default"}-${hoverIndex}`;
+  // Reset the slideshow on mouse-leave in the event handler, rather than in
+  // an effect, to avoid synchronously updating state from an effect.
+
+  // A color change starts at its first photo without synchronously updating
+  // state in an effect.
+  const activeImageIndex = Math.min(hoverIndex, galleryImages.length - 1);
+  const activeImage = galleryImages[activeImageIndex] || galleryImages[0];
+  const currentImageKey = `${selectedColor || "default"}-${activeImageIndex}`;
   const hasCurrentImageError = imageErrors[currentImageKey] || false;
   const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : activeImage?.url || PLACEHOLDER_IMAGE;
 
@@ -227,7 +226,10 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     <div
       className={`group relative bg-white border border-stone-200 ${className}`}
       onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
+      onMouseLeave={() => {
+        setIsHovering(false);
+        setHoverIndex(0);
+      }}
     >
       <Link href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`} className="block">
         {/* Image */}
@@ -304,35 +306,36 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             </div>
           )}
         </div>
+        {/* Color swatches — clicking swaps the photo above and re-resolves the variant for Quick Add */}
+        {colors.length > 0 && (
+          <div className="flex items-center gap-x-2 gap-1.5 pt-2 pb-1 pl-8">
+            {colors.map((color) => (
+              <ColorSwatch
+                key={color}
+                color={color}
+                size={20}
+                shape="round"
+                selected={selectedColor === color}
+                onClick={(e) => handleColorSelect(e, color)}
+              />
+            ))}
+          </div>
+        )}
+
 
         {/* Price + name, plain text, no card padding chrome */}
-        <div className="pt-3 flex flex-col gap-0.5">
+        <div className="pt-3 flex flex-col gap-0.5 pl-8">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm text-espresso">{formatPrice(numericPrice)}</span>
+            <span className="text-md text-espresso">{formatPrice(numericPrice)}</span>
             {numericComparePrice !== null && numericComparePrice > numericPrice && (
-              <span className="text-xs text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
+              <span className="text-md text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
             )}
           </div>
-          <h3 className="text-xs uppercase tracking-wide text-espresso line-clamp-1">{name}</h3>
+          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-1 mb-2">{name}</h3>
         </div>
       </Link>
 
-      {/* Color swatches — clicking swaps the photo above and re-resolves the variant for Quick Add */}
-      {colors.length > 0 && (
-        <div className="flex items-center gap-1.5 pt-2 pb-1">
-          {colors.map((color) => (
-            <ColorSwatch
-              key={color}
-              color={color}
-              size={16}
-              shape="round"
-              selected={selectedColor === color}
-              onClick={(e) => handleColorSelect(e, color)}
-            />
-          ))}
-        </div>
-      )}
-
+      
       {addError && (
         <p role="alert" className="text-[10px] text-red-600 pt-1 pb-2">
           {addError}

@@ -16,6 +16,7 @@ export interface AuthUser {
   profile_picture?: string | null;
   profile_picture_url?: string | null;
   is_phone_verified?: boolean;
+  is_staff?: boolean;
 }
 
 export interface AuthTokens {

@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { mediaUrl } from "@/lib/api";
 import type { Campaign } from "@/lib/types";
 
 export default function HeroCarousel({
@@ -16,9 +22,11 @@ export default function HeroCarousel({
 
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
   const touchStartX = useRef<number | null>(null);
 
   const count = slides.length;
+  const activeIndex = count > 0 && index >= count ? 0 : index;
 
   const goTo = useCallback(
     (next: number) => {
@@ -37,15 +45,31 @@ export default function HeroCarousel({
     goTo(index - 1);
   }, [goTo, index]);
 
+  /*
+   * ---------------------------------------------------------
+   * AUTO SLIDE
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
     if (isPaused || count <= 1) return;
 
-    const timer = setInterval(goNext, slideInterval);
+    const timer = window.setInterval(() => {
+      goNext();
+    }, slideInterval);
 
-    return () => clearInterval(timer);
-  }, [goNext, isPaused, slideInterval, count]);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [
+    goNext,
+    isPaused,
+    slideInterval,
+    count,
+  ]);
 
-  if (count === 0) return null;
+  if (count === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -53,32 +77,31 @@ export default function HeroCarousel({
         relative
         w-full
         overflow-hidden
-        bg-stone-950
-
-        /* Mobile */
-        h-[220px]
-
-        /* Tablet */
-        sm:h-[340px]
-
-        /* Desktop */
-        lg:h-[460px]
+        bg-white
+        container-shell
       "
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={(e) => {
-        touchStartX.current = e.touches[0].clientX;
+      onTouchStart={(event) => {
+        touchStartX.current =
+          event.touches[0].clientX;
+
         setIsPaused(true);
       }}
-      onTouchEnd={(e) => {
-        if (touchStartX.current === null) return;
+      onTouchEnd={(event) => {
+        if (touchStartX.current === null) {
+          return;
+        }
 
         const delta =
-          e.changedTouches[0].clientX - touchStartX.current;
+          event.changedTouches[0].clientX -
+          touchStartX.current;
 
         if (delta > 40) {
           goPrev();
-        } else if (delta < -40) {
+        }
+
+        if (delta < -40) {
           goNext();
         }
 
@@ -86,22 +109,45 @@ export default function HeroCarousel({
         setIsPaused(false);
       }}
     >
-      {/* Slides */}
-      <div className="absolute inset-0 w-full h-full">
+      {/* =====================================================
+          HERO IMAGE AREA
+
+          The hero has ONE consistent aspect ratio.
+          This prevents a shorter image from exposing
+          the section background underneath it.
+          ===================================================== */}
+      <div
+        className="
+          relative
+          w-full
+          aspect-[16/6]
+          sm:aspect-[16/6]
+          md:aspect-[16/6]
+          lg:aspect-[16/6]
+          xl:aspect-[16/6]
+          overflow-hidden
+        "
+      >
         {slides.map((campaign, i) => {
-          const isActive = i === index;
+          const isActive = i === activeIndex;
+
+          const imageSrc = campaign.image
+            ? mediaUrl(campaign.image)
+            : "";
 
           return (
             <article
-              key={campaign.id}
+              key={campaign.id || i}
               className={`
                 absolute
                 inset-0
                 w-full
                 h-full
+
                 transition-opacity
                 duration-700
                 ease-in-out
+
                 ${
                   isActive
                     ? "z-10 opacity-100 pointer-events-auto"
@@ -110,30 +156,46 @@ export default function HeroCarousel({
               `}
               aria-hidden={!isActive}
             >
-              {/* The whole slide is just an image, linking straight to the campaign — no text overlay. */}
               <Link
                 href={campaign.link_url || "#"}
-                aria-label={campaign.title || "Shop this collection"}
-                className="absolute inset-0 block w-full h-full"
+                aria-label={
+                  campaign.title ||
+                  "Shop this collection"
+                }
                 tabIndex={isActive ? 0 : -1}
+                className="
+                  relative
+                  block
+                  w-full
+                  h-full
+                  overflow-hidden
+                "
               >
-                {campaign.image ? (
+                {imageSrc ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
-                    src={campaign.image}
+                    src={imageSrc}
                     alt={campaign.title || ""}
+                    draggable={false}
                     className={`
                       absolute
                       inset-0
-                      block
+
                       w-full
                       h-full
-                      max-w-none
+
+                      min-w-full
+                      min-h-full
+
                       object-cover
                       object-center
+
+                      select-none
+
                       transition-transform
-                      duration-[7000ms]
                       ease-out
+                      duration-[7000ms]
+
                       ${
                         isActive
                           ? "scale-105"
@@ -143,10 +205,11 @@ export default function HeroCarousel({
                   />
                 ) : (
                   <div
-                    className="absolute inset-0 w-full h-full"
+                    className="absolute inset-0 h-full w-full"
                     style={{
                       backgroundColor:
-                        campaign.background_color || "#0c0a09",
+                        campaign.background_color ||
+                        "#ffffff",
                     }}
                   />
                 )}
@@ -154,93 +217,123 @@ export default function HeroCarousel({
             </article>
           );
         })}
-      </div>
 
-      {/* Dot indicators */}
-      {count > 1 && (
-        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-          {slides.map((campaign, i) => (
-            <button
-              key={campaign.id}
-              type="button"
-              aria-label={`Go to slide ${i + 1}`}
-              onClick={() => goTo(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === index ? "w-6 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70"
-              }`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Arrow navigation only */}
-      {count > 1 && (
-        <>
+        {/* =================================================
+            LEFT ARROW
+            ================================================= */}
+        {count > 1 && (
           <button
             type="button"
             aria-label="Previous slide"
             onClick={goPrev}
             className="
-              hidden sm:flex
               absolute
-              left-4
+              left-2
+              sm:left-4
               lg:left-6
+
               top-1/2
               -translate-y-1/2
-              z-20
-              h-10
-              w-10
+
+              z-30
+
+              flex
+              h-9
+              w-9
+              sm:h-10
+              sm:w-10
+              lg:h-11
+              lg:w-11
+
               items-center
               justify-center
+
               rounded-full
-              bg-white/10
+
+              bg-black/30
               backdrop-blur-md
+
               border
-              border-white/25
+              border-white/30
+
               text-white
-              hover:bg-white/20
-              transition
+
+              shadow-lg
+
+              transition-all
+              duration-200
+
+              hover:bg-black/50
+              hover:scale-105
+
+              active:scale-95
             "
           >
             <ChevronLeft
-              className="w-5 h-5"
-              strokeWidth={1.6}
+              className="h-5 w-5 lg:h-6 lg:w-6"
+              strokeWidth={1.8}
             />
           </button>
+        )}
 
+        {/* =================================================
+            RIGHT ARROW
+            ================================================= */}
+        {count > 1 && (
           <button
             type="button"
             aria-label="Next slide"
             onClick={goNext}
             className="
-              hidden sm:flex
               absolute
-              right-4
+              right-2
+              sm:right-4
               lg:right-6
+
               top-1/2
               -translate-y-1/2
-              z-20
-              h-10
-              w-10
+
+              z-30
+
+              flex
+              h-9
+              w-9
+              sm:h-10
+              sm:w-10
+              lg:h-11
+              lg:w-11
+
               items-center
               justify-center
+
               rounded-full
-              bg-white/10
+
+              bg-black/30
               backdrop-blur-md
+
               border
-              border-white/25
+              border-white/30
+
               text-white
-              hover:bg-white/20
-              transition
+
+              shadow-lg
+
+              transition-all
+              duration-200
+
+              hover:bg-black/50
+              hover:scale-105
+
+              active:scale-95
             "
           >
             <ChevronRight
-              className="w-5 h-5"
-              strokeWidth={1.6}
+              className="h-5 w-5 lg:h-6 lg:w-6"
+              strokeWidth={1.8}
             />
           </button>
-        </>
-      )}
+        )}
+      </div>
     </section>
   );
 }

@@ -51,7 +51,7 @@ def image_for_color(product, color, request=None):
     """
     Absolute URL of the photo that best represents `color` for `product`:
 
-      1. the first photo tagged with that color (case-insensitive), else
+      1. that color's primary photo (else its first photo, case-insensitive), else
       2. the product's first photo, else
       3. None.
 
@@ -63,7 +63,8 @@ def image_for_color(product, color, request=None):
     if not images:
         return None
 
-    images.sort(key=lambda i: i.order)
+    # Primary photo first, then display order - so a color's lead shot wins.
+    images.sort(key=lambda i: (not i.is_primary, i.order, i.id))
 
     if color:
         wanted = color.strip().lower()

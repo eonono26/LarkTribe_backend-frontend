@@ -130,7 +130,24 @@ export interface ProductImage {
   // Which color variant this photo shows (matches ProductVariant.color),
   // or "" for a general/default shot not tied to a specific color.
   color: string;
+  // Angle this photo shows. Photos of one color form that color's gallery.
+  view: ProductImageView;
+  view_display?: string;
+  // The lead photo of its color (at most one per color) - always listed first.
+  is_primary: boolean;
+  // Position inside the color's gallery, lowest first.
   order: number;
+}
+
+export type ProductImageView = "front" | "back" | "side" | "detail" | "other";
+
+// One color's ordered gallery as returned by the product detail endpoint:
+// primary photo first, then the remaining views in display order.
+// `color` is "" for the general (untagged) photos.
+export interface ColorGallery {
+  color: string;
+  primary_image: ProductImage | null;
+  images: ProductImage[];
 }
 
 export interface ProductVariant {
@@ -162,6 +179,7 @@ export interface ProductDetail extends Omit<ProductListItem, "image"> {
   category: Category;
   brand: { id: number; name: string; slug: string } | null;
   images: ProductImage[];
+  color_galleries?: ColorGallery[];
   variants: ProductVariant[];
   available_sizes: string[];
   reviews: Review[];

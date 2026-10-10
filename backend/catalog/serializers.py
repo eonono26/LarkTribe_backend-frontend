@@ -423,10 +423,14 @@ class BrandSerializer(serializers.ModelSerializer):
 
 class ProductImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    view_display = serializers.CharField(source="get_view_display", read_only=True)
 
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "image_url", "alt_text", "color", "order"]
+        fields = [
+            "id", "image", "image_url", "alt_text",
+            "color", "view", "view_display", "is_primary", "order",
+        ]
 
     def get_image_url(self, obj):
         """Get the absolute URL of the product image"""
@@ -436,6 +440,99 @@ class ProductImageSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return None
+
+
+# ------------------------------------------------------------
+# Color-specific product galleries
+# ------------------------------------------------------------
+
+def _color_key(color):
+    return (color or "").strip().lower()
+
+
+def _gallery_order(img):
+    """Primary photo first, then the vendor's display order (id breaks ties)."""
+    return (0 if img.is_primary else 1, img.order, img.id)
+
+
+def serialize_product_image(img, request=None):
+    """One photo as the storefront receives it. ``image`` is an absolute URL."""
+    url = img.image.url
+    if request:
+        url = request.build_absolute_uri(url)
+
+    return {
+        "id": img.id,
+        "image": url,
+        "alt_text": img.alt_text,
+        "color": img.color,
+        "view": img.view,
+        "view_display": img.get_view_display(),
+        "is_primary": img.is_primary,
+        "order": img.order,
+    }
+
+
+def product_images_payload(product, request=None):
+    """Every photo of a product, flat, each tagged with its color/view/primary.
+    Within a color the primary comes first, then display order."""
+    images = [i for i in product.images.all() if i.image]
+    images.sort(key=_gallery_order)
+    return [serialize_product_image(i, request) for i in images]
+
+
+def product_color_galleries(product, request=None):
+    """
+    One ordered gallery per color:
+
+        [{"color": "Black",
+          "primary_image": {...} | None,
+          "images": [primary front, back, side, detail, ...]}, ...]
+
+    Colors come first in variant-creation order (so a color that is on sale
+    but has no photos yet still appears, with ``images: []``), then any color
+    that only exists on photos. Untagged "general" photos form a final entry
+    with ``color: ""`` when present.
+    """
+    groups = {}   # color key -> (display color, [images])
+    order = []
+
+    def ensure(color):
+        key = _color_key(color)
+        if key not in groups:
+            groups[key] = (color.strip() if color else "", [])
+            order.append(key)
+        return groups[key][1]
+
+    for v in sorted(product.variants.all(), key=lambda v: v.id):
+        if v.color:
+            ensure(v.color)
+
+    general = []
+    for img in product.images.all():
+        if not img.image:
+            continue
+        if img.color:
+            ensure(img.color).append(img)
+        else:
+            general.append(img)
+
+    result = []
+    for key in order:
+        color, imgs = groups[key]
+        result.append(_gallery_entry(color, imgs, request))
+
+    if general:
+        result.append(_gallery_entry("", general, request))
+
+    return result
+
+
+def _gallery_entry(color, imgs, request):
+    imgs = sorted(imgs, key=_gallery_order)
+    payload = [serialize_product_image(i, request) for i in imgs]
+    primary = next((p for p in payload if p["is_primary"]), payload[0] if payload else None)
+    return {"color": color, "primary_image": primary, "images": payload}
 
 
 
@@ -601,31 +698,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         return None
 
     def get_images(self, obj):
-        request = self.context.get("request")
-
-        images_data = []
-
-        for img in obj.images.all().order_by("order"):
-
-            if not img.image:
-                continue
-
-            image_url = img.image.url
-
-            if request:
-                image_url = request.build_absolute_uri(
-                    img.image.url
-                )
-
-            images_data.append({
-                "id": img.id,
-                "image": image_url,
-                "alt_text": img.alt_text,
-                "color": img.color,
-                "order": img.order,
-            })
-
-        return images_data
+        return product_images_payload(obj, self.context.get("request"))
 
     def get_colors(self, obj):
         """Distinct colors from this product's variants, in the order
@@ -642,23 +715,16 @@ class ProductListSerializer(serializers.ModelSerializer):
         return ordered
 
     def get_color_images(self, obj):
-        """color -> absolute image URL, for the first color-tagged photo
-        of each color. Colors with no dedicated photo yet are simply
-        absent from this dict — the frontend falls back to the default
-        image for those."""
+        """color -> absolute URL of that color's PRIMARY photo (falling back to
+        its first photo). Colors with no dedicated photo yet are simply absent
+        from this dict - the frontend falls back to the default image."""
         request = self.context.get("request")
         mapping = {}
 
-        for img in obj.images.exclude(color="").order_by("order"):
-            if img.color in mapping or not img.image:
-                continue
-
-            image_url = img.image.url
-
-            if request:
-                image_url = request.build_absolute_uri(img.image.url)
-
-            mapping[img.color] = image_url
+        for img in product_images_payload(obj, request):
+            if img["color"] and img["color"] not in mapping:
+                # payload is primary-first within a color, so the first hit wins
+                mapping[img["color"]] = img["image"]
 
         return mapping
 
@@ -694,6 +760,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(serializers.ModelSerializer):
 
     images = serializers.SerializerMethodField()
+
+    # One ordered gallery per color, each with its primary photo.
+    color_galleries = serializers.SerializerMethodField()
 
     variants = ProductVariantSerializer(
         many=True,
@@ -785,6 +854,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "department",
 
             "images",
+            "color_galleries",
             "variants",
             "available_sizes",
 
@@ -821,33 +891,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return ordered
 
     def get_images(self, obj):
-        request = self.context.get("request")
+        # Flat list; each photo carries color / view / is_primary / order so
+        # clients can also group it themselves.
+        return product_images_payload(obj, self.context.get("request"))
 
-        data = []
-
-        for img in obj.images.all().order_by("order"):
-
-            if not img.image:
-                continue
-
-            image_url = img.image.url
-
-            if request:
-                image_url = request.build_absolute_uri(
-                    img.image.url
-                )
-
-            data.append({
-                "id": img.id,
-                "image": image_url,
-                "alt_text": img.alt_text,
-                # Which color this photo shows ("" = general shot). The product
-                # page uses it to swap the gallery when a swatch is clicked.
-                "color": img.color,
-                "order": img.order,
-            })
-
-        return data
+    def get_color_galleries(self, obj):
+        return product_color_galleries(obj, self.context.get("request"))
 
     def get_department(self, obj):
         if obj.category and obj.category.department:

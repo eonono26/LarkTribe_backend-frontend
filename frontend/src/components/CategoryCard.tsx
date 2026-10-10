@@ -17,17 +17,17 @@ export default function CategoryCard({ category, accent }: { category: Category;
             src={imageUrl}
             alt={category.primary_image?.alt_text || category.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            className="object-cover transition-transform pt-20 duration-500 group-hover:scale-110"
             sizes="(max-width: 768px) 33vw, 16vw"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-3xl font-bold text-neutral-300">{category.name.charAt(0)}</span>
+            <span className="text-5xl font-bold text-neutral-300">{category.name.charAt(0)}</span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
-          <p className="text-sm font-semibold text-white drop-shadow-md truncate">{category.name}</p>
+          <p className="text-sm font-semibold text-black drop-shadow-md truncate">{category.name}</p>
           {/* <p className="text-xs text-white/80 drop-shadow-md">{category.product_count} products</p> */}
         </div> 
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
@@ -8,7 +8,7 @@ import { api, apiErrorMessage, mediaUrl } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
 import ColorSwatch from "@/components/ColorSwatch";
-import { colorsOf, colorStock, findVariant, imagesForColor, initialColor, pickSize, sizesForColor } from "@/lib/variants";
+import { colorsOf, colorStock, findVariant, galleryForColor, initialColor, pickSize, sizesForColor } from "@/lib/variants";
 import type { ProductDetail } from "@/lib/types";
 
 interface QuickViewModalProps {
@@ -26,9 +26,9 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
   const [missing, setMissing] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
 
   // Load the full product detail — the list card only has summary data,
   // so quick view needs its own fetch for sizes/colors/description.
@@ -82,15 +82,20 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
   const matchedVariant = findVariant(variants, selectedColor, selectedSize);
   const stockLeft = matchedVariant ? matchedVariant.stock : product?.stock ?? 0;
 
-  // Photos follow the selected color.
-  const images = useMemo(() => imagesForColor(product?.images || [], selectedColor), [product, selectedColor]);
-  const activeImage = images[selectedImageIndex] || images[0];
+  // Only the selected color's photos, stacked vertically: its primary front
+  // shot first, then back / side / detail views in display order. Changing
+  // color swaps the whole gallery - other colors' photos are never mixed in.
+  const images = useMemo(
+    () => galleryForColor(product?.images || [], selectedColor, product?.color_galleries),
+    [product, selectedColor],
+  );
 
   function selectColor(color: string) {
     setSelectedColor(color);
     setSelectedSize((cur) => pickSize(variants, color, cur));
-    setSelectedImageIndex(0);
     setError(null);
+    // Bring the newly selected color's first image into view.
+    if (modalContentRef.current) modalContentRef.current.scrollTop = 0;
   }
 
   async function handleAddToCart() {
@@ -115,7 +120,8 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
       aria-modal="true"
     >
       <div
-        className="relative bg-white w-full sm:max-w-3xl h-full sm:h-auto sm:max-h-[88vh] overflow-y-auto"
+        ref={modalContentRef}
+        className="relative bg-white w-full sm:max-w-5xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -138,46 +144,34 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
         )}
 
         {!loading && product && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-6 sm:p-10">
-            {/* Images */}
-            <div className="flex flex-col gap-3">
-              <div className="relative w-full aspect-[4/5] bg-stone-50 overflow-hidden">
-                {activeImage ? (
-                  <Image
-                    key={activeImage.id}
-                    src={mediaUrl(activeImage.image)}
-                    alt={activeImage.alt_text || product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, 480px"
-                    priority
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">
-                    No image
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-5 sm:p-8">
+            {/* Gallery for the selected color: primary front image first, other views stacked below. */}
+            <div key={selectedColor ?? "default"} className="flex min-w-0 flex-col gap-4" aria-label={selectedColor ? `${selectedColor} photos` : "Product photos"}>
+              {images.length > 0 ? (
+                images.map((img, i) => (
+                  <div
+                    key={img.id}
+                    className="relative w-full aspect-[4/5] bg-white overflow-hidden"
+                  >
+                    <Image
+                      src={mediaUrl(img.image)}
+                      alt={img.alt_text || [product.name, selectedColor, img.view_display].filter(Boolean).join(" — ") || `${product.name} — image ${i + 1}`}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 640px) 100vw, 44vw"
+                      priority={i === 0}
+                    />
                   </div>
-                )}
-              </div>
-              {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {images.map((img, i) => (
-                    <button
-                      key={img.id}
-                      onClick={() => setSelectedImageIndex(i)}
-                      className={`relative shrink-0 w-16 h-16 bg-stone-50 overflow-hidden border transition ${
-                        i === selectedImageIndex ? "border-espresso" : "border-transparent hover:border-stone-300"
-                      }`}
-                      aria-label={`Show image ${i + 1}`}
-                    >
-                      <Image src={mediaUrl(img.image)} alt={img.alt_text || product.name} fill className="object-cover" sizes="64px" />
-                    </button>
-                  ))}
+                ))
+              ) : (
+                <div className="flex aspect-[4/5] w-full items-center justify-center bg-white text-xs text-stone-400">
+                  No image
                 </div>
               )}
             </div>
 
             {/* Info */}
-            <div className="flex flex-col gap-5 pr-8 sm:pr-0">
+            <div className="flex min-w-0 flex-col gap-5 pr-8 sm:pr-0">
               <div className="flex flex-col gap-1.5">
                 <h2 className="text-base sm:text-lg uppercase tracking-normal text-espresso">{product.name}</h2>
                 <div className="flex items-baseline gap-2">

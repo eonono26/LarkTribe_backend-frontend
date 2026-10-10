@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.db.models import Count
 from .models import (
     Department, Category, Brand, BrandMedia, Product, ProductImage,
@@ -10,21 +10,35 @@ from .models import (
 
 
 class ProductImageForm(forms.ModelForm):
-    """Restricts the color field to colors that actually exist as
-    variants on this product, so it can never drift out of sync with
-    ProductVariant.color (e.g. 'Black' vs 'black' silently breaking
-    the storefront's color_images lookup)."""
+    """One photo row. The colour is limited to colours that exist as variants on
+    this product (so it can never drift out of sync with ProductVariant.color,
+    e.g. 'Black' vs 'black'). Order and alt text are filled in automatically
+    when left blank, so uploaders only need: photo, colour, angle."""
 
     class Meta:
         model = ProductImage
-        fields = ['image', 'color', 'alt_text', 'order']
+        fields = ['image', 'color', 'view', 'is_primary', 'order', 'alt_text']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Short column headers - the full explanation lives in the gallery summary above.
+        self.fields['image'].help_text = ''
+        self.fields['view'].help_text = ''
+        self.fields['view'].label = 'Angle'
+        self.fields['is_primary'].help_text = ''
+        self.fields['is_primary'].label = 'Primary'
+        self.fields['order'].help_text = ''
+        self.fields['order'].required = False
+        self.fields['order'].label = 'Order'
+        self.fields['alt_text'].required = False
+        self.fields['alt_text'].label = 'Alt text (auto)'
         self._set_color_choices()
 
+    def _product(self):
+        return getattr(self, '_parent_product', None) or getattr(self.instance, 'product', None)
+
     def _set_color_choices(self):
-        product = getattr(self, '_parent_product', None) or getattr(self.instance, 'product', None)
+        product = self._product()
 
         colors = []
         if product and product.pk:
@@ -36,31 +50,59 @@ class ProductImageForm(forms.ModelForm):
                 .order_by('color')
             )
 
-        choices = [('', '— General / no specific color —')] + [(c, c) for c in colors]
-        self.fields['color'] = forms.ChoiceField(choices=choices, required=False)
+        # Keep a photo's existing colour selectable even if no variant uses it any more.
+        current = (self.instance.color or '').strip() if self.instance and self.instance.pk else ''
+        if current and current.lower() not in [c.lower() for c in colors]:
+            colors.append(current)
+
+        choices = [('', '— General / no specific colour —')] + [(c, c) for c in colors]
+        self.fields['color'] = forms.ChoiceField(choices=choices, required=False, label='Colour')
+
+    def clean(self):
+        data = super().clean()
+        product = self._product()
+        color = (data.get('color') or '').strip()
+
+        if data.get('order') is None and product and product.pk:
+            # Blank order -> append to the end of this colour's gallery.
+            last = ProductImage.group(product.pk, color).exclude(pk=self.instance.pk).order_by('-order').first()
+            data['order'] = (last.order + 1) if last else 0
+        elif data.get('order') is None:
+            data['order'] = 0
+
+        if not data.get('alt_text') and product is not None:
+            view = dict(ProductImage.View.choices).get(data.get('view') or 'front', '')
+            data['alt_text'] = ' - '.join(x for x in (product.name, color, view) if x)[:200]
+
+        return data
 
 
 class ProductImageInline(admin.TabularInline):
-    """Inline editor for product images"""
+    """Colour galleries. Rows are grouped by colour; within a colour the primary
+    photo is listed first, then the rest by Order."""
     model = ProductImage
     form = ProductImageForm
     extra = 1
-    fields = ['image', 'color', 'alt_text', 'order', 'image_preview']
+    fields = ['image_preview', 'color', 'view', 'is_primary', 'order', 'image', 'alt_text']
     readonly_fields = ['image_preview']
+    ordering = ['color', '-is_primary', 'order', 'id']
+    verbose_name = 'photo'
+    verbose_name_plural = 'Product photos - one gallery per colour'
 
     def image_preview(self, obj):
         if obj and obj.image:
             return format_html(
-                '<img src="{}" width="80" height="80" style="object-fit:cover; border-radius:4px;" />',
+                '<img src="{}" width="80" height="100" style="object-fit:cover; border-radius:4px;" />',
                 obj.image.url
             )
-        return "No image"
+        return "-"
     image_preview.short_description = "Preview"
 
     def get_formset(self, request, obj=None, **kwargs):
         """Passes the parent Product (obj) down to each row's form so the
-        color dropdown can be built from that product's variants, even for
-        new/unsaved image rows that have no obj.product yet."""
+        colour dropdown can be built from that product's variants, even for
+        new/unsaved photo rows that have no obj.product yet. Also rejects two
+        'Primary' ticks inside the same colour."""
         formset = super().get_formset(request, obj, **kwargs)
         parent_product = obj
 
@@ -71,9 +113,23 @@ class ProductImageInline(admin.TabularInline):
                 form._set_color_choices()
                 return form
 
+            def clean(self):
+                super().clean()
+                seen = {}
+                for form in self.forms:
+                    cd = getattr(form, 'cleaned_data', None)
+                    if not cd or cd.get('DELETE') or not cd.get('image') or not cd.get('is_primary'):
+                        continue
+                    key = (cd.get('color') or '').strip().lower()
+                    if key in seen:
+                        label = cd.get('color') or 'General photos'
+                        raise forms.ValidationError(
+                            f"Only one photo can be Primary per colour - '{label}' has more than one ticked."
+                        )
+                    seen[key] = True
+
         return ProductImageFormSetWithParent
 
-        
 
 class ProductVariantInline(admin.TabularInline):
     """Inline editor for product variants"""
@@ -92,7 +148,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['name', 'sku', 'vendor__store_name']
     list_editable = ['price', 'stock', 'status', 'is_featured']
     prepopulated_fields = {'slug': ('name',)}
-    readonly_fields = ['created_at', 'updated_at', 'rating_avg', 'rating_count']
+    readonly_fields = ['created_at', 'updated_at', 'rating_avg', 'rating_count', 'photo_gallery_summary']
     inlines = [ProductImageInline, ProductVariantInline]
     filter_horizontal = ['age_groups']
     actions = ["approve_products", "reject_products"]
@@ -121,6 +177,17 @@ class ProductAdmin(admin.ModelAdmin):
         ('Pricing & Stock', {
             'fields': ('price', 'compare_at_price', 'stock', 'sku')
         }),
+        ('Photo galleries (by colour)', {
+            'fields': ('photo_gallery_summary',),
+            'description': (
+                "Each colour has its own gallery. Shoppers who pick a colour see ONLY that "
+                "colour's photos: the Primary photo first (normally the Front view), then the "
+                "other angles by Order (lowest first). Add colours under Product variants, "
+                "save, then assign photos to them in 'Product photos' below. The first photo "
+                "added for a colour becomes its Primary automatically; leave Order and Alt "
+                "text blank to have them filled in."
+            ),
+        }),
         ('Status & Ratings', {
             'fields': ('status', 'is_featured', 'rating_avg', 'rating_count')
         }),
@@ -129,6 +196,63 @@ class ProductAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def photo_gallery_summary(self, obj):
+        """At-a-glance check of every colour's gallery, with warnings."""
+        if not obj or not obj.pk:
+            return "Save the product (with colour variants) first, then add photos per colour."
+
+        variant_colors = []
+        for c in obj.variants.exclude(color='').order_by('id').values_list('color', flat=True):
+            if c.strip().lower() not in [v.strip().lower() for v in variant_colors]:
+                variant_colors.append(c.strip())
+
+        images = list(obj.images.all())
+        rows = []
+        colors = list(variant_colors)
+        for img in images:
+            if img.color and img.color.strip().lower() not in [c.lower() for c in colors]:
+                colors.append(img.color.strip())
+
+        def row(label, imgs, note_if_empty):
+            imgs = sorted(imgs, key=lambda i: (not i.is_primary, i.order, i.id))
+            primary = next((i for i in imgs if i.is_primary), None)
+            angles = ', '.join(i.get_view_display() for i in imgs) or '-'
+            if not imgs:
+                status = note_if_empty
+            elif not any(i.view == ProductImage.View.FRONT for i in imgs):
+                status = '⚠ no Front view'
+            elif primary and primary.view != ProductImage.View.FRONT:
+                status = '⚠ primary is not the Front view'
+            else:
+                status = '✓ ok'
+            return format_html(
+                '<tr><td style="padding:4px 12px 4px 0"><b>{}</b></td><td style="padding:4px 12px">{}</td>'
+                '<td style="padding:4px 12px">{}</td><td style="padding:4px 12px">{}</td><td style="padding:4px 12px">{}</td></tr>',
+                label, len(imgs), primary.get_view_display() if primary else '-', angles, status,
+            )
+
+        for c in colors:
+            in_variants = c.lower() in [v.lower() for v in variant_colors]
+            mine = [i for i in images if (i.color or '').strip().lower() == c.lower()]
+            rows.append(row(c, mine, '⚠ no photos yet'))
+            if mine and not in_variants:
+                rows[-1] = format_html('{}<tr><td colspan="5" style="color:#b45309">⚠ "{}" has photos but no variant uses this colour.</td></tr>', rows[-1], c)
+
+        general = [i for i in images if not i.color]
+        if general:
+            rows.append(row('General (no colour)', general, ''))
+
+        if not rows:
+            return "No colours or photos yet."
+
+        return format_html(
+            '<table><thead><tr><th align="left">Colour</th><th align="left" style="padding:0 12px">Photos</th>'
+            '<th align="left" style="padding:0 12px">Primary</th><th align="left" style="padding:0 12px">Order shown</th>'
+            '<th align="left" style="padding:0 12px">Check</th></tr></thead><tbody>{}</tbody></table>',
+            format_html_join('', '{}', ((r,) for r in rows)),
+        )
+    photo_gallery_summary.short_description = "Gallery overview"
 
     def image_preview(self, obj):
         """Show preview of first product image"""

@@ -39,7 +39,14 @@ export default function Header() {
   const [menus, setMenus] = useState<Record<string, MenuData>>({});
   const [closedMenu, setClosedMenu] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("announcementDismissed") !== "1") {
+      setShowAnnouncement(true);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,13 +111,42 @@ export default function Header() {
 
   useEffect(() => {
     const q = searchQuery.trim();
-    if (!q) { setSuggestions([]); setSearching(false); return; }
-    setSearching(true);
+    let cancelled = false;
+
+    if (!q) {
+      const handle = setTimeout(() => {
+        if (!cancelled) {
+          setSuggestions([]);
+          setSearching(false);
+        }
+      }, 0);
+      return () => {
+        cancelled = true;
+        clearTimeout(handle);
+      };
+    }
+
     const handle = setTimeout(() => {
-      api.smartSearch(q).then(r => setSuggestions((r.results || []).slice(0, 5)))
-        .catch(() => setSuggestions([])).finally(() => setSearching(false));
+      if (cancelled) return;
+      setSearching(true);
+
+      api.smartSearch(q)
+        .then(r => {
+          if (cancelled) return;
+          setSuggestions((r.results || []).slice(0, 5));
+        })
+        .catch(() => {
+          if (!cancelled) setSuggestions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
     }, 200);
-    return () => clearTimeout(handle);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [searchQuery]);
 
   function handleSearchSubmit(e: React.FormEvent) {
@@ -125,10 +161,33 @@ export default function Header() {
     router.push(`/product/${product.slug}`);
   }
 
+  function dismissAnnouncement() {
+    setShowAnnouncement(false);
+    if (typeof window !== "undefined") localStorage.setItem("announcementDismissed", "1");
+  }
+
   return (
     <>
      <header className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-transparent transition-all duration-300 ${scrolled ? 'border-stone-200' : ''}`}>
-        <div className="container-shell">
+        {/* Announcement Bar */}
+        {showAnnouncement && (
+          <div className="relative bg-black text-white text-center py-2 px-10">
+            <p className="text-[11px] sm:text-xs tracking-[0.08em] uppercase">
+              Free delivery on orders over KES 5,000 &nbsp;·&nbsp; Get 5% off your first order when you{" "}
+              <Link href="/register" className="underline underline-offset-2 hover:text-stone-300 transition">
+                sign up
+              </Link>
+            </p>
+            <button
+              aria-label="Dismiss announcement"
+              onClick={dismissAnnouncement}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/70 hover:text-white transition"
+            >
+              <X className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+          </div>
+        )}
+        <div className="container-shellheader">
           <div className="relative flex items-center h-16 lg:h-20">
 
             {/* Mobile hamburger */}
@@ -164,10 +223,15 @@ export default function Header() {
             </nav>
 
             {/* Centered logo */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <Link href="/" className="flex flex-col items-center">
-                <span className="font-editorial text-2xl lg:text-3xl tracking-[0.18em] uppercase font-medium text-black">Lark Tribe</span>
-                <span className="text-[9px] tracking-[0.35em] uppercase text-stone-400 -mt-1 hidden sm:block">Nairobi</span>
+            
+            <div className="absolute left-12 top-1/2 -translate-y-1/2 lg:left-1/2 lg:-translate-x-1/2">
+              <Link href="/" className="flex flex-col items-start lg:items-center">
+                <span className="font-editorial text-2xl lg:text-3xl tracking-[0.18em] uppercase font-medium text-black">
+                  Larktribe
+                </span>
+                {/* <span className="text-[9px] tracking-[0.35em] uppercase text-stone-400 -mt-1 hidden sm:block">
+                  Nairobi
+                </span> */}
               </Link>
             </div>
 
@@ -207,6 +271,9 @@ export default function Header() {
                         <Link href="/account" className="block px-4 py-2.5 hover:bg-stone-50 transition">Profile</Link>
                         <Link href="/account/orders" className="block px-4 py-2.5 hover:bg-stone-50 transition">Orders</Link>
                         <Link href="/account/wishlist" className="block px-4 py-2.5 hover:bg-stone-50 transition">Wishlist</Link>
+                        {(user.role === "admin" || user.is_staff) && (
+                          <Link href="/admin" className="block px-4 py-2.5 hover:bg-stone-50 transition font-medium">Admin dashboard</Link>
+                        )}
                         <button onClick={() => { auth.logout(); router.push("/"); }} className="block w-full text-left px-4 py-2.5 text-stone-400 hover:text-black hover:bg-stone-50 transition border-t border-stone-100">Sign Out</button>
                       </>
                     ) : (
@@ -272,8 +339,8 @@ export default function Header() {
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-[85vw] max-w-sm bg-white flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-stone-200">
-              <span className="font-editorial text-xl tracking-[0.15em] uppercase">Lark Tribe</span>
+            <div className="flex items-center justify-between p-1 border-b border-stone-200">
+              <span className="font-editorial text-xl pl-20 tracking-[0.15em] uppercase">Lark Tribe</span>
               <button onClick={() => setMobileOpen(false)}><X className="w-5 h-5" strokeWidth={1.5} /></button>
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
