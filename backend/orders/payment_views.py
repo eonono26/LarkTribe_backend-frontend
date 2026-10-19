@@ -1,4 +1,6 @@
 import json
+import hmac
+import os
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
@@ -75,6 +77,10 @@ class MpesaCallbackView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        expected_token = os.getenv("MPESA_CALLBACK_TOKEN", "")
+        supplied_token = request.query_params.get("token", "")
+        if not expected_token or not hmac.compare_digest(expected_token, supplied_token):
+            return Response({"detail": "Invalid callback token."}, status=status.HTTP_403_FORBIDDEN)
         body = request.data if isinstance(request.data, dict) else {}
         callback = body.get("Body", {}).get("stkCallback", {})
         checkout_id = callback.get("CheckoutRequestID")
