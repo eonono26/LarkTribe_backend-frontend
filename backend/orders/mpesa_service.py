@@ -1,6 +1,7 @@
 """Safaricom Daraja STK Push helpers. Never store Daraja secrets in source control."""
 import base64
 import os
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -35,14 +36,19 @@ def _config():
     shortcode = getattr(settings, "MPESA_SHORTCODE", "") or os.getenv("MPESA_SHORTCODE", "")
     passkey = getattr(settings, "MPESA_PASSKEY", "") or os.getenv("MPESA_PASSKEY", "")
     callback_url = os.getenv("MPESA_CALLBACK_URL", "")
+    callback_token = os.getenv("MPESA_CALLBACK_TOKEN", "")
     env = (getattr(settings, "MPESA_ENV", "sandbox") or "sandbox").lower()
-    if not all([key, secret, shortcode, passkey, callback_url]):
+    if not all([key, secret, shortcode, passkey, callback_url, callback_token]):
         raise MpesaConfigurationError(
             "M-Pesa is not configured. Set MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, "
-            "MPESA_SHORTCODE, MPESA_PASSKEY and public HTTPS MPESA_CALLBACK_URL."
+            "MPESA_SHORTCODE, MPESA_PASSKEY, public HTTPS MPESA_CALLBACK_URL and a random MPESA_CALLBACK_TOKEN."
         )
     if not callback_url.startswith("https://"):
         raise MpesaConfigurationError("MPESA_CALLBACK_URL must be a publicly reachable HTTPS URL.")
+    parts = urlsplit(callback_url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["token"] = callback_token
+    callback_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
     if env not in {"sandbox", "production"}:
         raise MpesaConfigurationError("MPESA_ENV must be sandbox or production.")
     host = "https://sandbox.safaricom.co.ke" if env == "sandbox" else "https://api.safaricom.co.ke"
