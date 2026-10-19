@@ -68,7 +68,27 @@ export default function OrderTrackingPage() {
   const [ticketSent, setTicketSent] = useState(false);
 
   useEffect(() => {
-    api.orderDetail(orderNumber).then((r) => setOrder(r as OrderData)).catch(() => {});
+    let active = true;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const load = async () => {
+      try {
+        const result = await api.orderDetail(orderNumber) as OrderData;
+        if (!active) return;
+        setOrder(result);
+        if (result.status !== "pending_payment" && timer) {
+          clearInterval(timer);
+          timer = undefined;
+        }
+      } catch {
+        // Keep the tracking page usable if a single status poll fails.
+      }
+    };
+    void load();
+    timer = setInterval(() => { void load(); }, 5000);
+    return () => {
+      active = false;
+      if (timer) clearInterval(timer);
+    };
   }, [orderNumber]);
 
   async function submitTicket() {
@@ -106,6 +126,12 @@ export default function OrderTrackingPage() {
           {STATUS_HEADLINE[order.status] || "Order Update."}
         </h1>
         <p className="text-sm text-stone-500 max-w-lg mb-2">{STATUS_SUBCOPY[order.status]}</p>
+        {order.payment_method === "mpesa" && order.status === "pending_payment" && (
+          <div className="mb-5 border border-stone-200 bg-white p-4 text-sm text-stone-700">
+            <strong className="block mb-1 text-espresso">M-Pesa payment pending</strong>
+            If you received an STK Push on your phone, approve it using your M-Pesa PIN. This page checks for Safaricom confirmation automatically. Do not pay again if you already approved the request.
+          </div>
+        )}
         <p className="text-xs text-stone-400 mb-10">
           Placed {new Date(order.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
         </p>
