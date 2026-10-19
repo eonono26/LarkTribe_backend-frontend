@@ -124,7 +124,7 @@ APPLE_OAUTH_CLIENT_ID = os.environ.get("APPLE_OAUTH_CLIENT_ID", "")
 # search + difflib typo-correction when this is not configured).
 ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "")
 
-# M-Pesa Daraja settings (fill in for production)
+# M-Pesa Daraja settings (sandbox by default; never commit credentials)
 MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY", "")
 MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET", "")
 MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "")
