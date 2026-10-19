@@ -106,8 +106,12 @@ export default function CheckoutPage() {
 
   async function handlePlaceOrder() {
     setError("");
-    if (!form.shipping_name || !form.shipping_phone || !form.shipping_address) {
+    if (!form.shipping_name || !form.shipping_phone || !form.shipping_address || !form.shipping_city) {
       setError("Please fill in all delivery fields."); return;
+    }
+    if (form.payment_method === "card") {
+      setError("Card payments are not enabled yet. Please choose M-Pesa or Cash on Delivery.");
+      return;
     }
     setPlacing(true);
     try {
@@ -120,8 +124,19 @@ export default function CheckoutPage() {
         coupon_code: couponCode || undefined,
       };
       if (mode === "guest") payload.guest_email = email;
-      const order = await api.createOrder(payload);
+      const order = await api.checkout(payload);
       await refreshCart();
+      if (form.payment_method === "mpesa") {
+        try {
+          const payment = await api.initiateMpesa(order.order_number, form.shipping_phone);
+          // The order page can show the pending state while Safaricom delivers its callback.
+          if (payment.message) sessionStorage.setItem(`mpesa-message-${order.order_number}`, payment.message);
+        } catch (paymentError: any) {
+          setError(`Order ${order.order_number} was created, but M-Pesa could not be started: ${apiErrorMessage(paymentError, "Please retry from your order details.")}`);
+          router.push(`/orders/${order.order_number}`);
+          return;
+        }
+      }
       router.push(`/orders/${order.order_number}`);
     } catch (e: any) {
       setError(apiErrorMessage(e, "Could not place order."));
