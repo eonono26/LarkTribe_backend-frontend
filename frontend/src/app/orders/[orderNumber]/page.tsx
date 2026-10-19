@@ -75,7 +75,7 @@ export default function OrderTrackingPage() {
         const result = await api.orderDetail(orderNumber) as OrderData;
         if (!active) return;
         setOrder(result);
-        if (result.status !== "pending_payment" && timer) {
+        if ((result.status !== "pending_payment" || result.payment_method !== "mpesa") && timer) {
           clearInterval(timer);
           timer = undefined;
         }
