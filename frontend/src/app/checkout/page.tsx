@@ -70,7 +70,8 @@ export default function CheckoutPage() {
 
   const subtotal = parseFloat(cart.total) || 0;
   const memberDiscount = mode === "member" ? Math.round(subtotal * MEMBER_DISCOUNT_PERCENT / 100) : 0;
-  const total = Math.max(0, subtotal - discount - memberDiscount);
+  const shippingFee = subtotal > 5000 ? 0 : 250;
+  const total = Math.max(0, subtotal - discount - memberDiscount) + shippingFee;
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
   async function handleIdentifyContinue() {
@@ -223,13 +224,13 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { value: "mpesa", label: "M-Pesa", icon: Smartphone },
-                      { value: "card", label: "Card", icon: CreditCard },
+                      { value: "card", label: "Card (soon)", icon: CreditCard, disabled: true },
                       { value: "cod", label: "Cash", icon: Banknote },
                     ].map(opt => {
                       const Icon = opt.icon;
                       const active = form.payment_method === opt.value;
                       return (
-                        <button key={opt.value} onClick={() => setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200 hover:border-stone-400"}`}>
+                        <button key={opt.value} disabled={Boolean(opt.disabled)} onClick={() => setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200 hover:border-stone-400"} ${opt.disabled ? "cursor-not-allowed opacity-40" : ""}`}>
                           <Icon size={18} strokeWidth={1.5} />
                           {opt.label}
                         </button>
