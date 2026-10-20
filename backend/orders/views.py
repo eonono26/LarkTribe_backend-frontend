@@ -109,8 +109,6 @@ class CheckoutView(views.APIView):
                 )
             cart.items.all().delete()
 
-        # TODO: if payment_method == mpesa, trigger Daraja STK push here.
-
         # AI fraud check (rule-based; see ai_services.engines.fraud) — flags high-risk
         # orders for the admin AI dashboard without blocking checkout.
         try:
