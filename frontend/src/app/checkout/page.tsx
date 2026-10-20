@@ -70,7 +70,8 @@ export default function CheckoutPage() {
 
   const subtotal = parseFloat(cart.total) || 0;
   const memberDiscount = mode === "member" ? Math.round(subtotal * MEMBER_DISCOUNT_PERCENT / 100) : 0;
-  const total = Math.max(0, subtotal - discount - memberDiscount);
+  const shippingFee = subtotal > 5000 ? 0 : 250;
+  const total = Math.max(0, subtotal - discount - memberDiscount + shippingFee);
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
   async function handleIdentifyContinue() {
@@ -120,7 +121,7 @@ export default function CheckoutPage() {
         coupon_code: couponCode || undefined,
       };
       if (mode === "guest") payload.guest_email = email;
-      const order = await api.createOrder(payload);
+      const order = await api.checkout(payload);
       await refreshCart();
       router.push(`/orders/${order.order_number}`);
     } catch (e: any) {
@@ -260,7 +261,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-stone-500"><span>Subtotal</span><span>{formatPrice(cart.total)}</span></div>
                 {discount > 0 && <div className="flex justify-between text-stone-600"><span>Coupon</span><span>-{formatPrice(discount)}</span></div>}
                 {memberDiscount > 0 && <div className="flex justify-between text-stone-600"><span>Member Discount</span><span>-{formatPrice(memberDiscount)}</span></div>}
-                <div className="flex justify-between text-stone-500"><span>Delivery</span><span>Calculated later</span></div>
+                <div className="flex justify-between text-stone-500"><span>Delivery</span><span>{shippingFee === 0 ? "Complimentary" : formatPrice(shippingFee)}</span></div>
                 <div className="flex justify-between items-baseline pt-3 border-t border-stone-200 font-medium text-lg">
                   <span className="font-editorial">Total</span>
                   <span className="font-editorial">{formatPrice(total)}</span>
