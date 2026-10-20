@@ -76,6 +76,7 @@ class CheckoutView(views.APIView):
                 user=request.user if request.user.is_authenticated else None,
                 guest_email=data.get("guest_email") if not request.user.is_authenticated else None,
                 order_number=uuid.uuid4().hex[:10].upper(),
+                status=(Order.Status.PROCESSING if data["payment_method"] == Order.PaymentMethod.COD else Order.Status.PENDING_PAYMENT),
                 payment_method=data["payment_method"],
                 subtotal=subtotal,
                 shipping_fee=shipping_fee,
