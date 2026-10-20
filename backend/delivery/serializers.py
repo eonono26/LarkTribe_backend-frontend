@@ -32,7 +32,8 @@ class DriverMeSerializer(serializers.ModelSerializer):
 class DriverAdminSerializer(serializers.ModelSerializer):
     """Admin can create driver logins and manage their operational profile."""
     name = serializers.CharField(source="display_name", read_only=True)
-    email = serializers.EmailField(source="user.email", required=False, allow_blank=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    account_email = serializers.EmailField(write_only=True, required=False, allow_blank=True)
     username = serializers.CharField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False, min_length=8)
     first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -42,13 +43,13 @@ class DriverAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = [
-            "id", "name", "username", "password", "first_name", "last_name", "email",
+            "id", "name", "username", "password", "first_name", "last_name", "email", "account_email",
             "phone", "vehicle_type", "vehicle_plate", "is_active", "is_online",
             "current_lat", "current_lng", "last_location_at", "rating_avg", "rating_count",
             "active_delivery_count", "created_at",
         ]
         read_only_fields = [
-            "id", "name", "is_online", "current_lat", "current_lng", "last_location_at",
+            "id", "name", "email", "is_online", "current_lat", "current_lng", "last_location_at",
             "rating_avg", "rating_count", "active_delivery_count", "created_at",
         ]
 
@@ -60,9 +61,9 @@ class DriverAdminSerializer(serializers.ModelSerializer):
             User = get_user_model()
             if User.objects.filter(username=attrs["username"]).exists():
                 raise serializers.ValidationError({"username": "This username is already in use."})
-            email = attrs.get("email", "")
+            email = attrs.get("account_email", "")
             if email and User.objects.filter(email__iexact=email).exists():
-                raise serializers.ValidationError({"email": "This email is already in use."})
+                raise serializers.ValidationError({"account_email": "This email is already in use."})
         return attrs
 
     @transaction.atomic
@@ -72,7 +73,7 @@ class DriverAdminSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         first_name = validated_data.pop("first_name", "")
         last_name = validated_data.pop("last_name", "")
-        email = validated_data.pop("email", "")
+        email = validated_data.pop("account_email", "")
         phone = validated_data.get("phone", "")
         user = User.objects.create_user(
             username=username,
