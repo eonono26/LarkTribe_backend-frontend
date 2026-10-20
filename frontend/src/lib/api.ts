@@ -225,7 +225,7 @@ export const api = {
   // ==============================================================
 
   checkout: (payload: Record<string, unknown>) =>
-    request("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
+    request<{ order_number: string; total: string; shipping_fee: string }>("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
   myOrders: () => request<Paginated<unknown> | unknown[]>("/orders/mine/"),
   orderDetail: (orderNumber: string) => request(`/orders/${orderNumber}/`),
 
