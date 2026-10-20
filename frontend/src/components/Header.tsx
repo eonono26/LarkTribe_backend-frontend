@@ -67,7 +67,7 @@ export default function Header() {
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
-      localStorage.getItem("announcementDismissed") !== "1"
+      localStorage.getItem("announcementDismissedV2") !== "1"
     ) {
       setShowAnnouncement(true);
     }
@@ -260,7 +260,7 @@ export default function Header() {
     setShowAnnouncement(false);
 
     if (typeof window !== "undefined") {
-      localStorage.setItem("announcementDismissed", "1");
+      localStorage.setItem("announcementDismissedV2", "1");
     }
   }
 
