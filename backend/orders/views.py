@@ -63,10 +63,13 @@ class CheckoutView(views.APIView):
         member_discount = (
             (subtotal * MEMBER_DISCOUNT_PERCENT / 100) if request.user.is_authenticated else Decimal("0")
         )
-        discount_total = coupon_discount + member_discount
+        # Store coupon and member discounts separately; the order detail page
+        # renders both rows, so combining them here would display the member
+        # discount twice even though the charged total is correct.
+        combined_discount = coupon_discount + member_discount
 
         shipping_fee = 0 if subtotal > 5000 else 250
-        total = subtotal - discount_total + shipping_fee
+        total = subtotal - combined_discount + shipping_fee
 
         with transaction.atomic():
             order = Order.objects.create(
@@ -76,7 +79,7 @@ class CheckoutView(views.APIView):
                 payment_method=data["payment_method"],
                 subtotal=subtotal,
                 shipping_fee=shipping_fee,
-                discount_total=discount_total,
+                discount_total=coupon_discount,
                 member_discount_total=member_discount,
                 total=total,
                 shipping_name=data["shipping_name"],
