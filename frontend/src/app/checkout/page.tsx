@@ -39,6 +39,8 @@ export default function CheckoutPage() {
     payment_method: "mpesa",
   });
 
+  const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationMessage, setLocationMessage] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [placing, setPlacing] = useState(false);
@@ -104,6 +106,22 @@ export default function CheckoutPage() {
     }
   }
 
+  function captureDeliveryLocation() {
+    setLocationMessage("");
+    if (!navigator.geolocation) {
+      setLocationMessage("Location is not available in this browser. You can still enter your address manually.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setDeliveryCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setLocationMessage("Delivery pin saved. Your courier map can use this location.");
+      },
+      () => setLocationMessage("We couldn't access your location. Allow location access or enter your address manually."),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }
+
   function applyAddress(a: any) {
     setSelectedAddressId(a.id);
     setForm(f => ({ ...f, shipping_name: a.full_name, shipping_phone: a.phone, shipping_address: a.address_line, shipping_city: a.city }));
@@ -121,6 +139,7 @@ export default function CheckoutPage() {
         shipping_phone: form.shipping_phone,
         shipping_address: form.shipping_address,
         shipping_city: form.shipping_city,
+        ...(deliveryCoords ? { shipping_lat: deliveryCoords.lat, shipping_lng: deliveryCoords.lng } : {}),
         payment_method: form.payment_method,
         coupon_code: couponCode || undefined,
       };
@@ -205,6 +224,12 @@ export default function CheckoutPage() {
                   <input placeholder="Phone number" value={form.shipping_phone} onChange={e => setForm({ ...form, shipping_phone: e.target.value })} className={inputClass} />
                   <input placeholder="Delivery address" value={form.shipping_address} onChange={e => setForm({ ...form, shipping_address: e.target.value })} className={inputClass} />
                   <input placeholder="Town / City" value={form.shipping_city} onChange={e => setForm({ ...form, shipping_city: e.target.value })} className={inputClass} />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button type="button" onClick={captureDeliveryLocation} className="border border-stone-300 rounded-full px-4 py-2 text-xs font-medium hover:border-black transition">
+                      {deliveryCoords ? "Delivery pin saved" : "Use my location for delivery"}
+                    </button>
+                    <span className="text-xs text-stone-500">{locationMessage || "Optional — improves live map accuracy."}</span>
+                  </div>
                   <CouponField subtotal={subtotal} onApplied={(code, d) => { setCouponCode(code); setDiscount(d); }} />
                 </div>
 
