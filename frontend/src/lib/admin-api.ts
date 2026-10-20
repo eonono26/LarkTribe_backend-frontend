@@ -138,6 +138,8 @@ export const adminApi = {
   delivery: {
     deliveries: (status?: string) => call<T.Page<T.Delivery> | T.Delivery[]>(`/delivery/admin/deliveries/${qs({ status })}`).then(asList),
     drivers: () => call<T.Page<T.Driver> | T.Driver[]>(`/delivery/admin/drivers/`).then(asList),
+    createDriver: (payload: { username: string; password: string; first_name: string; last_name: string; account_email: string; phone: string; vehicle_type: string; vehicle_plate: string }) =>
+      call<T.Driver>(`/delivery/admin/drivers/`, json('POST', payload)),
     assign: (id: number, driverId: number) => call<T.Delivery>(`/delivery/admin/deliveries/${id}/assign/`, json('POST', { driver_id: driverId })),
   },
   ai: {
