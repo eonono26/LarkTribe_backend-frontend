@@ -137,7 +137,7 @@ export function DispatchView() {
           </>
         ) : (
           <DataTable columns={drCols} rows={drivers.data ?? []} rowKey={(d) => d.id} loading={drivers.loading} total={drivers.data?.length ?? 0}
-            page={0} rowsPerPage={100} onPageChange={() => {}} onRowsPerPageChange={() => {}} emptyText="No drivers registered yet. Drivers sign up with the driver role and create a profile in the driver app." />
+            page={0} rowsPerPage={100} onPageChange={() => {}} onRowsPerPageChange={() => {}} emptyText="No drivers yet. Select “Add delivery driver” to create a driver login and profile." />
         )}
       </Card>
 
