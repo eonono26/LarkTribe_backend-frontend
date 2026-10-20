@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.db import transaction
 from rest_framework import generics, permissions, views, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -61,7 +62,12 @@ class DriverDeliveriesView(generics.ListAPIView):
         driver = self.request.user.driver_profile
         scope = self.request.query_params.get("scope", "mine")
         if scope == "available":
-            return Delivery.objects.filter(status=Delivery.Status.UNASSIGNED).order_by("created_at")
+            if not driver.is_online:
+                return Delivery.objects.none()
+            return Delivery.objects.filter(
+                status=Delivery.Status.UNASSIGNED,
+                order__status__in=[Order.Status.PAID, Order.Status.PROCESSING],
+            ).order_by("created_at")
         return Delivery.objects.filter(driver=driver).exclude(
             status__in=[Delivery.Status.DELIVERED, Delivery.Status.CANCELLED, Delivery.Status.FAILED]
         ).order_by("-created_at")
@@ -82,22 +88,29 @@ class DriverDeliveryActionView(views.APIView):
     def post(self, request, pk, action):
         if action not in self.TRANSITIONS:
             raise ValidationError(f"Unknown action '{action}'.")
-        delivery = get_object_or_404(Delivery, pk=pk)
         driver = request.user.driver_profile
-        required_from, new_status = self.TRANSITIONS[action]
+        if action == "accept" and not driver.is_online:
+            raise PermissionDenied("Go online before accepting a delivery.")
 
-        if action == "accept":
-            if delivery.status != Delivery.Status.UNASSIGNED:
-                raise ValidationError("This delivery has already been taken.")
-            delivery.driver = driver
-            delivery.save(update_fields=["driver"])
-        else:
-            if delivery.driver_id != driver.id:
-                raise PermissionDenied("This delivery isn't assigned to you.")
-            if required_from and delivery.status != required_from:
-                raise ValidationError(f"Delivery must be '{required_from}' to {action}, currently '{delivery.status}'.")
+        # Lock the row while accepting to prevent two drivers taking the same job.
+        with transaction.atomic():
+            delivery = get_object_or_404(Delivery.objects.select_for_update(), pk=pk)
+            required_from, new_status = self.TRANSITIONS[action]
 
-        delivery.transition(new_status, note=f"Driver {action}")
+            if action == "accept":
+                if delivery.status != Delivery.Status.UNASSIGNED:
+                    raise ValidationError("This delivery has already been taken.")
+                if delivery.order.status not in [Order.Status.PAID, Order.Status.PROCESSING]:
+                    raise ValidationError("This order is not ready for dispatch yet.")
+                delivery.driver = driver
+                delivery.save(update_fields=["driver"])
+            else:
+                if delivery.driver_id != driver.id:
+                    raise PermissionDenied("This delivery isn't assigned to you.")
+                if required_from and delivery.status != required_from:
+                    raise ValidationError(f"Delivery must be '{required_from}' to {action}, currently '{delivery.status}'.")
+
+            delivery.transition(new_status, note=f"Driver {action}")
 
         # Reflect on the order itself so the customer's existing order-status view stays in sync.
         order = delivery.order
@@ -150,6 +163,10 @@ class AdminDeliveryViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = AssignDriverSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         driver = get_object_or_404(Driver, pk=serializer.validated_data["driver_id"], is_active=True)
+        if delivery.order.status not in [Order.Status.PAID, Order.Status.PROCESSING, Order.Status.SHIPPED]:
+            raise ValidationError("This order must be paid or approved for processing before dispatch.")
+        if delivery.status in [Delivery.Status.DELIVERED, Delivery.Status.CANCELLED, Delivery.Status.FAILED]:
+            raise ValidationError("A completed or cancelled delivery cannot be assigned.")
         delivery.driver = driver
         delivery.save(update_fields=["driver"])
         delivery.transition(Delivery.Status.ASSIGNED, note=f"Dispatched by admin to {driver.display_name}")
