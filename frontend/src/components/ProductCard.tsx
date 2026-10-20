@@ -306,25 +306,34 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             </div>
           )}
         </div>
-        {/* Color swatches — clicking swaps the photo above and re-resolves the variant for Quick Add */}
+        {/* Compact, aligned colour selector — choosing a swatch updates the product image */}
         {colors.length > 0 && (
-          <div className="flex items-center gap-x-2 gap-1.5 pt-2 pb-1 pl-8">
-            {colors.map((color) => (
-              <ColorSwatch
-                key={color}
-                color={color}
-                size={20}
-                shape="round"
-                selected={selectedColor === color}
-                onClick={(e) => handleColorSelect(e, color)}
-              />
-            ))}
+          <div className="px-3 pt-3 pb-1.5">
+            <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+              <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-stone-500">
+                Colours
+              </span>
+              <span className="truncate text-[10px] capitalize tracking-wide text-stone-700">
+                {selectedColor || colors[0]}
+              </span>
+            </div>
+            <div className="flex min-h-6 flex-wrap items-center gap-x-2.5 gap-y-2">
+              {colors.map((color) => (
+                <ColorSwatch
+                  key={color}
+                  color={color}
+                  size={22}
+                  shape="round"
+                  selected={selectedColor === color}
+                  onClick={(e) => handleColorSelect(e, color)}
+                />
+              ))}
+            </div>
           </div>
         )}
 
-
-        {/* Price + name, plain text, no card padding chrome */}
-        <div className="pt-3 flex flex-col gap-0.5 pl-8">
+        {/* Price and product name share the same consistent card gutter */}
+        <div className="px-3 pt-2 pb-3 flex flex-col gap-0.5">
           <div className="flex items-baseline gap-2">
             <span className="text-md text-espresso">{formatPrice(numericPrice)}</span>
             {numericComparePrice !== null && numericComparePrice > numericPrice && (
