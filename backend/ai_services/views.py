@@ -7,6 +7,7 @@ from rest_framework.parsers import MultiPartParser
 from catalog.models import Product
 from catalog.serializers import ProductListSerializer
 from orders.models import Order
+from notifications.models import SupportTicket
 from .engines import recommendations, search as search_engine, chatbot, pricing, forecasting, segmentation, fraud, marketing
 from .models import ChatSession, ChatMessage, CustomerSegment, FraudSignal
 from .serializers import ChatMessageSerializer, ChatAskSerializer, CustomerSegmentSerializer, FraudSignalSerializer
@@ -87,32 +88,58 @@ class ImageSearchView(views.APIView):
 
 
 class ChatbotView(views.APIView):
-    """AI shopping assistant. Creates/continues a ChatSession and returns product cards when relevant."""
+    """Shopping assistant for product discovery, order questions, and real support-ticket creation."""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = ChatAskSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        session_key = request.data.get("session_key", "")
 
         session = None
         if data.get("session_id"):
-            session = ChatSession.objects.filter(id=data["session_id"]).first()
+            sessions = ChatSession.objects.filter(id=data["session_id"])
+            if request.user.is_authenticated:
+                sessions = sessions.filter(user=request.user)
+            else:
+                sessions = sessions.filter(user__isnull=True, session_key=session_key)
+            session = sessions.first()
         if not session:
             session = ChatSession.objects.create(
                 user=request.user if request.user.is_authenticated else None,
-                session_key=request.data.get("session_key", ""),
+                session_key=session_key,
             )
 
+        latest_bot = session.messages.filter(sender=ChatMessage.Sender.BOT).order_by("-created_at").first()
+        awaiting_ticket_details = bool(
+            latest_bot and "describe the issue in one message" in latest_bot.text.lower()
+        )
         ChatMessage.objects.create(session=session, sender="user", text=data["message"])
-        reply_text, products = chatbot.answer(data["message"], user=request.user if request.user.is_authenticated else None)
+
+        if awaiting_ticket_details:
+            if request.user.is_authenticated:
+                ticket = SupportTicket.objects.create(
+                    user=request.user,
+                    subject="Shopping assistant support request",
+                    message=data["message"],
+                )
+                reply_text = f"Your support ticket #{ticket.id} has been created. Our team will follow up from your account's Support page."
+            else:
+                reply_text = "Please sign in before sending a support request. Then open Account → Support to submit your message."
+            products = []
+        else:
+            reply_text, products = chatbot.answer(
+                data["message"],
+                user=request.user if request.user.is_authenticated else None,
+            )
+
         bot_msg = ChatMessage.objects.create(session=session, sender="bot", text=reply_text)
         if products:
             bot_msg.products.set([p.id for p in products])
 
-        # Pass request context to serializer for image URLs
         return Response({
-            "session_id": session.id, 
+            "session_id": session.id,
             "reply": ChatMessageSerializer(bot_msg, context={'request': request}).data
         })
 
