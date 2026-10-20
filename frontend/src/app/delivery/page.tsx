@@ -1,58 +1,56 @@
-const ZONES = [
-  { area: "Nairobi (within the city)", time: "1–2 business days", fee: "From KSh 200" },
-  { area: "Nairobi metro (Kiambu, Machakos, Kajiado)", time: "2–3 business days", fee: "From KSh 300" },
-  { area: "Major towns (Mombasa, Kisumu, Nakuru, Eldoret)", time: "3–5 business days", fee: "From KSh 400" },
-  { area: "Rest of Kenya", time: "4–7 business days", fee: "From KSh 500" },
-];
-
 export default function DeliveryPage() {
   return (
-    <main className="container-shell py-12 max-w-3xl">
-      <h1 className="font-display text-3xl font-black mb-2">Delivery information</h1>
-      <p className="text-sm text-neutral-500 mb-8">
-        Delivery is handled by individual vendors and partner couriers, so exact times can vary by item.
-      </p>
+    <main className="container-shell py-12 lg:py-16">
+      <div className="max-w-4xl mx-auto">
+        <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-3">LarkTribe delivery</p>
+        <h1 className="font-display text-3xl sm:text-4xl font-black mb-3">From our store to your door.</h1>
+        <p className="text-sm sm:text-base text-neutral-600 max-w-2xl mb-8">
+          Follow your order from dispatch to delivery. Once a driver is assigned, the tracking page shows the courier,
+          current location when available, and each delivery status update.
+        </p>
 
-      <div className="overflow-x-auto mb-10">
-        <table className="w-full text-sm border border-[var(--color-line)] rounded-lg overflow-hidden">
-          <thead className="bg-[var(--color-mist)] text-left">
-            <tr>
-              <th className="p-3 font-semibold">Area</th>
-              <th className="p-3 font-semibold">Estimated time</th>
-              <th className="p-3 font-semibold">Fee</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ZONES.map((z) => (
-              <tr key={z.area} className="border-t border-[var(--color-line)]">
-                <td className="p-3">{z.area}</td>
-                <td className="p-3">{z.time}</td>
-                <td className="p-3">{z.fee}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+          <div className="rounded-2xl border border-[var(--color-line)] p-6">
+            <p className="text-[11px] uppercase tracking-widest text-neutral-500 mb-2">Delivery fee</p>
+            <p className="font-display text-2xl font-bold mb-2">KSh 250</p>
+            <p className="text-sm text-neutral-600">Orders of KSh 5,000 or less. The exact fee is shown in checkout and on your order receipt.</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--color-line)] p-6">
+            <p className="text-[11px] uppercase tracking-widest text-neutral-500 mb-2">Qualifying orders</p>
+            <p className="font-display text-2xl font-bold mb-2">Free delivery</p>
+            <p className="text-sm text-neutral-600">Orders above KSh 5,000 currently qualify for complimentary delivery.</p>
+          </div>
+        </section>
 
-      <div className="space-y-6 text-sm leading-relaxed text-neutral-700">
-        <section>
-          <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Order tracking</h2>
-          <p>
-            Once a vendor ships your order, you'll get a notification and can follow progress from{" "}
-            <a href="/account/orders" className="font-semibold underline">My account → Orders</a>.
-          </p>
-        </section>
-        <section>
-          <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Multiple vendors, one cart</h2>
-          <p>
-            If your order includes items from more than one vendor, they may arrive in separate packages on
-            different days — each shipment can be tracked individually.
-          </p>
-        </section>
-        <section>
-          <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Cash on delivery</h2>
-          <p>Available for eligible orders and locations — have the exact amount ready for the courier at drop-off.</p>
-        </section>
+        <div className="space-y-6 text-sm leading-relaxed text-neutral-700">
+          <section>
+            <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Track your order live</h2>
+            <p>
+              Open your order confirmation page or visit{" "}
+              <a href="/account/orders" className="font-semibold underline">My account → Orders</a>.
+              Tracking refreshes automatically and shows driver details and their latest shared position when a driver has been assigned.
+            </p>
+          </section>
+          <section>
+            <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Dispatch and delivery updates</h2>
+            <p>
+              Orders are prepared for dispatch after they are approved for fulfilment. Our dispatch team can assign an active driver,
+              while the driver updates pickup, in-transit, and delivered statuses from their driver dashboard.
+            </p>
+          </section>
+          <section>
+            <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Cash on delivery</h2>
+            <p>
+              Cash on delivery is available as a checkout option. Please have the order amount ready when the courier arrives.
+            </p>
+          </section>
+          <section>
+            <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">Need help?</h2>
+            <p>
+              Use the shopping assistant at the bottom of the page or open a support request from your account if your delivery needs attention.
+            </p>
+          </section>
+        </div>
       </div>
     </main>
   );
