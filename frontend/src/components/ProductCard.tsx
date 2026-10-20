@@ -6,7 +6,9 @@ import Link from "next/link";
 import { Heart, ImageOff } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
-import { apiErrorMessage } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
+import type { Wishlist } from "@/lib/types";
 import QuickViewModal from "@/components/QuickViewModal";
 import ColorSwatch from "@/components/ColorSwatch";
 import type { ProductListItem } from "@/lib/types";
@@ -29,6 +31,8 @@ const HOVER_CYCLE_MS = 1100;
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
   const [isHovering, setIsHovering] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistItemId, setWishlistItemId] = useState<number | null>(null);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [hoverIndex, setHoverIndex] = useState(0);
@@ -184,10 +188,54 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
   const canQuickAdd = isInStock && !needs_size && (colors.length === 0 || resolvedVariantId != null);
 
-  const handleWishlist = (e: React.MouseEvent) => {
+  useEffect(() => {
+    let cancelled = false;
+    if (!isLoggedIn()) {
+      setIsWishlisted(false);
+      setWishlistItemId(null);
+      return;
+    }
+
+    api.wishlist().then((response) => {
+      const items = (Array.isArray(response) ? response : response.results) as Wishlist[];
+      const match = items.find((item) => String(item.product.id) === String(id));
+      if (!cancelled) {
+        setWishlistItemId(match?.id ?? null);
+        setIsWishlisted(Boolean(match));
+      }
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
+    if (wishlistBusy) return;
+
+    if (!isLoggedIn()) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setWishlistBusy(true);
+    try {
+      if (wishlistItemId !== null) {
+        await api.removeFromWishlist(wishlistItemId);
+        setWishlistItemId(null);
+        setIsWishlisted(false);
+      } else {
+        const created = await api.addToWishlist(id);
+        setWishlistItemId(created.id);
+        setIsWishlisted(true);
+        api.track("wishlist_add", { product: id });
+      }
+      window.dispatchEvent(new Event("larktribe:wishlist-updated"));
+    } catch (error) {
+      setAddError(apiErrorMessage(error, "Couldn't update your wishlist."));
+    } finally {
+      setWishlistBusy(false);
+    }
   };
 
   const handleColorSelect = (e: React.MouseEvent, color: string) => {
@@ -281,7 +329,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             className={`absolute top-2.5 right-2.5 text-espresso transition-opacity ${
               isHovering || isMobile ? "opacity-100" : "opacity-0"
             }`}
-            aria-label="Add to wishlist"
+            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            disabled={wishlistBusy}
           >
             <Heart size={16} className={isWishlisted ? "fill-espresso" : ""} />
           </button>
