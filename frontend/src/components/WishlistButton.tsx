@@ -31,10 +31,12 @@ export default function WishlistButton({ productId, size = 20 }: { productId: nu
       if (wishlistItemId) {
         await api.removeFromWishlist(wishlistItemId);
         setWishlistItemId(null);
+        window.dispatchEvent(new Event("larktribe:wishlist-updated"));
       } else {
         const item = await api.addToWishlist(productId);
         setWishlistItemId(item.id);
         api.track("wishlist_add", { product: productId });
+        window.dispatchEvent(new Event("larktribe:wishlist-updated"));
       }
     } finally {
       setLoading(false);
