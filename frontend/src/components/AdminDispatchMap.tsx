@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
-import type { DriverAdmin, DeliveryAdmin } from "@/lib/types";
+import type { Driver, Delivery } from "@/lib/admin-types";
 
 const driverIcon = (busy: boolean) =>
   L.divIcon({
@@ -36,8 +36,8 @@ export default function AdminDispatchMap({
   drivers,
   deliveries,
 }: {
-  drivers: DriverAdmin[];
-  deliveries: DeliveryAdmin[];
+  drivers: Driver[];
+  deliveries: Delivery[];
 }) {
   const driverPoints = drivers
     .filter((d) => d.current_lat && d.current_lng)
