@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from .models import Order, OrderItem, Coupon
 from .serializers import OrderSerializer, CheckoutSerializer
 from cart.views import get_or_create_cart
+from catalog.models import Product, ProductVariant
 
 # Standing incentive to check out signed in rather than as a guest — shown on the
 # storefront's Member Login tab and applied here whenever request.user is authenticated.
@@ -93,7 +94,20 @@ class CheckoutView(views.APIView):
                 shipping_lng=data.get("shipping_lng"),
                 coupon_code=coupon_code,
             )
-            for item in cart.items.select_related("product", "product__vendor", "variant"):
+            for item in cart.items.select_related("product", "product__vendor", "variant").select_for_update():
+                # Re-check and decrement inventory under a row lock so two
+                # simultaneous checkouts cannot sell the same last item.
+                if item.variant_id:
+                    inventory = ProductVariant.objects.select_for_update().get(pk=item.variant_id)
+                else:
+                    inventory = Product.objects.select_for_update().get(pk=item.product_id)
+                if item.quantity > inventory.stock:
+                    raise ValidationError(
+                        f"Only {inventory.stock} of {item.product.name} remain. Please update your bag."
+                    )
+                inventory.stock -= item.quantity
+                inventory.save(update_fields=["stock"])
+
                 OrderItem.objects.create(
                     order=order,
                     vendor=item.product.vendor,
