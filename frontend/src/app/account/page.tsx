@@ -135,7 +135,7 @@ export default function AccountProfilePage() {
 
   return (
     <main className="bg-stone-50 text-espresso pt-20 font-sans min-h-screen">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
       <span className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Lark Tribe</span>
       <h1 className="font-editorial text-3xl sm:text-4xl text-espresso mb-1">
         {user ? `${user.first_name || user.username}` : "My Account"}
@@ -148,9 +148,9 @@ export default function AccountProfilePage() {
       {loading ? (
         <p className="text-stone-400">Loading…</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
+        <form onSubmit={handleSubmit} className="space-y-5 max-w-none bg-white border border-stone-200 rounded-2xl p-5 sm:p-8 shadow-sm">
           {/* Profile Picture Section */}
-          <div className="flex items-center gap-4 p-5 bg-stone-100 rounded-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-stone-50 border border-stone-200 rounded-xl">
             <div className="relative w-20 h-20 rounded-full overflow-hidden bg-stone-200 flex-shrink-0">
               {profilePicturePreview ? (
                 <Image
@@ -206,12 +206,12 @@ export default function AccountProfilePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               placeholder="First name"
               value={form.first_name}
               onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-              className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none focus:bg-stone-50 focus:ring-1 focus:ring-espresso text-sm"
+              className="w-full min-w-0 bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 outline-none focus:bg-white focus:ring-1 focus:ring-espresso text-sm transition"
             />
             <input
               placeholder="Last name"
@@ -235,13 +235,13 @@ export default function AccountProfilePage() {
           />
 
           {/* Preferences */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <div>
               <label className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Currency</label>
               <select
                 value={form.preferred_currency}
                 onChange={(e) => setForm({ ...form, preferred_currency: e.target.value })}
-                className="w-full bg-stone-100 rounded-none px-4 py-3 outline-none text-sm"
+                className="w-full min-w-0 bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 outline-none focus:ring-1 focus:ring-espresso text-sm"
               >
                 <option value="KES">KES - Kenyan Shilling</option>
                 {/* <option value="USD">USD - US Dollar</option>
@@ -268,7 +268,7 @@ export default function AccountProfilePage() {
           <div className="flex items-center gap-6 pt-3">
             <button
               disabled={saving}
-              className="px-8 py-3.5 bg-espresso text-stone-50 hover:bg-stone-900 disabled:opacity-40 text-xs uppercase tracking-widest font-semibold transition"
+              className="px-8 py-3.5 rounded-full bg-espresso text-stone-50 hover:bg-stone-900 disabled:opacity-40 text-xs uppercase tracking-widest font-semibold transition"
             >
               {saving ? "Saving…" : "Save Changes"}
             </button>
