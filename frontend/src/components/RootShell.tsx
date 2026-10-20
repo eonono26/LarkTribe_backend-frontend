@@ -21,7 +21,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
     <LocalizationProvider>
       <CartProvider>
         <Header />
-        <main className="min-h-[60vh]">{children}</main>
+        <main className="min-h-[60vh]"><div key={pathname || "/"}>{children}</div></main>
         <Footer />
         <CartDrawer />
         <ChatbotWidget />

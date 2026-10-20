@@ -121,6 +121,7 @@ export default function WishlistPage() {
                     onClick={async () => {
                       await api.removeFromWishlist(w.id);
                       setItems((prev) => prev.filter((x) => x.id !== w.id));
+                      window.dispatchEvent(new Event("larktribe:wishlist-updated"));
                     }}
                     className="w-full text-center text-[11px] uppercase tracking-widest text-stone-400 hover:text-espresso transition"
                   >

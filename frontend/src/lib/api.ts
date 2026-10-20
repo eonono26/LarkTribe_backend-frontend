@@ -225,7 +225,12 @@ export const api = {
   // ==============================================================
 
   checkout: (payload: Record<string, unknown>) =>
-    request("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
+    request<{ order_number: string; total: string; status: string }>("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
+  initiateMpesa: (orderNumber: string, phone: string) =>
+    request<{ payment_status: string; message: string; checkout_request_id: string }>(
+      `/orders/mpesa/initiate/${encodeURIComponent(orderNumber)}/`,
+      { method: "POST", body: JSON.stringify({ phone }) },
+    ),
   myOrders: () => request<Paginated<unknown> | unknown[]>("/orders/mine/"),
   orderDetail: (orderNumber: string) => request(`/orders/${orderNumber}/`),
 

@@ -70,7 +70,8 @@ export default function CheckoutPage() {
 
   const subtotal = parseFloat(cart.total) || 0;
   const memberDiscount = mode === "member" ? Math.round(subtotal * MEMBER_DISCOUNT_PERCENT / 100) : 0;
-  const total = Math.max(0, subtotal - discount - memberDiscount);
+  const shippingFee = subtotal > 5000 ? 0 : 250;
+  const total = Math.max(0, subtotal - discount - memberDiscount) + shippingFee;
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
   async function handleIdentifyContinue() {
@@ -106,8 +107,12 @@ export default function CheckoutPage() {
 
   async function handlePlaceOrder() {
     setError("");
-    if (!form.shipping_name || !form.shipping_phone || !form.shipping_address) {
+    if (!form.shipping_name || !form.shipping_phone || !form.shipping_address || !form.shipping_city) {
       setError("Please fill in all delivery fields."); return;
+    }
+    if (form.payment_method === "card") {
+      setError("Card payments are not enabled yet. Please choose M-Pesa or Cash on Delivery.");
+      return;
     }
     setPlacing(true);
     try {
@@ -120,8 +125,19 @@ export default function CheckoutPage() {
         coupon_code: couponCode || undefined,
       };
       if (mode === "guest") payload.guest_email = email;
-      const order = await api.createOrder(payload);
+      const order = await api.checkout(payload);
       await refreshCart();
+      if (form.payment_method === "mpesa") {
+        try {
+          const payment = await api.initiateMpesa(order.order_number, form.shipping_phone);
+          // The order page can show the pending state while Safaricom delivers its callback.
+          if (payment.message) sessionStorage.setItem(`mpesa-message-${order.order_number}`, payment.message);
+        } catch (paymentError: any) {
+          setError(`Order ${order.order_number} was created, but M-Pesa could not be started: ${apiErrorMessage(paymentError, "Please retry from your order details.")}`);
+          router.push(`/orders/${order.order_number}`);
+          return;
+        }
+      }
       router.push(`/orders/${order.order_number}`);
     } catch (e: any) {
       setError(apiErrorMessage(e, "Could not place order."));
@@ -208,13 +224,13 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { value: "mpesa", label: "M-Pesa", icon: Smartphone },
-                      { value: "card", label: "Card", icon: CreditCard },
+                      { value: "card", label: "Card (soon)", icon: CreditCard, disabled: true },
                       { value: "cod", label: "Cash", icon: Banknote },
                     ].map(opt => {
                       const Icon = opt.icon;
                       const active = form.payment_method === opt.value;
                       return (
-                        <button key={opt.value} onClick={() => setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200 hover:border-stone-400"}`}>
+                        <button key={opt.value} disabled={Boolean(opt.disabled)} onClick={() => setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200 hover:border-stone-400"} ${opt.disabled ? "cursor-not-allowed opacity-40" : ""}`}>
                           <Icon size={18} strokeWidth={1.5} />
                           {opt.label}
                         </button>

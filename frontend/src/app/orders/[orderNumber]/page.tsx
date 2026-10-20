@@ -27,6 +27,7 @@ interface OrderData {
   member_discount_total: string;
   total: string;
   shipping_name: string;
+  shipping_phone: string;
   shipping_address: string;
   shipping_city: string;
   payment_method: string;
@@ -66,14 +67,50 @@ export default function OrderTrackingPage() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [ticketMessage, setTicketMessage] = useState("");
   const [ticketSent, setTicketSent] = useState(false);
+  const [paymentRetrying, setPaymentRetrying] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
 
   useEffect(() => {
-    api.orderDetail(orderNumber).then((r) => setOrder(r as OrderData)).catch(() => {});
+    let active = true;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const load = async () => {
+      try {
+        const result = await api.orderDetail(orderNumber) as OrderData;
+        if (!active) return;
+        setOrder(result);
+        if ((result.status !== "pending_payment" || result.payment_method !== "mpesa") && timer) {
+          clearInterval(timer);
+          timer = undefined;
+        }
+      } catch {
+        // Keep the tracking page usable if a single status poll fails.
+      }
+    };
+    void load();
+    timer = setInterval(() => { void load(); }, 5000);
+    return () => {
+      active = false;
+      if (timer) clearInterval(timer);
+    };
   }, [orderNumber]);
 
   async function submitTicket() {
     await api.openSupportTicket(`Return/refund request — ${orderNumber}`, ticketMessage);
     setTicketSent(true);
+  }
+
+  async function retryMpesaPayment() {
+    if (!order) return;
+    setPaymentRetrying(true);
+    setPaymentMessage("");
+    try {
+      const result = await api.initiateMpesa(order.order_number, order.shipping_phone);
+      setPaymentMessage(result.message || "STK Push sent. Check your phone and enter your M-Pesa PIN.");
+    } catch (error) {
+      setPaymentMessage(error instanceof Error ? error.message : "Could not start M-Pesa. Please try again.");
+    } finally {
+      setPaymentRetrying(false);
+    }
   }
 
   if (!order) {
@@ -106,6 +143,18 @@ export default function OrderTrackingPage() {
           {STATUS_HEADLINE[order.status] || "Order Update."}
         </h1>
         <p className="text-sm text-stone-500 max-w-lg mb-2">{STATUS_SUBCOPY[order.status]}</p>
+        {order.payment_method === "mpesa" && order.status === "pending_payment" && (
+          <div className="mb-5 border border-stone-200 bg-white p-4 text-sm text-stone-700">
+            <strong className="block mb-1 text-espresso">M-Pesa payment pending</strong>
+            If you received an STK Push on your phone, approve it using your M-Pesa PIN. This page checks for Safaricom confirmation automatically. Do not pay again if you already approved the request.
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button disabled={paymentRetrying} onClick={retryMpesaPayment} className="bg-black px-4 py-2 text-xs uppercase tracking-wider text-white disabled:opacity-50">
+                {paymentRetrying ? "Sending request…" : "Resend M-Pesa prompt"}
+              </button>
+              {paymentMessage && <span role="status" className="text-xs text-stone-600">{paymentMessage}</span>}
+            </div>
+          </div>
+        )}
         <p className="text-xs text-stone-400 mb-10">
           Placed {new Date(order.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
         </p>

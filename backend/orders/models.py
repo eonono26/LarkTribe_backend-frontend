@@ -40,6 +40,10 @@ class Order(models.Model):
     shipping_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     coupon_code = models.CharField(max_length=32, blank=True)
     mpesa_receipt = models.CharField(max_length=64, blank=True)
+    mpesa_checkout_request_id = models.CharField(max_length=128, blank=True, db_index=True)
+    mpesa_merchant_request_id = models.CharField(max_length=128, blank=True)
+    mpesa_phone = models.CharField(max_length=20, blank=True)
+    mpesa_result_desc = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
