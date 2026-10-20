@@ -16,6 +16,7 @@ import { FeedbackProvider } from '@/admin-ui/components/feedback';
 import { usePathname, useRouter } from '@/admin-ui/routes/hooks';
 import { DashboardLayout } from '@/admin-ui/layouts/dashboard-layout';
 import { AdminAuthProvider, useAdminAuth } from '@/admin-ui/auth/admin-auth';
+import BackToTop from '@/components/BackToTop';
 
 // ----------------------------------------------------------------------
 
@@ -74,6 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <FeedbackProvider>
         <AdminAuthProvider>
           <Shell>{children}</Shell>
+          <BackToTop />
         </AdminAuthProvider>
       </FeedbackProvider>
     </ThemeProvider>
