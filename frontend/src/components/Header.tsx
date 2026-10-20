@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   Menu,
@@ -47,7 +47,8 @@ const GENDER_QUICK = (stage: string) => [
 
 export default function Header() {
   const router = useRouter();
-  const { itemCount, openDrawer } = useCart();
+  const pathname = usePathname();
+  const { itemCount, openDrawer, refresh: refreshCart } = useCart();
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -155,21 +156,44 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (!isLoggedIn()) return;
+    let cancelled = false;
 
-    auth.me().then(setUser).catch(() => {});
+    async function refreshAccountIndicators() {
+      if (!isLoggedIn()) {
+        setUser(null);
+        setWishlistCount(0);
+        return;
+      }
 
-    api
-      .wishlist()
-      .then((r) => {
-        const items = Array.isArray(r)
-          ? r
-          : (r as { results: Wishlist[] }).results;
+      try {
+        const currentUser = await auth.me();
+        if (!cancelled) setUser(currentUser);
+      } catch {
+        if (!cancelled) setUser(null);
+      }
 
-        setWishlistCount(items.length);
-      })
-      .catch(() => {});
-  }, []);
+      try {
+        const response = await api.wishlist();
+        const items = Array.isArray(response)
+          ? response
+          : (response as { results: Wishlist[] }).results;
+        if (!cancelled) setWishlistCount(items.length);
+      } catch {
+        // Keep the last known count if the API is temporarily unavailable.
+      }
+    }
+
+    void refreshAccountIndicators();
+    void refreshCart();
+
+    const onWishlistUpdated = () => void refreshAccountIndicators();
+    window.addEventListener("larktribe:wishlist-updated", onWishlistUpdated);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("larktribe:wishlist-updated", onWishlistUpdated);
+    };
+  }, [pathname, refreshCart]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -503,25 +527,31 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* Wishlist — original indicator retained */}
+              {/* Wishlist count stays in sync with successful wishlist changes. */}
               <Link
                 href="/account/wishlist"
+                aria-label={wishlistCount > 0 ? `Wishlist, ${wishlistCount} saved items` : "Wishlist"}
                 className="p-2 relative hover:text-black transition"
               >
                 <Heart className="w-5 h-5" strokeWidth={1.4} />
                 {wishlistCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-black text-white text-[9px] leading-4 text-center tabular-nums">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
                 )}
               </Link>
 
-              {/* Cart — original indicator retained */}
+              {/* Cart count updates as the shared cart state changes. */}
               <button
                 onClick={openDrawer}
+                aria-label={itemCount > 0 ? `Shopping bag, ${itemCount} items` : "Shopping bag"}
                 className="p-2 relative hover:text-black transition"
               >
                 <ShoppingBag className="w-5 h-5" strokeWidth={1.4} />
                 {itemCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-black text-white text-[9px] leading-4 text-center tabular-nums">
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
                 )}
               </button>
             </div>
