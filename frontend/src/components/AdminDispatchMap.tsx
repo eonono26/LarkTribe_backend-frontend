@@ -44,7 +44,7 @@ export default function AdminDispatchMap({
     .map((d) => ({ d, lat: parseFloat(d.current_lat!), lng: parseFloat(d.current_lng!) }));
 
   const dropoffPoints = deliveries
-    .filter((d) => d.dropoff_lat && d.dropoff_lng && d.status === "unassigned")
+    .filter((d) => d.dropoff_lat && d.dropoff_lng && !["delivered", "cancelled", "failed"].includes(d.status))
     .map((d) => ({ d, lat: parseFloat(d.dropoff_lat!), lng: parseFloat(d.dropoff_lng!) }));
 
   const allPoints: [number, number][] = [
