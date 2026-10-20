@@ -42,10 +42,10 @@ export interface Campaign {
 export interface ShowcaseVideo { id: number; title: string; video_url: string | null; thumbnail_url: string | null; cta_label: string; link_url: string; product: number | null; department: number | null; order: number; active: boolean; created_at: string }
 export interface TicketReply { id: number; author_name: string; is_staff_reply: boolean; message: string; created_at: string }
 export interface Ticket { id: number; user_name: string; order: number | null; subject: string; message: string; status: 'open' | 'in_progress' | 'resolved' | 'closed'; created_at: string; updated_at: string; replies: TicketReply[] }
-export interface Driver { id: number; name: string; email: string; phone: string; vehicle_type: string; vehicle_plate: string; is_active: boolean; is_online: boolean; active_delivery_count: number; rating_avg: string }
+export interface Driver { id: number; name: string; email: string; phone: string; vehicle_type: string; vehicle_plate: string; is_active: boolean; is_online: boolean; current_lat: string | null; current_lng: string | null; last_location_at: string | null; active_delivery_count: number; rating_avg: string }
 export interface Delivery {
   id: number; order_number: string; order_total: string; shipping_name: string; shipping_phone: string; shipping_city: string;
-  status: string; driver: Driver | null; item_count: number; dropoff_label: string; created_at: string;
+  status: string; driver: Driver | null; item_count: number; dropoff_label: string; dropoff_lat: string | null; dropoff_lng: string | null; pickup_lat: string | null; pickup_lng: string | null; created_at: string;
 }
 
 export interface Lookups {
