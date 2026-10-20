@@ -36,7 +36,7 @@ export default function CheckoutPage() {
     shipping_phone: "",
     shipping_address: "",
     shipping_city: "",
-    payment_method: "mpesa",
+    payment_method: "cod",
   });
 
   const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -237,21 +237,23 @@ export default function CheckoutPage() {
                   <p className="text-[11px] uppercase tracking-widest text-stone-500 font-medium mb-3">Payment</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { value: "mpesa", label: "M-Pesa", icon: Smartphone },
-                      { value: "card", label: "Card", icon: CreditCard },
-                      { value: "cod", label: "Cash", icon: Banknote },
+                      { value: "mpesa", label: "M-Pesa", icon: Smartphone, disabled: true },
+                      { value: "card", label: "Card", icon: CreditCard, disabled: true },
+                      { value: "cod", label: "Cash on delivery", icon: Banknote, disabled: false },
                     ].map(opt => {
                       const Icon = opt.icon;
                       const active = form.payment_method === opt.value;
                       return (
-                        <button key={opt.value} onClick={() => setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200 hover:border-stone-400"}`}>
+                        <button key={opt.value} type="button" disabled={opt.disabled} onClick={() => !opt.disabled && setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200"} ${opt.disabled ? "cursor-not-allowed opacity-45" : "hover:border-stone-400"}`}>
                           <Icon size={18} strokeWidth={1.5} />
                           {opt.label}
+                          {opt.disabled && <span className="text-[9px] normal-case tracking-normal">Coming soon</span>}
                         </button>
                       );
                     })}
                   </div>
                 </div>
+                <p className="mt-3 text-xs text-stone-500">Cash on delivery is available now. M-Pesa and card payments will appear here once their payment providers are connected.</p>
 
                 {error && <p className="text-sm text-red-700 mt-4">{error}</p>}
 
