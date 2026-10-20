@@ -27,6 +27,8 @@ class CheckoutView(views.APIView):
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        if data["payment_method"] != Order.PaymentMethod.COD:
+            raise ValidationError("Online payment is not configured yet. Please choose Cash on Delivery to place this order.")
 
         cart = get_or_create_cart(request)
         if not cart.items.exists():
