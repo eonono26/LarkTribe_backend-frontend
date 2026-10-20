@@ -398,7 +398,7 @@ export default function Header() {
                       <img
                         src={user.profile_picture_url}
                         alt=""
-                        className="w-7 h-7 object-cover"
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-stone-200"
                       />
                     ) : (
                       <span className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">
@@ -408,12 +408,11 @@ export default function Header() {
                         />
                       </span>
                     )}
+                    <ChevronDown className="h-3.5 w-3.5 text-stone-400 transition-transform duration-200 group-hover/account:rotate-180" />
                   </button>
                 ) : (
                   <button aria-label="Open account menu" className="flex items-center gap-2 rounded-full px-2 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400">
-                    <span className="hidden xl:inline text-[11px] tracking-[0.12em] uppercase">Account</span><ChevronDown className="hidden xl:block h-3.5 w-3.5 text-stone-400 transition-transform duration-200 group-hover/account:rotate-180" /><span className="sr-only">
-                      Account
-                    </span>
+                    <span className="hidden xl:inline text-[11px] tracking-[0.12em] uppercase">Account</span><ChevronDown className="hidden xl:block h-3.5 w-3.5 text-stone-400 transition-transform duration-200 group-hover/account:rotate-180" />
                     <span className="w-8 h-8 rounded-full bg-stone-100 text-stone-800 flex items-center justify-center">
                       <User2
                         className="w-3.5 h-3.5"
