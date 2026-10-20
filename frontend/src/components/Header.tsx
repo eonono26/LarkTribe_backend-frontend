@@ -267,9 +267,7 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-transparent transition-all duration-300 ${
-          scrolled ? "border-stone-200" : ""
-        }`}
+        className="fixed top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200"
       >
         {/* Announcement Bar */}
         {showAnnouncement && (
@@ -393,9 +391,9 @@ export default function Header() {
               </button>
 
               {/* Account dropdown */}
-              <div className="hidden sm:block group/account relative py-6 -my-6">
+              <div className="hidden sm:block group/account relative py-5 -my-5">
                 {user ? (
-                  <button className="flex items-center gap-2 hover:text-black transition">
+                  <button aria-label="Open account menu" className="flex items-center gap-2 rounded-full px-2 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400">
                     {user.profile_picture_url ? (
                       <img
                         src={user.profile_picture_url}
@@ -403,7 +401,7 @@ export default function Header() {
                         className="w-7 h-7 object-cover"
                       />
                     ) : (
-                      <span className="w-7 h-7 text-white flex items-center justify-center">
+                      <span className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">
                         <User2
                           className="w-3.5 h-3.5 text-black [-webkit-text-stroke-width:1.5px] [-webkit-text-stroke-color:white]"
                           strokeWidth={1.5}
@@ -412,11 +410,11 @@ export default function Header() {
                     )}
                   </button>
                 ) : (
-                  <button className="flex items-center gap-2 hover:text-black transition">
-                    <span className="hidden xl:inline text-[11px] tracking-[0.12em] uppercase">
+                  <button aria-label="Open account menu" className="flex items-center gap-2 rounded-full px-2 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400">
+                    <span className="hidden xl:inline text-[11px] tracking-[0.12em] uppercase">Account</span><ChevronDown className="hidden xl:block h-3.5 w-3.5 text-stone-400 transition-transform duration-200 group-hover/account:rotate-180" /><span className="sr-only">
                       Account
                     </span>
-                    <span className="w-7 h-7 bg-black text-white flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-full bg-stone-100 text-stone-800 flex items-center justify-center">
                       <User2
                         className="w-3.5 h-3.5"
                         strokeWidth={1.5}
@@ -425,12 +423,12 @@ export default function Header() {
                   </button>
                 )}
 
-                <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/account:opacity-100 group-hover/account:visible transition-all duration-150 z-40">
-                  <div className="w-48 bg-white border border-stone-200 shadow-lg text-[13px]">
+                <div className="absolute top-full right-0 pt-2.5 opacity-0 invisible translate-y-1 group-hover/account:opacity-100 group-hover/account:visible group-hover/account:translate-y-0 group-focus-within/account:opacity-100 group-focus-within/account:visible group-focus-within/account:translate-y-0 transition-all duration-150 z-40">
+                  <div className="w-56 overflow-hidden rounded-md bg-white border border-stone-200 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.28)] text-[13px]">
                     {user ? (
                       <>
-                        <div className="px-4 py-3 border-b border-stone-100">
-                          <p className="text-[11px] text-stone-400">
+                        <div className="px-4 py-3.5 border-b border-stone-100 bg-stone-50/70">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400">
                             Signed in as
                           </p>
                           <p className="font-medium truncate">
@@ -440,7 +438,7 @@ export default function Header() {
 
                         <Link
                           href="/account"
-                          className="block px-4 py-2.5 hover:bg-stone-50 transition"
+                          className="block px-4 py-2.5 text-stone-700 hover:bg-stone-50 hover:text-black transition"
                         >
                           Profile
                         </Link>
@@ -457,21 +455,12 @@ export default function Header() {
                           Wishlist
                         </Link>
 
-                        {(user.role === "admin" || user.is_staff) && (
-                          <Link
-                            href="/admin"
-                            className="block px-4 py-2.5 hover:bg-stone-50 transition font-medium"
-                          >
-                            Admin dashboard
-                          </Link>
-                        )}
-
                         <button
                           onClick={() => {
                             auth.logout();
                             router.push("/");
                           }}
-                          className="block w-full text-left px-4 py-2.5 text-stone-400 hover:text-black hover:bg-stone-50 transition border-t border-stone-100"
+                          className="block w-full text-left px-4 py-3 text-stone-500 hover:text-black hover:bg-stone-50 transition border-t border-stone-100"
                         >
                           Sign Out
                         </button>
