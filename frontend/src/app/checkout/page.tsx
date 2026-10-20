@@ -145,7 +145,9 @@ export default function CheckoutPage() {
       };
       if (mode === "guest") payload.guest_email = email;
       const order = await api.checkout(payload);
-      await refreshCart();
+      // The order is already committed on the server; a failed cart refresh
+      // must not make the shopper think checkout failed and submit twice.
+      try { await refreshCart(); } catch {}
       router.push(`/orders/${order.order_number}`);
     } catch (e: any) {
       setError(apiErrorMessage(e, "Could not place order."));
