@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -29,6 +30,8 @@ import { useToast } from '@/admin-ui/components/feedback';
 import type { Driver, Delivery } from '@/lib/admin-types';
 import type { Column } from '@/admin-ui/components/data-table';
 
+const AdminDispatchMap = dynamic(() => import('@/components/AdminDispatchMap'), { ssr: false });
+
 // ----------------------------------------------------------------------
 
 export function DispatchView() {
@@ -47,6 +50,14 @@ export function DispatchView() {
 
   const deliveries = useAsync(() => adminApi.delivery.deliveries(), []);
   const drivers = useAsync(() => adminApi.delivery.drivers(), []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      deliveries.reload();
+      drivers.reload();
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [deliveries.reload, drivers.reload]);
 
   const all = deliveries.data ?? [];
   const statuses = useMemo(() => Array.from(new Set(all.map((d) => d.status))), [all]);
@@ -113,6 +124,9 @@ export function DispatchView() {
         )}
         {tab === 'deliveries' ? (
           <>
+            <Box sx={{ height: { xs: 280, md: 380 }, m: 2, mb: 0, overflow: 'hidden', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+              <AdminDispatchMap drivers={drivers.data ?? []} deliveries={all} />
+            </Box>
             <TableToolbar search="" onSearch={() => {}} left={<Typography variant="subtitle2" color="text.secondary">{shown.length} deliveries</Typography>}>
               <TextField select size="small" label="Status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} sx={{ minWidth: 180 }}>
                 <MenuItem value="">All statuses</MenuItem>{statuses.map((s) => <MenuItem key={s} value={s}>{titleCase(s)}</MenuItem>)}
