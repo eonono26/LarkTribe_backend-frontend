@@ -1,4 +1,4 @@
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from .models import Order
 
@@ -24,3 +24,26 @@ def notify_on_status_change(sender, instance, **kwargs):
         channel=Notification.Channel.IN_APP,
         link=f"/orders/{instance.order_number}",
     )
+
+
+@receiver(post_save, sender=Order)
+def create_delivery_for_new_order(sender, instance, created, **kwargs):
+    """Every newly placed order enters dispatch immediately with a trackable timeline."""
+    if not created:
+        return
+    from delivery.models import Delivery
+    delivery, was_created = Delivery.objects.get_or_create(
+        order=instance,
+        defaults={
+            "dropoff_label": ", ".join(
+                part for part in (instance.shipping_address, instance.shipping_city) if part
+            ),
+            "dropoff_lat": instance.shipping_lat,
+            "dropoff_lng": instance.shipping_lng,
+        },
+    )
+    if was_created:
+        delivery.log(
+            Delivery.Status.UNASSIGNED,
+            note="Order received; waiting for dispatch assignment.",
+        )
