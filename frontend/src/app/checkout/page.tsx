@@ -16,7 +16,7 @@ const MEMBER_DISCOUNT_PERCENT = 5;
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, refreshCart } = useCart();
+  const { cart, isLoading: cartLoading, refreshCart } = useCart();
   const { formatPrice } = useLocalization();
 
   const [step, setStep] = useState<"auth" | "delivery">("auth");
@@ -56,6 +56,10 @@ export default function CheckoutPage() {
       api.addresses().then(r => setSavedAddresses(r.results || [])).catch(() => {});
     }
   }, []);
+
+  if (cartLoading) {
+    return <main className="bg-white min-h-[60vh] flex items-center justify-center"><p className="text-sm text-stone-400">Loading your bag…</p></main>;
+  }
 
   if (!cart || cart.items.length === 0) {
     return (
