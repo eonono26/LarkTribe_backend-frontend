@@ -38,6 +38,12 @@ export function DispatchView() {
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState(20);
   const [assigning, setAssigning] = useState<Delivery | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [driverForm, setDriverForm] = useState({
+    first_name: '', last_name: '', username: '', account_email: '', password: '',
+    phone: '', vehicle_type: 'bike', vehicle_plate: '',
+  });
 
   const deliveries = useAsync(() => adminApi.delivery.deliveries(), []);
   const drivers = useAsync(() => adminApi.delivery.drivers(), []);
@@ -71,6 +77,21 @@ export function DispatchView() {
     { id: 's', label: 'Account', render: (d) => <Label color={d.is_active ? 'success' : 'error'}>{d.is_active ? 'Active' : 'Disabled'}</Label> },
   ];
 
+  const createDriver = async () => {
+    setCreating(true);
+    try {
+      await adminApi.delivery.createDriver(driverForm);
+      toast.success('Driver account created. Share the login details securely with the driver.');
+      setCreateOpen(false);
+      setDriverForm({ first_name: '', last_name: '', username: '', account_email: '', password: '', phone: '', vehicle_type: 'bike', vehicle_plate: '' });
+      drivers.reload();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const assign = async (driverId: number) => {
     if (!assigning) return;
     try { await adminApi.delivery.assign(assigning.id, driverId); toast.success('Driver assigned.'); setAssigning(null); deliveries.reload(); drivers.reload(); }
@@ -85,6 +106,11 @@ export function DispatchView() {
           <Tab value="deliveries" label="Deliveries" iconPosition="end" icon={<Label color={unassigned ? 'warning' : 'default'}>{unassigned} unassigned</Label>} />
           <Tab value="drivers" label="Drivers" iconPosition="end" icon={<Label>{drivers.data?.length ?? 0}</Label>} />
         </Tabs>
+        {tab === 'drivers' && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
+            <Button variant="contained" color="inherit" onClick={() => setCreateOpen(true)}>Add delivery driver</Button>
+          </Box>
+        )}
         {tab === 'deliveries' ? (
           <>
             <TableToolbar search="" onSearch={() => {}} left={<Typography variant="subtitle2" color="text.secondary">{shown.length} deliveries</Typography>}>
@@ -100,6 +126,31 @@ export function DispatchView() {
             page={0} rowsPerPage={100} onPageChange={() => {}} onRowsPerPageChange={() => {}} emptyText="No drivers registered yet. Drivers sign up with the driver role and create a profile in the driver app." />
         )}
       </Card>
+
+      <Dialog open={createOpen} onClose={() => !creating && setCreateOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create delivery driver</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2, mt: 1 }}>This creates a driver login and an approved driver profile. Give the password to the driver securely.</Alert>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, pt: 1 }}>
+            <TextField label="First name" value={driverForm.first_name} onChange={(e) => setDriverForm({ ...driverForm, first_name: e.target.value })} required />
+            <TextField label="Last name" value={driverForm.last_name} onChange={(e) => setDriverForm({ ...driverForm, last_name: e.target.value })} required />
+            <TextField label="Username" value={driverForm.username} onChange={(e) => setDriverForm({ ...driverForm, username: e.target.value })} required />
+            <TextField label="Email" type="email" value={driverForm.account_email} onChange={(e) => setDriverForm({ ...driverForm, account_email: e.target.value })} />
+            <TextField label="Temporary password (8+ characters)" type="password" value={driverForm.password} onChange={(e) => setDriverForm({ ...driverForm, password: e.target.value })} required />
+            <TextField label="Phone number" value={driverForm.phone} onChange={(e) => setDriverForm({ ...driverForm, phone: e.target.value })} required />
+            <TextField select label="Vehicle" value={driverForm.vehicle_type} onChange={(e) => setDriverForm({ ...driverForm, vehicle_type: e.target.value })}>
+              <MenuItem value="bicycle">Bicycle</MenuItem><MenuItem value="bike">Motorbike</MenuItem><MenuItem value="car">Car</MenuItem><MenuItem value="van">Van</MenuItem>
+            </TextField>
+            <TextField label="Vehicle plate (optional)" value={driverForm.vehicle_plate} onChange={(e) => setDriverForm({ ...driverForm, vehicle_plate: e.target.value })} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setCreateOpen(false)} disabled={creating}>Cancel</Button>
+          <Button variant="contained" color="inherit" onClick={createDriver} disabled={creating || !driverForm.first_name.trim() || !driverForm.username.trim() || driverForm.password.length < 8 || !driverForm.phone.trim()}>
+            {creating ? 'Creating…' : 'Create driver'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={!!assigning} onClose={() => setAssigning(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Assign driver · {assigning?.order_number}</DialogTitle>
