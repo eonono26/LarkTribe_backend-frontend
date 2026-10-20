@@ -273,13 +273,12 @@ export default function Header() {
       >
         {/* Announcement Bar */}
         {showAnnouncement && (
-          <div className="relative bg-black text-white text-center py-2 px-10">
-            <p className="text-[11px] sm:text-xs tracking-[0.08em] uppercase">
-              Free delivery on orders over KES 5,000 &nbsp;·&nbsp; Get 5% off
-              your first order when you{" "}
+          <div className="relative bg-[#F6C7A8] text-stone-900 text-center py-1.5 px-10">
+            <p className="text-[10px] sm:text-[11px] tracking-[0.04em]">
+              Free delivery on orders over KES 5,000 <span className="mx-1.5">·</span> Get 5% off your first order when you{" "}
               <Link
                 href="/register"
-                className="underline underline-offset-2 hover:text-stone-300 transition"
+                className="font-semibold underline underline-offset-2 hover:text-stone-600 transition"
               >
                 sign up
               </Link>
@@ -288,7 +287,7 @@ export default function Header() {
             <button
               aria-label="Dismiss announcement"
               onClick={dismissAnnouncement}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/70 hover:text-white transition"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-700/70 hover:text-stone-900 transition"
             >
               <X className="w-3.5 h-3.5" strokeWidth={2} />
             </button>
@@ -503,25 +502,31 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* Wishlist — original indicator retained */}
+              {/* Wishlist count badge */}
               <Link
                 href="/account/wishlist"
+                aria-label={wishlistCount > 0 ? `Wishlist, ${wishlistCount} saved items` : "Wishlist"}
                 className="p-2 relative hover:text-black transition"
               >
                 <Heart className="w-5 h-5" strokeWidth={1.4} />
                 {wishlistCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FFE400] text-stone-900 text-[10px] font-bold leading-[17px] text-center ring-1 ring-white">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
                 )}
               </Link>
 
-              {/* Cart — original indicator retained */}
+              {/* Cart count badge */}
               <button
                 onClick={openDrawer}
+                aria-label={itemCount > 0 ? `Shopping bag, ${itemCount} items` : "Shopping bag"}
                 className="p-2 relative hover:text-black transition"
               >
                 <ShoppingBag className="w-5 h-5" strokeWidth={1.4} />
                 {itemCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FFE400] text-stone-900 text-[10px] font-bold leading-[17px] text-center ring-1 ring-white">
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
                 )}
               </button>
             </div>
