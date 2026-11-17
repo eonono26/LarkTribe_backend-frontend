@@ -46,7 +46,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="bg-white text-black font-sans min-h-[70vh] pt-20 flex items-center justify-center px-4 py-16">
+    <main className="bg-white text-black font-sans min-h-[70vh] flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <h1 className="font-editorial text-3xl mb-1">Create Account</h1>
 

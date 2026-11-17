@@ -1,0 +1,14 @@
+/* Fonts + third-party plugin styles for the admin panel.
+   Nothing here targets bare elements, so it is safe to stay loaded on storefront pages.
+   The element-level baseline lives in theme/theme-provider.tsx (GlobalStyles) and only
+   exists while an /admin page is mounted. */
+@import '@fontsource-variable/dm-sans';
+
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
+@import '@fontsource/barlow/800.css';
+
+@import './components/scrollbar/styles.css';
+@import './components/chart/styles.css';

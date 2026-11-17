@@ -134,7 +134,7 @@ export default function AccountProfilePage() {
   }
 
   return (
-    <main className="bg-stone-50 text-espresso pt-20 font-sans min-h-screen">
+    <main className="bg-stone-50 text-espresso font-sans min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
       <span className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Lark Tribe</span>
       <h1 className="font-editorial text-3xl sm:text-4xl text-espresso mb-1">

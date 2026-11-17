@@ -63,7 +63,7 @@ export default async function BrandsPage() {
               
               {/* Brand Info */}
               <div className="p-4 text-center border-t border-[var(--color-line)]">
-                <p className="font-display font-bold truncate text-sm group-hover:text-[var(--color-accent)] transition-colors">
+                <p className="font-display font-bold break-words sm:truncate text-sm group-hover:text-[var(--color-accent)] transition-colors">
                   {b.name}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">

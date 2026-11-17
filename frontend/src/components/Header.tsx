@@ -46,6 +46,8 @@ const GENDER_QUICK = (stage: string) => [
 
 // Session-scoped key: dismissal lasts for the tab session, then the bar
 // comes back. This avoids a single accidental dismissal hiding it forever.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "/download";
+
 const ANNOUNCEMENT_KEY = "announcementDismissed_session_v1";
 
 export default function Header() {
@@ -69,6 +71,19 @@ export default function Header() {
   const [showAnnouncement, setShowAnnouncement] = useState(false);
 
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Publish the pinned header's height as a CSS variable (used by sticky bars that sit under it).
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const publish = () =>
+      document.documentElement.style.setProperty("--header-h", `${el.offsetHeight}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // After mount, check sessionStorage for dismissal and set visibility.
   useEffect(() => {
@@ -286,30 +301,53 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200">
-        {/* Announcement Bar — gated on `mounted` to avoid hydration mismatch */}
-        {mounted && showAnnouncement && (
-          <div className="relative bg-[#F6C7A8] text-stone-900 text-center py-1.5 px-10">
-            <p className="text-[10px] sm:text-[11px] tracking-[0.04em]">
-              Free delivery on orders over KES 5,000 <span className="mx-1.5">·</span> Get 5% off your first order when you{" "}
-              <Link
-                href="/register"
-                className="font-semibold underline underline-offset-2 hover:text-stone-600 transition"
+      {/* App banner (Zara-style). Lives in normal flow ABOVE the pinned header, so it scrolls
+          away with the page like Zara's and the header alone stays on screen.
+          Gated on `mounted` to avoid a hydration mismatch. */}
+      {mounted && showAnnouncement && (
+        <div className="relative z-40 bg-white">
+          <div className="border-b border-stone-300">
+            <div className="max-w-[1600px] mx-auto flex items-center gap-3 px-3 py-2 sm:px-5">
+              <button
+                aria-label="Dismiss announcement"
+                onClick={dismissAnnouncement}
+                className="shrink-0 p-1.5 -ml-1 text-stone-900 hover:text-stone-500 transition"
               >
-                sign up
+                <X className="w-5 h-5" strokeWidth={1.5} />
+              </button>
+
+              <div className="shrink-0 flex h-11 w-11 items-center justify-center rounded-[6px] border border-stone-200 bg-white p-1">
+                <img src="/Asset_2_1.svg" alt="Larktribe" className="w-full h-auto object-contain" />
+              </div>
+
+              <div className="min-w-0 flex-1 text-[12px] sm:text-[13px] leading-snug text-stone-900">
+                <p className="font-medium">A better experience.</p>
+                <p className="text-stone-600">Discover it in the app.</p>
+              </div>
+
+              <Link
+                href={APP_URL}
+                className="shrink-0 bg-black px-4 py-2.5 sm:px-6 text-[11px] sm:text-xs uppercase tracking-wide text-white hover:bg-stone-800 transition"
+              >
+                Open app
               </Link>
-            </p>
-
-            <button
-              aria-label="Dismiss announcement"
-              onClick={dismissAnnouncement}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-700/70 hover:text-stone-900 transition"
-            >
-              <X className="w-3.5 h-3.5" strokeWidth={2} />
-            </button>
+            </div>
           </div>
-        )}
 
+          {/* Our promo copy, unchanged, under the app banner */}
+          <p className="bg-[#F6C7A8] text-stone-900 text-center text-[11px] leading-snug tracking-[0.02em] px-4 py-1.5">
+            Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
+            <Link
+              href="/register"
+              className="font-semibold underline underline-offset-2 hover:text-stone-600 transition"
+            >
+              sign up
+            </Link>
+          </p>
+        </div>
+      )}
+
+      <header ref={headerRef} className="sticky top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200">
         <div className="container-shellheader">
           <div className="relative flex items-center h-16 lg:h-20">
             {/* Mobile hamburger */}
@@ -378,10 +416,10 @@ export default function Header() {
             </nav>
 
             {/* Centered logo */}
-            <div className="absolute left-12 top-1/2 -translate-y-1/2 lg:left-1/2 lg:-translate-x-1/2">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <Link
                 href="/"
-                className="flex flex-col items-start lg:items-center"
+                className="flex flex-col items-center"
               >
                 <img
                   src="/Asset_2_1.svg"

@@ -27,7 +27,7 @@ export default function CategoryCard({ category, accent }: { category: Category;
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
-          <p className="text-sm font-semibold text-black drop-shadow-md truncate">{category.name}</p>
+          <p className="text-sm font-semibold text-black drop-shadow-md leading-tight break-words sm:truncate">{category.name}</p>
           {/* <p className="text-xs text-white/80 drop-shadow-md">{category.product_count} products</p> */}
         </div> 
       </div>

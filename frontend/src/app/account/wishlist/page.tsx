@@ -49,7 +49,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <main className="bg-stone-50 text-espresso pt-20 font-sans min-h-screen">
+    <main className="bg-stone-50 text-espresso font-sans min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>

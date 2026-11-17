@@ -706,7 +706,8 @@ export default function AgeGroupNav({
                         ${subtitleSizeClass}
                         text-black/60
                         font-medium
-                        truncate
+                        break-words
+                        sm:truncate
                         max-w-full
                       `}
                     >

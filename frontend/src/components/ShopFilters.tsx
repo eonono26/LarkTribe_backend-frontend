@@ -52,7 +52,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-full text-[13px] border transition ${
+      className={`px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap shrink-0 border transition ${
         active ? "bg-black text-white border-black" : "bg-white text-stone-700 border-stone-200 hover:border-black"
       }`}
     >
@@ -124,7 +124,7 @@ export default function ShopFilters({ categories, brands, ageGroups = [], showGe
   return (
     <>
       {/* ---------- sticky bar ---------- */}
-      <div className="sticky top-16 lg:top-20 z-30 bg-white/95 backdrop-blur border-b border-stone-200">
+      <div className="sticky top-[var(--header-h,4rem)] z-30 bg-white/95 backdrop-blur border-b border-stone-200">
         <div className="container-shell">
           <div className="flex items-center gap-3 py-3">
             <button

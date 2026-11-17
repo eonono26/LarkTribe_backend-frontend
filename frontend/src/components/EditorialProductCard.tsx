@@ -192,7 +192,7 @@ export default function EditorialProductCard({
           {isInStock && (
             <div
               className={`absolute inset-x-0 bottom-0 flex justify-center transition-opacity duration-200 ${
-                isHovering ? "opacity-100" : "opacity-0 pointer-events-none"
+                isHovering ? "opacity-100" : "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none"
               }`}
             >
               <button
@@ -208,7 +208,7 @@ export default function EditorialProductCard({
         </div>
 
         <div className="pt-3 flex flex-col gap-0.5">
-          <h3 className="text-xs uppercase tracking-wide text-espresso line-clamp-1">{product.name}</h3>
+          <h3 className="text-xs uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{product.name}</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-sm text-espresso">{formatPrice(numericPrice)}</span>
             {comparePrice !== null && comparePrice > numericPrice && (

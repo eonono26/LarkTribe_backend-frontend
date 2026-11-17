@@ -119,7 +119,7 @@ export default function DepartmentCard({ department, color, label }: DepartmentC
 
             {/* Department label */}
             <div className="absolute bottom-0 left-0 right-0 p-2.5 sm:p-4">
-              <span className="block font-display text-sm sm:text-lg font-bold text-white drop-shadow-lg tracking-tight truncate">
+              <span className="block font-display text-sm sm:text-lg font-bold text-white drop-shadow-lg tracking-tight leading-tight break-words sm:truncate">
                 {label || department.name}
               </span>
               {typeof department.product_count === 'number' && department.product_count > 0 && (

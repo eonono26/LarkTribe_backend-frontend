@@ -19,7 +19,7 @@ export default function PlpProductCard({ product }: { product: ProductListItem }
           <span className="absolute top-2 left-2 bg-black text-white text-[9px] uppercase tracking-wider px-1.5 py-0.5">Sale</span>
         ) : null}
       </div>
-      <h3 className="text-[13px] font-medium text-stone-800 leading-tight line-clamp-1 group-hover:text-black transition">{product.name}</h3>
+      <h3 className="text-[13px] font-medium text-stone-800 leading-tight line-clamp-2 sm:line-clamp-1 group-hover:text-black transition">{product.name}</h3>
       <p className="text-[13px] text-stone-500 mt-0.5">
         {product.compare_at_price ? (
           <>

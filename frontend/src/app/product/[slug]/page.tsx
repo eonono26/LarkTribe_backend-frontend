@@ -99,7 +99,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   }
 
   return (
-    <main className="bg-white text-black pt-20 font-sans">
+    <main className="bg-white text-black font-sans">
       <div className="container-shell pt-2 pb-16">
         {/* Breadcrumb — minimal */}
         <div className="mb-6 container-shellheader">
@@ -289,7 +289,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       {/* Sticky mobile bottom bar */}
       <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-stone-200 px-5 py-3 z-40 flex items-center justify-between">
         <div>
-          <p className="text-[10px] uppercase text-stone-500 truncate max-w-[140px]">{product.name}</p>
+          <p className="text-[10px] uppercase text-stone-500 line-clamp-2 sm:truncate max-w-[140px]">{product.name}</p>
           <p className="text-lg font-medium">{new Intl.NumberFormat().format(numericPrice)}</p>
         </div>
         <AddToCartButton

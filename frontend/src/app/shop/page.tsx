@@ -78,7 +78,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const activeFilterCount = ["gender", "age_group", "price_range", "size", "category", "brand", "on_sale"].filter((k) => params[k]).length;
 
   return (
-    <main className="bg-white container-shell text-black pt-20 font-sans min-h-screen">
+    <main className="bg-white container-shell text-black font-sans min-h-screen">
       {/* Slim department band — image only for adult depts */}
       {/* {isAdultDept && (
         <div className="relative h-40 lg:h-56 overflow-hidden">

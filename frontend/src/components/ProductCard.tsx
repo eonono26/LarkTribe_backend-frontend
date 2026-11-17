@@ -293,7 +293,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           {isInStock && (
             <div
               className={`absolute inset-x-0 bottom-0 flex items-center justify-center pb-0 bg-white/0 transition-opacity duration-200 ${
-                isHovering ? "opacity-100" : "opacity-0 pointer-events-none"
+                isHovering ? "opacity-100" : "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none"
               }`}
             >
               <button
@@ -341,7 +341,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               <span className="text-md text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
             )}
           </div>
-          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-1 mb-2">{name}</h3>
+          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1 mb-2">{name}</h3>
         </div>
       </Link>
 

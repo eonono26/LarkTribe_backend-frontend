@@ -372,7 +372,7 @@ export default async function Home() {
       : FALLBACK_HERO;
 
   return (
-    <main className="bg-white container-shell pt-16 font-sans text-black lg:pt-20">
+    <main className="bg-white container-shell font-sans text-black">
 
       {/* HERO CAROUSEL */}
       <HeroCarousel
