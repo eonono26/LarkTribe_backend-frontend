@@ -2,6 +2,14 @@ import type { Cart, Category, Department, Paginated, ProductDetail, ProductListI
 import { getToken } from "./auth";
 import axios from "axios";
 
+export type PaymentSnapshot = {
+  order_status: string;
+  payment_status: "none" | "pending" | "paid" | "failed" | "cancelled" | "expired" | "review";
+  message: string;
+  receipt: string;
+  attempts: number;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -225,7 +233,11 @@ export const api = {
   // ==============================================================
 
   checkout: (payload: Record<string, unknown>) =>
-    request<{ order_number: string; total: string; shipping_fee: string }>("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
+    request<{ order_number: string; total: string; shipping_fee: string; status: string; payment?: { status: "pending" | "error"; message: string; phone?: string } }>("/orders/checkout/", { method: "POST", body: JSON.stringify(payload) }),
+  paymentStatus: (orderNumber: string) =>
+    request<PaymentSnapshot>(`/orders/${orderNumber}/payment-status/`),
+  payWithMpesa: (orderNumber: string, phone: string) =>
+    request<PaymentSnapshot>(`/orders/${orderNumber}/pay/mpesa/`, { method: "POST", body: JSON.stringify({ phone }) }),
   myOrders: () => request<Paginated<unknown> | unknown[]>("/orders/mine/"),
   orderDetail: (orderNumber: string) => request(`/orders/${orderNumber}/`),
 

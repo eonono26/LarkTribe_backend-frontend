@@ -1,10 +1,16 @@
 import uuid
-from decimal import Decimal
+import logging
+from decimal import Decimal, ROUND_HALF_UP
+from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions, views, status
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
-from .models import Order, OrderItem, Coupon
+from rest_framework.exceptions import ValidationError, NotFound
+from . import mpesa
+from .models import Order, OrderItem, Coupon, MpesaTransaction
 from .serializers import OrderSerializer, CheckoutSerializer
 from cart.views import get_or_create_cart
 from catalog.models import Product, ProductVariant
@@ -12,6 +18,14 @@ from catalog.models import Product, ProductVariant
 # Standing incentive to check out signed in rather than as a guest — shown on the
 # storefront's Member Login tab and applied here whenever request.user is authenticated.
 MEMBER_DISCOUNT_PERCENT = Decimal("5")
+
+logger = logging.getLogger(__name__)
+MAX_MPESA_ATTEMPTS_PER_ORDER = 5
+
+
+def _whole(value) -> Decimal:
+    """Round to whole shillings so what the shopper sees is exactly what M-Pesa charges."""
+    return Decimal(value).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
 class CheckoutView(views.APIView):
@@ -28,8 +42,18 @@ class CheckoutView(views.APIView):
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        if data["payment_method"] != Order.PaymentMethod.COD:
-            raise ValidationError("Online payment is not configured yet. Please choose Cash on Delivery to place this order.")
+        method = data["payment_method"]
+        if method == Order.PaymentMethod.CARD:
+            raise ValidationError("Card payments are not available yet. Please pay with M-Pesa or Cash on Delivery.")
+
+        mpesa_phone = ""
+        if method == Order.PaymentMethod.MPESA:
+            if not mpesa.is_configured():
+                raise ValidationError("M-Pesa is temporarily unavailable. Please choose Cash on Delivery.")
+            try:
+                mpesa_phone = mpesa.normalize_phone(data.get("mpesa_phone") or data["shipping_phone"])
+            except mpesa.MpesaError as exc:
+                raise ValidationError(str(exc))
 
         cart = get_or_create_cart(request)
         if not cart.items.exists():
@@ -59,12 +83,12 @@ class CheckoutView(views.APIView):
         if coupon_code:
             try:
                 coupon = Coupon.objects.get(code=coupon_code, active=True)
-                coupon_discount = coupon.amount_off or (subtotal * coupon.percent_off / 100)
+                coupon_discount = _whole(coupon.amount_off or (subtotal * coupon.percent_off / 100))
             except Coupon.DoesNotExist:
                 raise ValidationError("Invalid coupon code.")
 
         member_discount = (
-            (subtotal * MEMBER_DISCOUNT_PERCENT / 100) if request.user.is_authenticated else Decimal("0")
+            _whole(subtotal * MEMBER_DISCOUNT_PERCENT / 100) if request.user.is_authenticated else Decimal("0")
         )
         # Store coupon and member discounts separately; the order detail page
         # renders both rows, so combining them here would display the member
@@ -147,7 +171,131 @@ class CheckoutView(views.APIView):
                 link=f"/orders/{order.order_number}",
             )
 
-        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        body = OrderSerializer(order).data
+        if method == Order.PaymentMethod.MPESA:
+            # The order is already saved (pending_payment). If the PIN prompt can't be
+            # sent we keep it so the shopper can retry from the order page without
+            # losing their bag.
+            body["payment"] = _start_mpesa_payment(order, mpesa_phone)
+        return Response(body, status=status.HTTP_201_CREATED)
+
+
+def _start_mpesa_payment(order, phone):
+    try:
+        tx = mpesa.initiate_stk_push(order, phone)
+        return {"status": "pending", "phone": tx.phone, "message": "Check your phone and enter your M-Pesa PIN."}
+    except mpesa.MpesaError as exc:
+        return {"status": "error", "message": str(exc)}
+
+
+class MpesaCallbackView(views.APIView):
+    """Safaricom posts the STK Push result here. Public by necessity, so the URL
+    carries a secret token and the CheckoutRequestID must match a pending attempt."""
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, token):
+        if token != settings.MPESA_CALLBACK_TOKEN:
+            raise NotFound()
+        try:
+            cb = request.data["Body"]["stkCallback"]
+            checkout_id = cb["CheckoutRequestID"]
+            code = int(cb["ResultCode"])
+        except (KeyError, TypeError, ValueError):
+            logger.warning("Malformed M-Pesa callback: %s", request.data)
+            return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+        meta = {}
+        for item in (cb.get("CallbackMetadata") or {}).get("Item", []):
+            meta[item.get("Name")] = item.get("Value")
+
+        mpesa.apply_stk_result(
+            checkout_id, code, cb.get("ResultDesc", ""),
+            receipt=str(meta.get("MpesaReceiptNumber", "") or ""),
+            amount=meta.get("Amount"),
+            raw=request.data,
+            source="callback",
+        )
+        # Always acknowledge, otherwise Safaricom keeps retrying.
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+
+def _payment_snapshot(order):
+    tx = order.mpesa_transactions.first()
+    if order.status != Order.Status.PENDING_PAYMENT and order.mpesa_receipt:
+        state, message = "paid", "Payment received. Thank you!"
+    elif order.status == Order.Status.CANCELLED:
+        state, message = "expired", "This order was cancelled because payment was not completed."
+    elif tx is None:
+        state, message = "none", "No payment started yet."
+    elif tx.status == MpesaTransaction.Status.PENDING:
+        state, message = "pending", "Waiting for you to enter your M-Pesa PIN…"
+    elif tx.status == MpesaTransaction.Status.SUCCESS:
+        state, message = "paid", "Payment received. Thank you!"
+    elif tx.status == MpesaTransaction.Status.REVIEW:
+        state, message = "review", "We received your payment and are confirming it. We'll update this order shortly."
+    else:
+        state = tx.status  # failed | cancelled
+        message = mpesa.friendly_failure(tx.result_code, tx.result_desc)
+    return {
+        "order_status": order.status,
+        "payment_status": state,
+        "message": message,
+        "receipt": order.mpesa_receipt,
+        "attempts": order.mpesa_transactions.count(),
+    }
+
+
+class PaymentStatusView(views.APIView):
+    """Polled by the order page while the shopper is on the PIN prompt."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number)
+        tx = order.mpesa_transactions.first()
+        if tx and tx.status == MpesaTransaction.Status.PENDING:
+            # Fallback for when the callback can't reach us (local dev, outage):
+            # ask Daraja directly, at most once every 6 seconds per attempt.
+            key = f"mpesa-q-{tx.pk}"
+            if cache.add(key, 1, timeout=6) and (timezone.now() - tx.created_at).total_seconds() > 8:
+                try:
+                    mpesa.query_stk_status(tx)
+                except mpesa.MpesaError:
+                    pass
+                order.refresh_from_db()
+        return Response(_payment_snapshot(order))
+
+
+class PayWithMpesaView(views.APIView):
+    """(Re)send the PIN prompt for an unpaid M-Pesa order."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number)
+        if order.status != Order.Status.PENDING_PAYMENT or order.payment_method != Order.PaymentMethod.MPESA:
+            raise ValidationError("This order isn't waiting for an M-Pesa payment.")
+        if order.mpesa_transactions.count() >= MAX_MPESA_ATTEMPTS_PER_ORDER:
+            raise ValidationError("Too many payment attempts. Please contact support or place a new order.")
+
+        last = order.mpesa_transactions.first()
+        if last and last.status == MpesaTransaction.Status.PENDING:
+            try:
+                mpesa.query_stk_status(last)
+            except mpesa.MpesaError:
+                pass
+            order.refresh_from_db()
+            last.refresh_from_db()
+            if order.status != Order.Status.PENDING_PAYMENT:
+                return Response(_payment_snapshot(order))
+            if last.status == MpesaTransaction.Status.PENDING and (timezone.now() - last.created_at).total_seconds() < 90:
+                raise ValidationError("A prompt was just sent. Enter your PIN on your phone, or wait a minute to try again.")
+
+        try:
+            phone = mpesa.normalize_phone(request.data.get("phone") or order.shipping_phone)
+            mpesa.initiate_stk_push(order, phone)
+        except mpesa.MpesaError as exc:
+            raise ValidationError(str(exc))
+        return Response(_payment_snapshot(order))
 
 
 class MyOrdersView(generics.ListAPIView):

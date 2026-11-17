@@ -133,7 +133,12 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                 <p className="text-stone-600 text-sm">No products match these filters.</p>
               </div>
             ) : (
-              <ShopProductGrid initialProducts={products} totalCount={totalCount} productParams={productParams} />
+              <ShopProductGrid
+                key={JSON.stringify(productParams)}
+                initialProducts={products}
+                totalCount={totalCount}
+                productParams={productParams}
+              />
             )}
           </div>
         </div>

@@ -17,3 +17,6 @@ PyJWT>=2.8
 # Recommended for production search (SmartSearchView falls back to the ORM +
 # difflib typo-correction without these):
 # elasticsearch-dsl or opensearch-py
+
+# M-Pesa Daraja API calls
+requests>=2.31

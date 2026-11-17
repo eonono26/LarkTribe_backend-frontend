@@ -37,7 +37,7 @@ export default function ColorSwatch({
       style={{ background: swatchBackground(color), width: size, height: size }}
       className={`relative shrink-0 overflow-hidden border transition ${
         shape === "round" ? "rounded-full" : "rounded-[2px]"
-      } ${pale ? "border-stone-400" : "border-stone-300"} ${
+      } ${pale ? "border-stone-100" : "border-stone-100"} ${
         selected
           ? "ring-2 ring-offset-2 ring-espresso"
           : "hover:ring-1 hover:ring-offset-1 hover:ring-stone-400"

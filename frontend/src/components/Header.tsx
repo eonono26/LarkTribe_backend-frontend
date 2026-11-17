@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -45,6 +44,10 @@ const GENDER_QUICK = (stage: string) => [
   { label: "Unisex", href: `/shop?stage=${stage}&gender=unisex` },
 ];
 
+// Session-scoped key: dismissal lasts for the tab session, then the bar
+// comes back. This avoids a single accidental dismissal hiding it forever.
+const ANNOUNCEMENT_KEY = "announcementDismissed_session_v1";
+
 export default function Header() {
   const router = useRouter();
   const { itemCount, openDrawer } = useCart();
@@ -60,15 +63,28 @@ export default function Header() {
   const [menus, setMenus] = useState<Record<string, MenuData>>({});
   const [closedMenu, setClosedMenu] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+
+  // Hydration-safe flags: stay false during SSR + first client render.
+  const [mounted, setMounted] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(false);
 
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
+  // After mount, check sessionStorage for dismissal and set visibility.
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      localStorage.getItem("announcementDismissedV2") !== "1"
-    ) {
+    setMounted(true);
+
+    if (typeof window === "undefined") return;
+
+    try {
+      // Clean up any stale localStorage key from earlier versions so it
+      // can't keep the bar hidden.
+      localStorage.removeItem("announcementDismissedV2");
+
+      const dismissed = sessionStorage.getItem(ANNOUNCEMENT_KEY);
+      setShowAnnouncement(dismissed !== "1");
+    } catch {
+      // Storage unavailable → default to showing the bar.
       setShowAnnouncement(true);
     }
   }, []);
@@ -260,17 +276,19 @@ export default function Header() {
     setShowAnnouncement(false);
 
     if (typeof window !== "undefined") {
-      localStorage.setItem("announcementDismissedV2", "1");
+      try {
+        sessionStorage.setItem(ANNOUNCEMENT_KEY, "1");
+      } catch {
+        /* ignore storage errors */
+      }
     }
   }
 
   return (
     <>
-      <header
-        className="fixed top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200"
-      >
-        {/* Announcement Bar */}
-        {showAnnouncement && (
+      <header className="fixed top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200">
+        {/* Announcement Bar — gated on `mounted` to avoid hydration mismatch */}
+        {mounted && showAnnouncement && (
           <div className="relative bg-[#F6C7A8] text-stone-900 text-center py-1.5 px-10">
             <p className="text-[10px] sm:text-[11px] tracking-[0.04em]">
               Free delivery on orders over KES 5,000 <span className="mx-1.5">·</span> Get 5% off your first order when you{" "}
@@ -365,12 +383,11 @@ export default function Header() {
                 href="/"
                 className="flex flex-col items-start lg:items-center"
               >
-                <span  className="font-editorial text-italised [-webkit-text-stroke-width:3.5px] [-webkit-text-stroke-color:green] text-2xl lg:text-4xl tracking-[0.18em]">
-                  Larktribe
-                </span>
-                <span className="text-[10px] lg:text-[11px] tracking-[0.12em] text-stone-600">
-                  Curated Kids & Baby Fashion
-                </span>
+                <img
+                  src="/Asset_2_1.svg"
+                  alt="Larktribe — Curated Kids & Baby Fashion"
+                  className="h-4 lg:h-4 w-auto object-contain"
+                />
               </Link>
             </div>
 
@@ -490,28 +507,28 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* Wishlist count badge */}
+              {/* Wishlist count badge — gated on `mounted` */}
               <Link
                 href="/account/wishlist"
-                aria-label={wishlistCount > 0 ? `Wishlist, ${wishlistCount} saved items` : "Wishlist"}
+                aria-label={mounted && wishlistCount > 0 ? `Wishlist, ${wishlistCount} saved items` : "Wishlist"}
                 className="p-2 relative hover:text-black transition"
               >
                 <Heart className="w-5 h-5" strokeWidth={1.4} />
-                {wishlistCount > 0 && (
+                {mounted && wishlistCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FFE400] text-stone-900 text-[10px] font-bold leading-[17px] text-center ring-1 ring-white">
                     {wishlistCount > 99 ? "99+" : wishlistCount}
                   </span>
                 )}
               </Link>
 
-              {/* Cart count badge */}
+              {/* Cart count badge — gated on `mounted` */}
               <button
                 onClick={openDrawer}
-                aria-label={itemCount > 0 ? `Shopping bag, ${itemCount} items` : "Shopping bag"}
+                aria-label={mounted && itemCount > 0 ? `Shopping bag, ${itemCount} items` : "Shopping bag"}
                 className="p-2 relative hover:text-black transition"
               >
                 <ShoppingBag className="w-5 h-5" strokeWidth={1.4} />
-                {itemCount > 0 && (
+                {mounted && itemCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FFE400] text-stone-900 text-[10px] font-bold leading-[17px] text-center ring-1 ring-white">
                     {itemCount > 99 ? "99+" : itemCount}
                   </span>
@@ -591,7 +608,7 @@ export default function Header() {
                   </div>
                 )
               ) : (
-                <p className="text-xl text-stone-400">Type to search…</p>
+                <p className="text-2xl text-stone-400">Type to search…</p>
               )}
             </div>
           </div>
@@ -608,9 +625,11 @@ export default function Header() {
 
           <div className="absolute inset-y-0 left-0 w-[85vw] max-w-sm bg-white flex flex-col">
             <div className="flex items-center justify-between p-1 pl-5 border-stone-200">
-              <span className="font-editorial text-italised [-webkit-text-stroke-width:2.5px] [-webkit-text-stroke-color:green] text-xl pl-20 tracking-[0.15em]">
-                Larktribe
-              </span>
+              <img
+                src="/Asset_2_1.svg"
+                alt="Larktribe"
+                className="h-8 w-auto object-contain pl-20"
+              />
               <button onClick={() => setMobileOpen(false)}>
                 <X className="w-8 h-8" strokeWidth={2.5} />
               </button>

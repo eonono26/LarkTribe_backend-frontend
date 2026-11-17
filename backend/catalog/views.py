@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Avg, F, Value, Case, When, DecimalField
 from django.db.models.functions import Round
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from .models import Department, Category, Brand, Product, ProductImage, Review, Wishlist, DepartmentMedia, CategoryMedia, AgeGroup, AgeGroupMedia
 from .serializers import (
     DepartmentSerializer, CategorySerializer, BrandSerializer,
@@ -39,24 +40,31 @@ def home_data(request):
     Everything the editorial home needs in a single round-trip.
     """
     # Hero campaigns
+    # `is_live` is a Python property on Campaign, not a DB column, so it can't be
+    # used in a queryset filter — express the same rule (active, started, not
+    # ended) directly in the query.
+    now = timezone.now()
     campaigns = Campaign.objects.filter(
         placement='homepage_banner',
         active=True,
-        is_live=True
+        starts_at__lte=now,
+    ).filter(
+        Q(ends_at__isnull=True) | Q(ends_at__gte=now)
     ).select_related('department', 'coupon').order_by('-created_at')[:6]
 
     # Departments with primary image
-    departments = Department.objects.filter(is_active=True).prefetch_related('media')
+    departments = Department.objects.filter(is_active=True)
 
     # Age groups
     age_groups = AgeGroup.objects.filter(is_active=True).order_by('min_age_years')
 
     # Trending / new arrivals
     products = Product.objects.filter(
-        is_active=True,
-        status='published'
-    ).select_related('department', 'brand').prefetch_related(
-        'media', 'variants', 'age_groups'
+        status=Product.Status.ACTIVE
+    ).select_related(
+        'vendor', 'category', 'category__department', 'brand'
+    ).prefetch_related(
+        'images', 'variants', 'reviews', 'age_groups'
     ).order_by('-created_at')[:12]
 
     # Build quick category trees for mega-menu pre-fetch

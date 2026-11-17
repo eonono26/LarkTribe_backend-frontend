@@ -4,6 +4,18 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Minimal .env loader (no extra dependency): KEY=VALUE lines in backend/.env are
+# loaded into the environment unless the variable is already set. Keeps M-Pesa
+# keys out of the codebase and out of git.
+_env_file = BASE_DIR / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _k, _v = _line.split("=", 1)
+        os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 ALLOWED_HOSTS = ["*"]
@@ -124,10 +136,23 @@ APPLE_OAUTH_CLIENT_ID = os.environ.get("APPLE_OAUTH_CLIENT_ID", "")
 # search + difflib typo-correction when this is not configured).
 ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "")
 
-# M-Pesa Daraja settings (fill in for production)
+# M-Pesa Daraja (Lipa Na M-Pesa Online / STK Push) — Till (Buy Goods) setup.
+#   MPESA_SHORTCODE  : the Store/Head-Office number the Daraja app is registered
+#                      against; used to build the STK password with the passkey.
+#   MPESA_TILL_NUMBER: the Till number customers actually pay (PartyB). If your
+#                      shortcode IS the till, leave this empty.
+#   MPESA_CALLBACK_BASE_URL: public https URL of this backend (e.g. your domain or
+#                      an ngrok URL while testing). Safaricom posts results to
+#                      <base>/api/orders/mpesa/callback/<MPESA_CALLBACK_TOKEN>/
+MPESA_ENV = os.environ.get("MPESA_ENV", "sandbox")  # "sandbox" or "production"
+MPESA_BASE_URL = os.environ.get("MPESA_BASE_URL", "")  # leave empty; only for local mocks
 MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY", "")
 MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET", "")
 MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "")
+MPESA_TILL_NUMBER = os.environ.get("MPESA_TILL_NUMBER", "")
 MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY", "")
-MPESA_ENV = os.environ.get("MPESA_ENV", "sandbox")
-
+MPESA_TRANSACTION_TYPE = os.environ.get("MPESA_TRANSACTION_TYPE", "CustomerBuyGoodsOnline")
+MPESA_CALLBACK_BASE_URL = os.environ.get("MPESA_CALLBACK_BASE_URL", "")
+MPESA_CALLBACK_TOKEN = os.environ.get("MPESA_CALLBACK_TOKEN", "change-me-callback-token")
+# Unpaid M-Pesa orders hold stock; the expire_unpaid_orders command releases them after this.
+MPESA_ORDER_EXPIRY_MINUTES = int(os.environ.get("MPESA_ORDER_EXPIRY_MINUTES", "30"))

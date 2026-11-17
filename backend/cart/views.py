@@ -5,9 +5,29 @@ from .models import Cart, CartItem
 from .serializers import CartSerializer
 
 
+def _merge_guest_cart(guest, cart):
+    from django.db import transaction
+    with transaction.atomic():
+        for item in guest.items.all():
+            mine, created = cart.items.get_or_create(
+                product=item.product, variant=item.variant, defaults={"quantity": item.quantity},
+            )
+            if not created:
+                mine.quantity += item.quantity
+                mine.save(update_fields=["quantity"])
+        guest.delete()
+
+
 def get_or_create_cart(request):
     if request.user.is_authenticated:
         cart, _ = Cart.objects.get_or_create(user=request.user)
+        # A shopper who built a bag as a guest and then signed in (e.g. the
+        # "Member" tab at checkout) keeps it: fold the guest bag into their own.
+        guest_key = request.session.session_key
+        if guest_key:
+            guest = Cart.objects.filter(session_key=guest_key, user=None).first()
+            if guest:
+                _merge_guest_cart(guest, cart)
         return cart
     if not request.session.session_key:
         request.session.create()

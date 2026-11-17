@@ -16,7 +16,7 @@ const MEMBER_DISCOUNT_PERCENT = 5;
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, isLoading: cartLoading, refreshCart } = useCart();
+  const { cart, isLoading: cartLoading, refresh: refreshCart } = useCart();
   const { formatPrice } = useLocalization();
 
   const [step, setStep] = useState<"auth" | "delivery">("auth");
@@ -36,8 +36,9 @@ export default function CheckoutPage() {
     shipping_phone: "",
     shipping_address: "",
     shipping_city: "",
-    payment_method: "cod",
+    payment_method: "mpesa",
   });
+  const [mpesaPhone, setMpesaPhone] = useState("");
 
   const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationMessage, setLocationMessage] = useState("");
@@ -55,7 +56,7 @@ export default function CheckoutPage() {
       auth.me().then(u => {
         setForm(f => ({ ...f, shipping_name: `${u.first_name || ""} ${u.last_name || ""}`.trim(), shipping_phone: u.phone || "" }));
       }).catch(() => {});
-      api.addresses().then(r => setSavedAddresses(r.results || [])).catch(() => {});
+      api.addresses().then(r => setSavedAddresses(Array.isArray(r) ? r : r.results || [])).catch(() => {});
     }
   }, []);
 
@@ -85,16 +86,17 @@ export default function CheckoutPage() {
     try {
       if (mode === "member") {
         if (memberTab === "login") {
-          await auth.login({ username, password });
+          await auth.login(username, password);
         } else {
           await auth.register(newAccount);
-          await auth.login({ username: newAccount.username, password: newAccount.password });
+          await auth.login(newAccount.username, newAccount.password);
         }
         setStep("delivery");
         const u = await auth.me();
         setForm(f => ({ ...f, shipping_name: `${u.first_name || ""} ${u.last_name || ""}`.trim(), shipping_phone: u.phone || "" }));
+        try { await refreshCart(); } catch {}   // pick up the guest bag merged into the account
         const addr = await api.addresses();
-        setSavedAddresses(addr.results || []);
+        setSavedAddresses(Array.isArray(addr) ? addr : addr.results || []);
       } else {
         if (!email) { setAuthError("Enter your email"); setAuthBusy(false); return; }
         setStep("delivery");
@@ -132,6 +134,9 @@ export default function CheckoutPage() {
     if (!form.shipping_name || !form.shipping_phone || !form.shipping_address) {
       setError("Please fill in all delivery fields."); return;
     }
+    if (form.payment_method === "mpesa" && !(mpesaPhone || form.shipping_phone).trim()) {
+      setError("Enter the M-Pesa number to pay with."); return;
+    }
     setPlacing(true);
     try {
       const payload: any = {
@@ -141,6 +146,7 @@ export default function CheckoutPage() {
         shipping_city: form.shipping_city,
         ...(deliveryCoords ? { shipping_lat: deliveryCoords.lat, shipping_lng: deliveryCoords.lng } : {}),
         payment_method: form.payment_method,
+        ...(form.payment_method === "mpesa" ? { mpesa_phone: mpesaPhone || form.shipping_phone } : {}),
         coupon_code: couponCode || undefined,
       };
       if (mode === "guest") payload.guest_email = email;
@@ -239,7 +245,7 @@ export default function CheckoutPage() {
                   <p className="text-[11px] uppercase tracking-widest text-stone-500 font-medium mb-3">Payment</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { value: "mpesa", label: "M-Pesa", icon: Smartphone, disabled: true },
+                      { value: "mpesa", label: "M-Pesa", icon: Smartphone, disabled: false },
                       { value: "card", label: "Card", icon: CreditCard, disabled: true },
                       { value: "cod", label: "Cash on delivery", icon: Banknote, disabled: false },
                     ].map(opt => {
@@ -255,12 +261,25 @@ export default function CheckoutPage() {
                     })}
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-stone-500">Cash on delivery is available now. M-Pesa and card payments will appear here once their payment providers are connected.</p>
+                {form.payment_method === "mpesa" ? (
+                  <div className="mt-4 space-y-2">
+                    <input
+                      placeholder="M-Pesa number (defaults to your phone number)"
+                      value={mpesaPhone}
+                      onChange={e => setMpesaPhone(e.target.value)}
+                      inputMode="tel"
+                      className={inputClass}
+                    />
+                    <p className="text-xs text-stone-500">We&apos;ll send an M-Pesa prompt to this number when you place the order. Enter your PIN to pay.</p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-stone-500">Pay in cash when your order arrives. Card payments are coming soon.</p>
+                )}
 
                 {error && <p className="text-sm text-red-700 mt-4">{error}</p>}
 
                 <button onClick={handlePlaceOrder} disabled={placing || !form.shipping_name || !form.shipping_phone || !form.shipping_address} className="w-full mt-8 py-4 bg-black text-white text-[11px] uppercase tracking-widest font-medium hover:bg-stone-800 transition disabled:opacity-40">
-                  {placing ? "Placing Order…" : `Place Order — ${formatPrice(total)}`}
+                  {placing ? "Placing Order…" : form.payment_method === "mpesa" ? `Pay with M-Pesa — ${formatPrice(total)}` : `Place Order — ${formatPrice(total)}`}
                 </button>
               </>
             )}

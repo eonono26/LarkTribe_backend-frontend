@@ -81,6 +81,36 @@ class OrderItem(models.Model):
         return self.unit_price * self.quantity
 
 
+class MpesaTransaction(models.Model):
+    """One STK Push attempt. An order can have several (retry after a cancelled/failed prompt)."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUCCESS = "success", "Success"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled by customer"
+        REVIEW = "review", "Needs manual review"
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="mpesa_transactions")
+    phone = models.CharField(max_length=15)
+    amount = models.PositiveIntegerField()
+    merchant_request_id = models.CharField(max_length=64, blank=True)
+    checkout_request_id = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    result_code = models.IntegerField(null=True, blank=True)
+    result_desc = models.CharField(max_length=255, blank=True)
+    receipt = models.CharField(max_length=64, blank=True)
+    raw_callback = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.order.order_number} {self.status} {self.receipt}".strip()
+
+
 class Coupon(models.Model):
     code = models.CharField(max_length=32, unique=True)
     percent_off = models.PositiveIntegerField(null=True, blank=True)

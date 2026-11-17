@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Circle, Download } from "lucide-react";
 import { api, mediaUrl } from "@/lib/api";
 import { useLocalization } from "@/lib/localization-context";
 import LiveDeliveryTracker from "@/components/LiveDeliveryTracker";
+import MpesaPaymentPanel from "@/components/MpesaPaymentPanel";
 
 interface OrderItem {
   id: number;
@@ -30,6 +31,8 @@ interface OrderData {
   shipping_address: string;
   shipping_city: string;
   payment_method: string;
+  shipping_phone?: string;
+  mpesa_receipt?: string;
   created_at: string;
   items: OrderItem[];
 }
@@ -67,9 +70,13 @@ export default function OrderTrackingPage() {
   const [ticketMessage, setTicketMessage] = useState("");
   const [ticketSent, setTicketSent] = useState(false);
 
-  useEffect(() => {
+  const loadOrder = useCallback(() => {
     api.orderDetail(orderNumber).then((r) => setOrder(r as OrderData)).catch(() => {});
   }, [orderNumber]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
 
   async function submitTicket() {
     await api.openSupportTicket(`Return/refund request — ${orderNumber}`, ticketMessage);
@@ -108,7 +115,16 @@ export default function OrderTrackingPage() {
         <p className="text-sm text-stone-500 max-w-lg mb-2">{STATUS_SUBCOPY[order.status]}</p>
         <p className="text-xs text-stone-400 mb-10">
           Placed {new Date(order.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
+          {order.mpesa_receipt && <> · M-Pesa receipt {order.mpesa_receipt}</>}
         </p>
+
+        {order.status === "pending_payment" && order.payment_method === "mpesa" && (
+          <MpesaPaymentPanel
+            orderNumber={order.order_number}
+            defaultPhone={order.shipping_phone}
+            onPaid={loadOrder}
+          />
+        )}
 
         {!isCancelled && (
           <div className="flex items-start mb-12">
