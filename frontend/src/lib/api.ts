@@ -10,7 +10,7 @@ export type PaymentSnapshot = {
   attempts: number;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "./config";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();

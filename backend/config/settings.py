@@ -18,7 +18,19 @@ if _env_file.exists():
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = ["*"]
+
+allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "*")
+ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()] or ["*"]
+
+csrf_trusted_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+if csrf_trusted_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_trusted_env.split(",") if o.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://*.onrender.com",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -48,13 +60,23 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+]
+
+try:
+    import whitenoise  # noqa: F401
+    MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+except ImportError:
+    pass
+
+MIDDLEWARE.extend([
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]
+])
 
 ROOT_URLCONF = "config.urls"
 
@@ -76,10 +98,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+DATA_DIR = os.environ.get("DATA_DIR")
+if DATA_DIR:
+    data_path = Path(DATA_DIR)
+    data_path.mkdir(parents=True, exist_ok=True)
+    DEFAULT_DB_PATH = data_path / "db.sqlite3"
+    DEFAULT_MEDIA_ROOT = data_path / "media"
+    DEFAULT_MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+
+    # If mounting a fresh persistent disk, copy the seed database and media if present
+    repo_db = BASE_DIR / "db.sqlite3"
+    if repo_db.exists() and not DEFAULT_DB_PATH.exists():
+        import shutil
+        shutil.copy2(repo_db, DEFAULT_DB_PATH)
+
+    repo_media = BASE_DIR / "media"
+    if repo_media.exists() and not any(DEFAULT_MEDIA_ROOT.iterdir()):
+        import shutil
+        shutil.copytree(repo_media, DEFAULT_MEDIA_ROOT, dirs_exist_ok=True)
+else:
+    DEFAULT_DB_PATH = BASE_DIR / "db.sqlite3"
+    DEFAULT_MEDIA_ROOT = BASE_DIR / "media"
+
 DATABASES = {
     "default": {
         "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.environ.get("DB_NAME", BASE_DIR / "db.sqlite3"),
+        "NAME": os.environ.get("DB_NAME", str(DEFAULT_DB_PATH)),
     }
 }
 
@@ -99,7 +143,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", DEFAULT_MEDIA_ROOT))
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

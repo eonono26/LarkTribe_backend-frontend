@@ -5,6 +5,10 @@ django-cors-headers>=4.3
 django-filter>=24.2
 Pillow>=10.3
 
+# Production WSGI server and static files
+gunicorn>=22.0.0
+whitenoise>=6.6.0
+
 # AI/ML + social auth + phone OTP (all optional; code degrades gracefully
 # in DEBUG if these aren't installed, see accounts/social_auth.py)
 google-auth>=2.29

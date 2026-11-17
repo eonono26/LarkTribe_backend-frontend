@@ -9,6 +9,7 @@ import { useLocalization } from "@/lib/localization-context";
 import { apiErrorMessage } from "@/lib/api";
 import QuickViewModal from "@/components/QuickViewModal";
 import ColorSwatch from "@/components/ColorSwatch";
+import { API_BASE_URL } from "@/lib/config";
 import type { ProductListItem } from "@/lib/types";
 
 interface ProductCardProps {
@@ -80,7 +81,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const buildFullUrl = (path: string | null): string | null => {
     if (!path) return null;
     if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/api$/, "");
+    const baseUrl = API_BASE_URL;
     return path.startsWith("/") ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
   };
 

@@ -8,7 +8,7 @@ import type { AuthUser } from '@/lib/auth';
 
 // ----------------------------------------------------------------------
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+import { API_URL } from '@/lib/config';
 
 export const isAdminUser = (u?: AuthUser | null) => !!u && (u.role === 'admin' || !!u.is_staff);
 

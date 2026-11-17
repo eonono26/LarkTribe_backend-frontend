@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "./config";
 const TOKEN_KEY = "duka_access_token";
 const REFRESH_KEY = "duka_refresh_token";
 

@@ -1,0 +1,54 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Backend Web Service: Django REST Framework API (Python 3.12 + SQLite)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: duka-backend
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: CORS_ALLOW_ALL_ORIGINS
+        value: "True"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+    # To persist SQLite and media uploads permanently across redeploys on Render:
+    # Upgrade plan to 'starter' and uncomment the persistent disk below:
+    # disk:
+    #   name: duka-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # envVars:
+    #   - key: DATA_DIR
+    #     value: /var/data
+
+  # ---------------------------------------------------------------------------
+  # Frontend Web Service: Next.js Storefront & Admin (Node.js 20)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: duka-frontend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: RENDER_EXTERNAL_URL
