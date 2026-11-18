@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     CouponViewSet, CampaignViewSet, ShowcaseVideoViewSet, ValidateCouponView,
-    AvailableCouponsView, MyCouponsView, ClaimCouponView,
+    AvailableCouponsView, MyCouponsView, ClaimCouponView, FeaturedCouponView,
 )
 
 router = DefaultRouter()
@@ -12,6 +12,7 @@ router.register("showcase-videos", ShowcaseVideoViewSet, basename="showcase-vide
 
 urlpatterns = [
     path("validate-coupon/", ValidateCouponView.as_view(), name="validate-coupon"),
+    path("coupons/featured/", FeaturedCouponView.as_view(), name="coupons-featured"),
     path("coupons/available/", AvailableCouponsView.as_view(), name="coupons-available"),
     path("coupons/mine/", MyCouponsView.as_view(), name="coupons-mine"),
     path("coupons/claim/", ClaimCouponView.as_view(), name="coupons-claim"),

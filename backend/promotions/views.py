@@ -110,3 +110,25 @@ class ClaimCouponView(views.APIView):
             return Response({"detail": "Invalid or unavailable coupon."}, status=status.HTTP_404_NOT_FOUND)
         claim, created = CouponClaim.objects.get_or_create(user=request.user, coupon=coupon)
         return Response(CouponClaimSerializer(claim).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class FeaturedCouponView(views.APIView):
+    """Public: the best active, public, unexpired coupon — shown in the storefront top bar.
+    Returns {"coupon": null} when none is live, so the bar simply hides the code."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        now = timezone.now()
+        qs = (
+            Coupon.objects.filter(active=True, is_public=True)
+            .exclude(valid_until__lt=now)
+            .order_by("-percent_off", "-amount_off", "-id")
+        )
+        coupon = qs.first()
+        if not coupon:
+            return Response({"coupon": None})
+        return Response({"coupon": {
+            "code": coupon.code,
+            "percent_off": coupon.percent_off,
+            "amount_off": coupon.amount_off,
+        }})

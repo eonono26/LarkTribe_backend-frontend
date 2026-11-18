@@ -69,6 +69,19 @@ export default function Header() {
   // Hydration-safe flags: stay false during SSR + first client render.
   const [mounted, setMounted] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [promoCoupon, setPromoCoupon] = useState<{ code: string; percent_off: number | null; amount_off: string | number | null } | null>(null);
+
+  // Live public promo code for the top bar (hidden if none is active).
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .featuredCoupon()
+      .then((r) => !cancelled && setPromoCoupon(r.coupon))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -311,19 +324,41 @@ export default function Header() {
               <button
                 aria-label="Dismiss announcement"
                 onClick={dismissAnnouncement}
-                className="shrink-0 p-1.5 -ml-1 text-stone-900 hover:text-stone-500 transition"
+                className="shrink-0 p-1.5 -ml-1 text-stone-900 hover:text-stone-500 transition lg:hidden"
               >
                 <X className="w-5 h-5" strokeWidth={1.5} />
               </button>
 
-              <div className="shrink-0 flex h-11 w-11 items-center justify-center rounded-[6px] border border-stone-200 bg-white p-1">
+              <div className="shrink-0 flex lg:hidden h-11 w-11 items-center justify-center rounded-[6px] border border-stone-200 bg-white p-1">
                 <img src="/Asset_2_1.svg" alt="Larktribe" className="w-full h-auto object-contain" />
               </div>
 
-              <div className="min-w-0 flex-1 text-[12px] sm:text-[13px] leading-snug text-stone-900">
+              <div className="min-w-0 flex-1 lg:flex-none lg:text-right text-[12px] sm:text-[13px] leading-snug text-stone-900">
                 <p className="font-medium">A better experience.</p>
                 <p className="text-stone-600">Discover it in the app.</p>
               </div>
+
+              {/* Desktop: promo code on the left of the bar */}
+              {promoCoupon ? (
+                <span className="hidden lg:flex lg:order-first shrink-0 items-center gap-1.5 text-xs text-stone-900">
+                  Code: <strong className="font-semibold tracking-wide">{promoCoupon.code}</strong>
+                  {promoCoupon.percent_off
+                    ? ` for ${promoCoupon.percent_off}% off`
+                    : promoCoupon.amount_off
+                    ? ` for KES ${Number(promoCoupon.amount_off).toLocaleString()} off`
+                    : ""}
+                </span>
+              ) : (
+                <span className="hidden lg:block lg:order-first w-0" aria-hidden />
+              )}
+
+              {/* Desktop: promo copy centered in this same bar */}
+              <p className="hidden lg:block lg:order-first flex-1 text-center text-xs text-stone-900">
+                Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
+                <Link href="/register" className="font-semibold underline underline-offset-2 hover:text-stone-600 transition">
+                  sign up
+                </Link>
+              </p>
 
               <Link
                 href={APP_URL}
@@ -333,19 +368,23 @@ export default function Header() {
               </Link>
             </div>
           </div>
-
-          {/* Our promo copy, unchanged, under the app banner */}
-          <p className="bg-[#F6C7A8] text-stone-900 text-center text-[11px] leading-snug tracking-[0.02em] px-4 py-1.5">
-            Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
-            <Link
-              href="/register"
-              className="font-semibold underline underline-offset-2 hover:text-stone-600 transition"
-            >
-              sign up
-            </Link>
-          </p>
         </div>
       )}
+
+      {/* Mobile promo bar under the app banner (desktop shows it inside the banner above). */}
+      <p
+        className={`lg:hidden bg-[#F6C7A8] text-stone-900 text-center text-[11px] leading-snug tracking-[0.02em] px-4 py-1.5 ${
+          mounted && showAnnouncement ? "" : "hidden"
+        }`}
+      >
+        Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
+        <Link
+          href="/register"
+          className="font-semibold underline underline-offset-2 hover:text-stone-600 transition"
+        >
+          sign up
+        </Link>
+      </p>
 
       <header ref={headerRef} className="sticky top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200">
         <div className="container-shellheader">

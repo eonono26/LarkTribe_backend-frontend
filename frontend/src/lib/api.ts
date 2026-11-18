@@ -289,6 +289,8 @@ export const api = {
   showcaseVideos: () => request<Paginated<ShowcaseVideoItem>>("/promotions/showcase-videos/"),
 
   // Coupon wallet ("My Coupons")
+  featuredCoupon: () =>
+    request<{ coupon: { code: string; percent_off: number | null; amount_off: string | number | null } | null }>("/promotions/coupons/featured/"),
   availableCoupons: () => request<WalletCoupon[]>("/promotions/coupons/available/"),
   myCoupons: () => request<CouponClaim[]>("/promotions/coupons/mine/"),
   claimCoupon: (code: string) =>
