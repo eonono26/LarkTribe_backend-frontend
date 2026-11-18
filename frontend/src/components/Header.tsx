@@ -384,6 +384,16 @@ export default function Header() {
         >
           sign up
         </Link>
+        {promoCoupon && (
+          <span className="block mt-0.5">
+            Code: <strong className="font-semibold tracking-wide">{promoCoupon.code}</strong>
+            {promoCoupon.percent_off
+              ? ` for ${promoCoupon.percent_off}% off`
+              : promoCoupon.amount_off
+              ? ` for KES ${Number(promoCoupon.amount_off).toLocaleString()} off`
+              : ""}
+          </span>
+        )}
       </p>
 
       <header ref={headerRef} className="sticky top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200">
