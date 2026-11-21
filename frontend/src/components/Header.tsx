@@ -318,9 +318,9 @@ export default function Header() {
           away with the page like Zara's and the header alone stays on screen.
           Gated on `mounted` to avoid a hydration mismatch. */}
       {mounted && showAnnouncement && (
-        <div className="relative z-40 bg-white lg:bg-[#8B3A2A]">
-          <div className="border-b border-stone-300 lg:border-white/20">
-            <div className="max-w-[1600px] mx-auto flex items-center gap-3 px-3 py-2 sm:px-5">
+        <div className="relative z-40 bg-white">
+          <div className="border-b border-stone-300">
+            <div className="max-w-[1600px] mx-auto flex items-center gap-3 px-3 py-2 sm:px-5 lg:py-1.5">
               <button
                 aria-label="Dismiss announcement"
                 onClick={dismissAnnouncement}
@@ -333,14 +333,14 @@ export default function Header() {
                 <img src="/Asset_2_1.svg" alt="Larktribe" className="w-full h-auto object-contain" />
               </div>
 
-              <div className="min-w-0 flex-1 lg:flex-none lg:text-right text-[12px] sm:text-[13px] leading-snug text-stone-900 lg:text-white">
+              <div className="min-w-0 flex-1 lg:flex-none lg:text-right text-[12px] sm:text-[13px] leading-snug text-stone-900">
                 <p className="font-medium">A better experience.</p>
-                <p className="text-stone-600 lg:text-white/80">Discover it in the app.</p>
+                <p className="text-stone-600">Discover it in the app.</p>
               </div>
 
               {/* Desktop: promo code on the left of the bar */}
               {promoCoupon ? (
-                <span className="hidden lg:flex lg:order-first shrink-0 items-center gap-1.5 text-xs text-white">
+                <span className="hidden lg:flex lg:order-first shrink-0 items-center gap-1.5 text-xs text-stone-900">
                   Code: <strong className="font-semibold tracking-wide">{promoCoupon.code}</strong>
                   {promoCoupon.percent_off
                     ? ` for ${promoCoupon.percent_off}% off`
@@ -353,16 +353,16 @@ export default function Header() {
               )}
 
               {/* Desktop: promo copy centered in this same bar */}
-              <p className="hidden lg:block lg:order-first flex-1 text-center text-xs text-white">
+              <p className="hidden lg:block lg:order-first flex-1 text-center text-xs text-stone-900">
                 Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
-                <Link href="/register" className="font-semibold underline underline-offset-2 hover:text-white/80 transition">
+                <Link href="/register" className="font-semibold underline underline-offset-2 hover:text-stone-600 transition">
                   sign up
                 </Link>
               </p>
 
               <Link
                 href={APP_URL}
-                className="shrink-0 bg-black px-4 py-2.5 sm:px-6 text-[11px] sm:text-xs uppercase tracking-wide text-white hover:bg-stone-800 transition"
+                className="shrink-0 bg-black px-4 py-2.5 sm:px-6 lg:py-2 text-[11px] sm:text-xs uppercase tracking-wide text-white hover:bg-stone-800 transition"
               >
                 Open app
               </Link>
