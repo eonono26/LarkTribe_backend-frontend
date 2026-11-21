@@ -50,6 +50,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       try {
         const p = await api.product(slug);
         if (cancelled) return;
+        api.track("product_view", { product: p.id });
         setProduct(p);
         const pv = p.variants || [];
         const startColor = initialColor(pv, searchParams.get("color"));
@@ -278,12 +279,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <ReviewForm productId={product.id} />
         </section>
 
-        {/* {similar.length > 0 && (
+        {similar.length > 0 && (
           <RecommendedRow title="You May Also Like" kind="similar" productId={product.id} products={similar} />
         )}
         {fbt.length > 0 && (
           <RecommendedRow title="Complete the Look" kind="fbt" productId={product.id} products={fbt} />
-        )} */}
+        )}
       </div>
 
       {/* Sticky mobile bottom bar */}

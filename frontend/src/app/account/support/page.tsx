@@ -23,6 +23,8 @@ function NewTicketForm({ onCreated }: { onCreated: () => void }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const prefill = new URLSearchParams(window.location.search).get("subject");
+    // The URL query is an external initial value; update the controlled form after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (prefill) setSubject(prefill);
   }, []);
 
@@ -44,13 +46,13 @@ function NewTicketForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 border border-[var(--color-line)] rounded-lg p-4">
+    <form onSubmit={submit} className="space-y-4 border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="font-display font-bold">Contact support</h2>
       <input
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
         placeholder="Subject (e.g. Order #12345 hasn't arrived)"
-        className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
+        className="w-full min-w-0 border border-stone-200 bg-stone-50 px-4 py-3 outline-none focus:border-black"
         required
       />
       <textarea
@@ -58,7 +60,7 @@ function NewTicketForm({ onCreated }: { onCreated: () => void }) {
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Tell us what's going on…"
         rows={4}
-        className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none resize-none"
+        className="w-full min-w-0 resize-y border border-stone-200 bg-stone-50 px-4 py-3 outline-none focus:border-black"
         required
       />
       {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
@@ -75,24 +77,28 @@ function NewTicketForm({ onCreated }: { onCreated: () => void }) {
 function TicketThread({ ticket, onReplied }: { ticket: SupportTicket; onReplied: () => void }) {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
     if (!reply.trim()) return;
     setSending(true);
+    setError("");
     try {
       await api.replySupportTicket(ticket.id, reply.trim());
       setReply("");
       onReplied();
+    } catch {
+      setError("Couldn't send your reply. Please try again.");
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <div className="border border-[var(--color-line)] rounded-lg p-4">
-      <div className="flex items-center justify-between">
-        <p className="font-semibold">{ticket.subject}</p>
+    <div className="border border-stone-200 bg-white p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="min-w-0 font-semibold">{ticket.subject}</p>
         <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--color-mist)]">
           {STATUS_LABEL[ticket.status] ?? ticket.status}
         </span>
@@ -110,18 +116,19 @@ function TicketThread({ ticket, onReplied }: { ticket: SupportTicket; onReplied:
       )}
 
       {ticket.status !== "closed" && ticket.status !== "resolved" && (
-        <form onSubmit={sendReply} className="flex gap-2 mt-3">
+        <form onSubmit={sendReply} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             placeholder="Reply…"
-            className="flex-1 bg-[var(--color-mist)] rounded-lg px-3 py-2 text-sm outline-none"
+            className="min-w-0 flex-1 border border-stone-200 bg-stone-50 px-3 py-2 text-sm outline-none focus:border-black"
           />
-          <button disabled={sending} className="text-xs font-semibold underline disabled:opacity-40">
+          <button disabled={sending} className="min-h-10 px-4 text-left text-xs font-semibold underline disabled:opacity-40 sm:text-center">
             {sending ? "Sending…" : "Reply"}
           </button>
         </form>
       )}
+      {error && <p role="alert" className="mt-2 text-sm text-[var(--color-flag)]">{error}</p>}
     </div>
   );
 }
@@ -130,12 +137,23 @@ export default function SupportPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   function load() {
     api
       .supportTickets()
-      .then((t) => setTickets(Array.isArray(t) ? t : t.results))
+      .then((t) => {
+        setTickets(Array.isArray(t) ? t : t.results);
+        setLoadError("");
+      })
+      .catch(() => setLoadError("We couldn't load your support requests. Please try again."))
       .finally(() => setLoading(false));
+  }
+
+  function retryLoad() {
+    setLoading(true);
+    setLoadError("");
+    load();
   }
 
   useEffect(() => {
@@ -147,20 +165,26 @@ export default function SupportPage() {
   }, [router]);
 
   return (
-    <main className="container-shell py-10">
-      <h1 className="font-display text-2xl font-black mb-1">Help & support</h1>
-      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+    <main className="account-page">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Help & support</h1>
+      <p className="mb-6 text-sm text-neutral-500">Send our team a message and follow the conversation here.</p>
       <AccountNav />
 
-      <div className="grid md:grid-cols-2 gap-8 items-start">
+      <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
         <NewTicketForm onCreated={load} />
 
-        <div>
-          <h2 className="font-display font-bold mb-3">Your tickets</h2>
+        <div className="min-w-0">
+          <h2 className="mb-3 font-editorial text-2xl">Your tickets</h2>
           {loading ? (
             <p className="text-sm text-neutral-500">Loading…</p>
+          ) : loadError ? (
+            <div role="alert" className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              <p>{loadError}</p>
+              <button onClick={retryLoad} className="mt-2 font-semibold underline">Try again</button>
+            </div>
           ) : tickets.length === 0 ? (
-            <p className="text-sm text-neutral-500">No support requests yet.</p>
+            <p className="border border-dashed border-stone-300 bg-white p-5 text-sm text-neutral-500">No support requests yet.</p>
           ) : (
             <div className="space-y-3">
               {tickets.map((t) => (

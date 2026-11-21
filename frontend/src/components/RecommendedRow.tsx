@@ -1,7 +1,7 @@
 // components/RecommendedRow.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ProductCard from "./ProductCard";
 import type { ProductListItem } from "@/lib/types";
@@ -23,7 +23,7 @@ export default function RecommendedRow({
   const [fetchedProducts, setFetchedProducts] = useState<ProductListItem[] | null>(null);
   const [loading, setLoading] = useState(!initialProducts);
   const [error, setError] = useState<string | null>(null);
-  const products = initialProducts ?? fetchedProducts ?? [];
+  const products = useMemo(() => initialProducts ?? fetchedProducts ?? [], [initialProducts, fetchedProducts]);
 
   useEffect(() => {
     if (initialProducts) {
@@ -66,6 +66,14 @@ export default function RecommendedRow({
       cancelled = true;
     };
   }, [kind, productId, initialProducts]);
+
+  useEffect(() => {
+    if (kind === "recommended") {
+      products.slice(0, 12).forEach((product) => {
+        api.track("recommendation_impression", { product: product.id });
+      });
+    }
+  }, [kind, products]);
 
   if (loading) {
     return (

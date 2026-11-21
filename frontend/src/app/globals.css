@@ -112,6 +112,14 @@ h1, h2, h3, h4, h5, h6, .font-display {
   padding-inline: clamp(1px, 0.25vw, 6px);
 }
 
+.account-page {
+  width: 100%;
+  max-width: 76rem;
+  min-height: 60vh;
+  margin-inline: auto;
+  padding: clamp(2rem, 4vw, 3.5rem) clamp(1rem, 3vw, 2rem);
+}
+
 
 /* Buttons — Zara uses sharp rectangles, never pills */
 .btn {

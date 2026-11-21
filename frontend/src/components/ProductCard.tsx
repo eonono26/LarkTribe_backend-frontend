@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Heart, ImageOff } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
-import { apiErrorMessage } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import QuickViewModal from "@/components/QuickViewModal";
 import ColorSwatch from "@/components/ColorSwatch";
 import { API_BASE_URL } from "@/lib/config";
@@ -150,7 +150,6 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     }
 
     return allImages;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allImages, selectedColor, color_images]);
 
   // While hovering, if this product has more than one photo for the
@@ -232,7 +231,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         setHoverIndex(0);
       }}
     >
-      <Link href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`} className="block">
+      <Link
+        href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
+        className="block"
+        onClick={() => api.track("click", { product: id })}
+      >
         {/* Image */}
         <div className="relative w-full aspect-square bg-stone-50 overflow-hidden">
           {!hasCurrentImageError ? (

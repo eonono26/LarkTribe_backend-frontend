@@ -19,6 +19,15 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [debugCode, setDebugCode] = useState("");
 
+  async function redirectForRole() {
+    const user = await auth.me();
+    const requestedPath = new URLSearchParams(window.location.search).get("next");
+    const nextPath = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+      ? requestedPath
+      : "/";
+    router.replace(user.role === "driver" ? "/driver/dashboard" : nextPath);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -26,7 +35,7 @@ export default function LoginPage() {
 
     try {
       await auth.login(username, password);
-      router.push("/");
+      await redirectForRole();
     } catch {
       setError("Couldn't sign you in — check your username and password.");
     } finally {
@@ -53,7 +62,7 @@ export default function LoginPage() {
 
     try {
       await auth.verifyPhoneOTP(phone, code);
-      router.push("/");
+      await redirectForRole();
     } catch {
       setError("Invalid or expired code.");
     }

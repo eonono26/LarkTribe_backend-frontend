@@ -25,13 +25,20 @@ export default function AddressesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   function load() {
-    setLoading(true);
     api
       .addresses()
       .then((r) => setAddresses(Array.isArray(r) ? r : r.results))
+      .catch(() => setLoadError("We couldn't load your saved addresses. Please try again."))
       .finally(() => setLoading(false));
+  }
+
+  function retryLoad() {
+    setLoading(true);
+    setLoadError("");
+    load();
   }
 
   useEffect(() => {
@@ -40,7 +47,6 @@ export default function AddressesPage() {
       return;
     }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   function openNew() {
@@ -79,7 +85,7 @@ export default function AddressesPage() {
         await api.createAddress(form);
       }
       setShowForm(false);
-      load();
+      retryLoad();
     } catch {
       setError("Couldn't save this address. Please try again.");
     } finally {
@@ -89,23 +95,38 @@ export default function AddressesPage() {
 
   async function handleDelete(id: number) {
     if (!confirm("Remove this address?")) return;
-    await api.deleteAddress(id);
-    load();
+    try {
+      await api.deleteAddress(id);
+      retryLoad();
+    } catch {
+      setError("Couldn't remove this address. Please try again.");
+    }
   }
 
   async function handleSetDefault(id: number) {
-    await api.setDefaultAddress(id);
-    load();
+    try {
+      await api.setDefaultAddress(id);
+      retryLoad();
+    } catch {
+      setError("Couldn't update your default address. Please try again.");
+    }
   }
 
   return (
-    <main className="container-shell py-10 max-w-2xl">
-      <h1 className="font-display text-2xl font-black mb-1">My addresses</h1>
-      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+    <main className="account-page">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Saved addresses</h1>
+      <p className="mb-6 text-sm text-neutral-500">Keep delivery details ready for a faster checkout.</p>
       <AccountNav />
+      {error && !showForm && <p role="alert" className="mb-4 text-sm text-[var(--color-flag)]">{error}</p>}
 
       {loading ? (
         <p className="text-neutral-400">Loading…</p>
+      ) : loadError ? (
+        <div role="alert" className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p>{loadError}</p>
+          <button onClick={retryLoad} className="mt-2 font-semibold underline">Try again</button>
+        </div>
       ) : (
         <>
           <div className="space-y-3 mb-6">
@@ -113,9 +134,9 @@ export default function AddressesPage() {
               <p className="text-neutral-500">No saved addresses yet — add one to check out faster next time.</p>
             )}
             {addresses.map((a) => (
-              <div key={a.id} className="border border-[var(--color-line)] rounded-xl p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
+              <div key={a.id} className="border border-stone-200 bg-white p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold uppercase tracking-wide bg-[var(--color-mist)] px-2 py-0.5 rounded-full">
                         {a.label}
@@ -132,16 +153,16 @@ export default function AddressesPage() {
                       {a.address_line}, {a.city}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 shrink-0 text-xs font-semibold uppercase">
-                    <button onClick={() => openEdit(a)} className="underline">
+                  <div className="flex flex-wrap gap-4 text-xs font-semibold uppercase sm:flex-col sm:gap-2">
+                    <button onClick={() => openEdit(a)} className="min-h-8 underline underline-offset-2">
                       Edit
                     </button>
                     {!a.is_default && (
-                      <button onClick={() => handleSetDefault(a.id)} className="underline">
+                      <button onClick={() => handleSetDefault(a.id)} className="min-h-8 underline underline-offset-2">
                         Set default
                       </button>
                     )}
-                    <button onClick={() => handleDelete(a.id)} className="underline text-[var(--color-flag)]">
+                    <button onClick={() => handleDelete(a.id)} className="min-h-8 underline text-[var(--color-flag)] underline-offset-2">
                       Remove
                     </button>
                   </div>
@@ -151,7 +172,7 @@ export default function AddressesPage() {
           </div>
 
           {showForm ? (
-            <form onSubmit={handleSubmit} className="border border-[var(--color-line)] rounded-xl p-4 space-y-3">
+            <form onSubmit={handleSubmit} className="max-w-3xl border border-stone-200 bg-white p-4 shadow-sm space-y-3 sm:p-6">
               <div className="grid grid-cols-3 gap-2">
                 {(["home", "work", "other"] as const).map((l) => (
                   <button
@@ -203,7 +224,7 @@ export default function AddressesPage() {
 
               {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
 
-              <div className="flex gap-3 pt-1">
+              <div className="flex flex-col gap-3 pt-1 sm:flex-row">
                 <button
                   type="submit"
                   disabled={saving}
@@ -214,7 +235,7 @@ export default function AddressesPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="border border-[var(--color-ink)] px-6 py-3 rounded-full text-sm font-semibold uppercase"
+                  className="min-h-12 border border-[var(--color-ink)] px-6 py-3 text-sm font-semibold uppercase transition hover:bg-black hover:text-white"
                 >
                   Cancel
                 </button>

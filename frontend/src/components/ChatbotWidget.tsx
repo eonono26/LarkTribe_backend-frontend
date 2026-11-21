@@ -11,6 +11,20 @@ interface Msg {
   sender: "user" | "bot";
   text: string;
   products?: ChatReply["reply"]["products"];
+  orderHref?: string;
+}
+
+function renderBotText(text: string) {
+  const parts = text.split(/(\/(?:account\/(?:orders|support)|orders\/[A-Z0-9]{8,32}|delivery|returns|contact|faq|about|download|vendor\/apply))/gi);
+  return parts.map((part, index) =>
+    part.startsWith("/") ? (
+      <Link key={`${part}-${index}`} href={part} className="underline underline-offset-2">
+        {part}
+      </Link>
+    ) : (
+      part
+    ),
+  );
 }
 
 export default function ChatbotWidget() {
@@ -18,7 +32,7 @@ export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
   const [sessionId, setSessionId] = useState<number | undefined>();
   const [messages, setMessages] = useState<Msg[]>([
-    { sender: "bot", text: "Hi! I'm the larktribe shopping assistant. Ask me to find something, or check an order." },
+    { sender: "bot", text: "Hi! I'm the LarkTribe shopping assistant. Ask about products, orders, delivery, returns, payments, or your account." },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,7 +46,16 @@ export default function ChatbotWidget() {
     try {
       const res = await api.chatbot(text, sessionId);
       setSessionId(res.session_id);
-      setMessages((m) => [...m, { sender: "bot", text: res.reply.text, products: res.reply.products }]);
+      const orderNumber = res.reply.text.match(/\bOrder\s+([A-Z0-9]{8,32})\s+is currently\b/i)?.[1];
+      setMessages((m) => [
+        ...m,
+        {
+          sender: "bot",
+          text: res.reply.text,
+          products: res.reply.products,
+          orderHref: orderNumber ? `/orders/${orderNumber}` : undefined,
+        },
+      ]);
     } catch {
       setMessages((m) => [...m, { sender: "bot", text: "Sorry, something went wrong. Try again in a moment." }]);
     } finally {
@@ -41,14 +64,17 @@ export default function ChatbotWidget() {
   }
 
   return (
-    <div className="fixed bottom-20 lg:bottom-5 right-5 z-50 font-sans">
+    <div className="fixed bottom-20 left-3 right-3 z-50 font-sans sm:bottom-5 sm:left-auto sm:right-5">
       {open && (
-        <div className="mb-3 w-[90vw] max-w-sm h-[28rem] bg-stone-50 border border-stone-200 rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="mb-3 ml-auto flex h-[min(70dvh,28rem)] max-h-[calc(100dvh-7rem)] w-full max-w-sm flex-col overflow-hidden rounded-xl border border-stone-200 bg-stone-50 shadow-2xl">
           <div className="bg-stone-900 text-stone-100 px-4 py-3 flex items-center justify-between">
-            <span className="font-editorial text-lg tracking-wide">Lark Tribe Concierge</span>
+            <div>
+              <span className="font-editorial text-lg tracking-wide">LarkTribe Concierge</span>
+              <p className="text-[11px] text-stone-300">Shopping and order help</p>
+            </div>
             <button onClick={() => setOpen(false)} aria-label="Close chat"><X size={18} /></button>
           </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
+          <div role="log" aria-live="polite" className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
             {messages.map((m, i) => (
               <div key={i} className={m.sender === "user" ? "text-right" : "text-left"}>
                 <span
@@ -56,8 +82,13 @@ export default function ChatbotWidget() {
                     m.sender === "user" ? "bg-stone-900 text-stone-50" : "bg-stone-200 text-espresso"
                   }`}
                 >
-                  {m.text}
+                  {m.sender === "bot" ? renderBotText(m.text) : m.text}
                 </span>
+                {m.orderHref && (
+                  <Link href={m.orderHref} className="mt-1 block text-xs font-semibold underline">
+                    View order details
+                  </Link>
+                )}
                 {m.products && m.products.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {m.products.slice(0, 4).map((p) => (
@@ -70,18 +101,24 @@ export default function ChatbotWidget() {
               </div>
             ))}
           </div>
-          <div className="border-t border-stone-200 p-2 flex gap-2">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void send();
+            }}
+            className="flex gap-2 border-t border-stone-200 p-2"
+          >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Ask about products, orders, returns…"
-              className="flex-1 bg-stone-100 rounded-full px-4 py-2 text-sm outline-none"
+              aria-label="Ask the LarkTribe assistant"
+              className="min-w-0 flex-1 rounded-full bg-stone-100 px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-stone-500"
             />
-            <button onClick={send} disabled={sending} aria-label="Send" className="bg-stone-900 text-stone-50 rounded-full p-2 disabled:opacity-40">
+            <button type="submit" disabled={sending || !input.trim()} aria-label="Send" className="rounded-full bg-stone-900 p-2 text-stone-50 disabled:opacity-40">
               <Send size={16} />
             </button>
-          </div>
+          </form>
         </div>
       )}
       <button

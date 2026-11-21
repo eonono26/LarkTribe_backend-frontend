@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bike, Car, Truck, MapPin, Navigation, CheckCircle2, Power } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { auth, isLoggedIn } from "@/lib/auth";
 import type { DriverMe, DeliveryAdmin } from "@/lib/types";
 
-const VEHICLE_ICON: Record<string, any> = { bicycle: Bike, bike: Bike, car: Car, van: Truck };
+const VEHICLE_ICON: Record<string, LucideIcon> = { bicycle: Bike, bike: Bike, car: Car, van: Truck };
 
 const ACTION_FOR_STATUS: Record<string, { action: "accept" | "pickup" | "en_route" | "deliver"; label: string }> = {
   unassigned: { action: "accept", label: "Accept job" },
@@ -26,6 +27,7 @@ export default function DriverDashboardPage() {
   const [available, setAvailable] = useState<DeliveryAdmin[]>([]);
   const [mine, setMine] = useState<DeliveryAdmin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [actingOn, setActingOn] = useState<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
@@ -39,8 +41,14 @@ export default function DriverDashboardPage() {
       setMe(profile);
       setAvailable(unwrap(avail));
       setMine(unwrap(jobs));
-    } catch {
-      router.push("/driver/login");
+      setLoadError("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (/API (401|403)\b/.test(message)) {
+        router.replace("/driver/login");
+      } else {
+        setLoadError("We couldn't load your duties. Check your connection and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -51,7 +59,7 @@ export default function DriverDashboardPage() {
       router.push("/driver/login");
       return;
     }
-    refresh();
+    void Promise.resolve().then(refresh);
     const poll = setInterval(refresh, 8000);
     return () => clearInterval(poll);
   }, [refresh, router]);
@@ -94,7 +102,15 @@ export default function DriverDashboardPage() {
     router.push("/driver/login");
   }
 
-  if (loading || !me) return <main className="container-shell py-10 text-neutral-400">Loading…</main>;
+  if (loading) return <main className="container-shell px-4 py-10 text-neutral-400">Loading your duties…</main>;
+  if (!me) {
+    return (
+      <main className="container-shell mx-auto max-w-lg px-4 py-10">
+        <p role="alert" className="text-sm text-neutral-600">{loadError || "Driver profile unavailable."}</p>
+        <button onClick={refresh} className="btn btn-ink mt-4">Try again</button>
+      </main>
+    );
+  }
 
   const VehicleIcon = VEHICLE_ICON[me.vehicle_type] || Bike;
 
@@ -127,9 +143,20 @@ export default function DriverDashboardPage() {
         <p className="text-xs text-center text-neutral-400 mb-8">Go online to see nearby jobs and share your location with customers.</p>
       )}
 
-      {mine.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-bold uppercase tracking-wide mb-3">Your active deliveries</h2>
+      {loadError && (
+        <div role="alert" className="mb-6 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <span>{loadError}</span>
+          <button onClick={refresh} className="font-semibold underline">Retry</button>
+        </div>
+      )}
+
+      <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase tracking-wide mb-3">Your assigned duties</h2>
+          {mine.length === 0 ? (
+            <p className="border border-dashed border-[var(--color-line)] p-5 text-sm text-neutral-500">
+              No active deliveries are assigned to you right now.
+            </p>
+          ) : (
           <div className="space-y-3">
             {mine.map((d) => {
               const next = ACTION_FOR_STATUS[d.status];
@@ -166,8 +193,8 @@ export default function DriverDashboardPage() {
               );
             })}
           </div>
-        </section>
-      )}
+          )}
+      </section>
 
       {me.is_online && (
         <section>

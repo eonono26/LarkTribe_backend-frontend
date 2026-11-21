@@ -134,8 +134,8 @@ export default function AccountProfilePage() {
   }
 
   return (
-    <main className="bg-stone-50 text-espresso font-sans min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+    <main className="min-h-screen bg-stone-50 text-espresso font-sans">
+      <div className="account-page">
       <span className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Lark Tribe</span>
       <h1 className="font-editorial text-3xl sm:text-4xl text-espresso mb-1">
         {user ? `${user.first_name || user.username}` : "My Account"}
@@ -148,7 +148,7 @@ export default function AccountProfilePage() {
       {loading ? (
         <p className="text-stone-400">Loading…</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5 max-w-none bg-white border border-stone-200 rounded-2xl p-5 sm:p-8 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-white border border-stone-200 p-4 shadow-sm sm:rounded-xl sm:p-8">
           {/* Profile Picture Section */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-stone-50 border border-stone-200 rounded-xl">
             <div className="relative w-20 h-20 rounded-full overflow-hidden bg-stone-200 flex-shrink-0">
@@ -265,17 +265,17 @@ export default function AccountProfilePage() {
           {error && <p className="text-sm text-terracotta">{error}</p>}
           {saved && <p className="text-sm text-emerald-700">Saved.</p>}
 
-          <div className="flex items-center gap-6 pt-3">
+          <div className="flex flex-col-reverse items-stretch gap-4 pt-3 sm:flex-row sm:items-center">
             <button
               disabled={saving}
-              className="px-8 py-3.5 rounded-full bg-espresso text-stone-50 hover:bg-stone-900 disabled:opacity-40 text-xs uppercase tracking-widest font-semibold transition"
+              className="px-8 py-3.5 bg-espresso text-stone-50 hover:bg-stone-900 disabled:opacity-40 text-xs uppercase tracking-widest font-semibold transition sm:w-auto"
             >
               {saving ? "Saving…" : "Save Changes"}
             </button>
             <button
               type="button"
               onClick={handleLogout}
-              className="text-xs uppercase tracking-widest text-stone-500 hover:text-terracotta transition"
+              className="self-center text-xs uppercase tracking-widest text-stone-500 hover:text-terracotta transition sm:self-auto"
             >
               Log Out
             </button>

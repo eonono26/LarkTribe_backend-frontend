@@ -22,15 +22,22 @@ export default function CouponsPage() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState("");
 
   function load() {
-    setLoading(true);
     Promise.all([api.availableCoupons(), api.myCoupons()])
       .then(([a, m]) => {
         setAvailable(a);
         setMine(m);
       })
+      .catch(() => setLoadError("We couldn't load your coupons. Please try again."))
       .finally(() => setLoading(false));
+  }
+
+  function retryLoad() {
+    setLoading(true);
+    setLoadError("");
+    load();
   }
 
   useEffect(() => {
@@ -39,14 +46,15 @@ export default function CouponsPage() {
       return;
     }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   async function handleClaim(code: string) {
     setClaiming(code);
     try {
       await api.claimCoupon(code);
-      load();
+      retryLoad();
+    } catch {
+      setLoadError("We couldn't save that coupon. Please try again.");
     } finally {
       setClaiming(null);
     }
@@ -59,17 +67,23 @@ export default function CouponsPage() {
   }
 
   return (
-    <main className="container-shell py-10 max-w-2xl">
-      <h1 className="font-display text-2xl font-black mb-1">My coupons</h1>
-      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+    <main className="account-page">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Coupons</h1>
+      <p className="mb-6 text-sm text-neutral-500">Save offers here and apply an eligible code at checkout.</p>
       <AccountNav />
 
       {loading ? (
         <p className="text-neutral-400">Loading…</p>
+      ) : loadError ? (
+        <div role="alert" className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p>{loadError}</p>
+          <button onClick={retryLoad} className="mt-2 font-semibold underline">Try again</button>
+        </div>
       ) : (
         <>
           <section className="mb-10">
-            <h2 className="font-display text-lg font-black mb-3">Saved coupons</h2>
+            <h2 className="font-editorial text-2xl mb-3">Saved coupons</h2>
             {mine.length === 0 ? (
               <p className="text-neutral-500">You haven&apos;t saved any coupons yet — grab one below.</p>
             ) : (
@@ -77,7 +91,7 @@ export default function CouponsPage() {
                 {mine.map((claim) => (
                   <div
                     key={claim.id}
-                    className="border border-[var(--color-line)] rounded-xl p-4 flex items-center justify-between gap-3"
+                    className="flex flex-col items-start justify-between gap-3 border border-stone-200 bg-white p-4 sm:flex-row sm:items-center"
                   >
                     <div>
                       <p className="font-mono font-bold">{claim.coupon.code}</p>
@@ -90,7 +104,7 @@ export default function CouponsPage() {
                     </div>
                     <button
                       onClick={() => handleCopy(claim.coupon.code)}
-                      className="border border-[var(--color-ink)] px-4 py-2 rounded-full text-xs font-semibold uppercase shrink-0"
+                      className="min-h-10 border border-[var(--color-ink)] px-4 py-2 text-xs font-semibold uppercase transition hover:bg-black hover:text-white"
                     >
                       {copied === claim.coupon.code ? "Copied!" : "Copy code"}
                     </button>
@@ -101,7 +115,7 @@ export default function CouponsPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-lg font-black mb-3">Available coupons</h2>
+            <h2 className="font-editorial text-2xl mb-3">Available coupons</h2>
             {available.length === 0 ? (
               <p className="text-neutral-500">No coupons available right now — check back soon.</p>
             ) : (
@@ -109,7 +123,7 @@ export default function CouponsPage() {
                 {available.map((c) => (
                   <div
                     key={c.id}
-                    className="border border-[var(--color-line)] rounded-xl p-4 flex items-center justify-between gap-3"
+                    className="flex flex-col items-start justify-between gap-3 border border-stone-200 bg-white p-4 sm:flex-row sm:items-center"
                   >
                     <div>
                       <p className="font-mono font-bold">{c.code}</p>

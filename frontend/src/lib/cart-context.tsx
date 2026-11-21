@@ -36,12 +36,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refresh();
+    void Promise.resolve().then(refresh);
   }, [refresh]);
 
   const addItem = useCallback(async (productId: number | string, quantity = 1, variantId?: number | string | null) => {
     const c = await api.addToCart(productId, quantity, variantId);
     setCart(c);
+    api.track("cart_add", { product: productId });
     setDrawerOpen(true);
   }, []);
 

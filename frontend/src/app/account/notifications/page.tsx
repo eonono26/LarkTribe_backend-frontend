@@ -21,10 +21,11 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[]>([]);
   const [prefs, setPrefs] = useState<Record<string, boolean> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isLoggedIn()) {
-      router.push("/login");
+      router.replace("/login?next=%2Faccount%2Fnotifications");
       return;
     }
     Promise.all([api.notifications(), api.notificationPreferences()])
@@ -32,6 +33,7 @@ export default function NotificationsPage() {
         setItems(Array.isArray(n) ? n : n.results);
         setPrefs(p as Record<string, boolean>);
       })
+      .catch(() => setError("We couldn't load your notifications. Please refresh and try again."))
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -39,25 +41,34 @@ export default function NotificationsPage() {
     if (!prefs) return;
     const next = { ...prefs, [key]: !prefs[key] };
     setPrefs(next);
-    await api.updateNotificationPreferences({ [key]: next[key] });
+    try {
+      await api.updateNotificationPreferences({ [key]: next[key] });
+    } catch {
+      setPrefs(prefs);
+      setError("Your notification preference couldn't be saved.");
+    }
   }
 
-  if (loading) return <main className="container-shell py-10 text-neutral-400">Loading…</main>;
+  if (loading) return <main className="account-page text-neutral-400">Loading notifications…</main>;
 
   return (
-    <main className="container-shell py-10">
-      <h1 className="font-display text-2xl font-black mb-1">Notifications</h1>
-      <p className="text-sm text-neutral-500 mb-6">&nbsp;</p>
+    <main className="account-page">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Notifications</h1>
+      <p className="mb-6 text-sm text-neutral-500">Stay up to date with orders, offers, and account activity.</p>
       <AccountNav />
-      <div className="grid md:grid-cols-3 gap-10">
-      <div className="md:col-span-2">
+      {error && <p role="alert" className="mb-5 border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      <div className="grid items-start gap-6 lg:grid-cols-3 lg:gap-8">
+      <div className="space-y-3 lg:col-span-2">
         {items.length === 0 ? (
-          <p className="text-neutral-500">You&apos;re all caught up.</p>
+          <div className="border border-dashed border-stone-300 bg-white px-5 py-10 text-center text-sm text-neutral-500">
+            You&apos;re all caught up.
+          </div>
         ) : (
-          <div className="space-y-3">
+          <>
             {items.map((n) => (
-              <div key={n.id} className={`border border-[var(--color-line)] rounded-lg p-4 ${n.is_read ? "" : "bg-[var(--color-mist)]"}`}>
-                <div className="flex items-center justify-between">
+              <div key={n.id} className={`border p-4 sm:p-5 ${n.is_read ? "border-stone-200 bg-white" : "border-stone-300 bg-stone-100"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[10px] uppercase tracking-wide font-semibold text-neutral-400">
                     {CATEGORY_LABEL[n.category] ?? n.category}
                   </span>
@@ -67,16 +78,16 @@ export default function NotificationsPage() {
                 {n.body && <p className="text-sm text-neutral-600 mt-1">{n.body}</p>}
               </div>
             ))}
-          </div>
+          </>
         )}
       </div>
 
       {prefs && (
-        <div>
-          <h2 className="font-display font-bold mb-4">Preferences</h2>
+        <div className="border border-stone-200 bg-white p-4 sm:p-5">
+          <h2 className="mb-4 font-editorial text-2xl">Preferences</h2>
           <div className="space-y-3">
             {Object.entries(prefs).map(([key, value]) => (
-              <label key={key} className="flex items-center justify-between text-sm">
+              <label key={key} className="flex min-h-11 items-center justify-between gap-4 border-b border-stone-100 pb-2 text-sm last:border-0">
                 <span className="capitalize">{key.replace(/_/g, " ")}</span>
                 <input type="checkbox" checked={value} onChange={() => togglePref(key)} />
               </label>

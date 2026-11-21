@@ -8,9 +8,10 @@ behind `recommend_for_user` / `similar_products` / `frequently_bought_with`
 without touching the calling views.
 """
 from collections import Counter
+from django.utils import timezone
 from django.db.models import Q
 from catalog.models import Product
-from orders.models import OrderItem
+from orders.models import Order, OrderItem
 from analytics.models import BehaviorEvent
 
 
@@ -56,39 +57,86 @@ def frequently_bought_with(product, limit=6):
 
 
 def recommend_for_user(user=None, session_key="", limit=12):
-    """Personalized feed: blends recent behavior (views, cart, wishlist, search) with
-    purchase history. Falls back to trending/featured products for anonymous/new users."""
+    """Rank products from weighted recent behavior and completed purchase history."""
     events = BehaviorEvent.objects.none()
     if user and user.is_authenticated:
         events = BehaviorEvent.objects.filter(user=user)
     elif session_key:
         events = BehaviorEvent.objects.filter(session_key=session_key)
 
-    interacted_products = list(
-        events.exclude(product__isnull=True).values_list("product_id", "product__category_id", "product__brand_id")[:200]
+    event_weights = {
+        "product_view": 1.0,
+        "click": 1.25,
+        "wishlist_add": 3.0,
+        "cart_add": 4.0,
+        "checkout_start": 5.0,
+        "purchase": 6.0,
+        "recommendation_impression": 0.25,
+        "recommendation_click": 2.0,
+        "wishlist_remove": -1.5,
+        "cart_remove": -1.0,
+    }
+    recent_events = list(
+        events.exclude(product__isnull=True)
+        .filter(event_type__in=event_weights)
+        .values_list("product_id", "product__category_id", "product__brand_id", "event_type", "created_at")[:400]
     )
+    purchased_products = []
+    if user and user.is_authenticated:
+        purchased_products = list(
+            OrderItem.objects.filter(order__user=user)
+            .filter(order__status__in=[
+                Order.Status.PAID,
+                Order.Status.PROCESSING,
+                Order.Status.SHIPPED,
+                Order.Status.DELIVERED,
+            ])
+            .order_by("-order__created_at")
+            .values_list("product_id", "product__category_id", "product__brand_id", "order__created_at")[:200]
+        )
 
-    if not interacted_products:
+    if not recent_events and not purchased_products:
         return list(_active().order_by("-is_featured", "-rating_avg", "-created_at")[:limit])
 
-    category_counts = Counter(c for _, c, _ in interacted_products if c)
-    brand_counts = Counter(b for _, _, b in interacted_products if b)
-    seen_ids = {p for p, _, _ in interacted_products}
+    category_scores = Counter()
+    brand_scores = Counter()
+    seen_ids = set()
+    now = timezone.now()
+    for product_id, category_id, brand_id, event_type, created_at in recent_events:
+        seen_ids.add(product_id)
+        age_days = max((now - created_at).total_seconds() / 86400, 0)
+        recency = 0.5 ** (age_days / 30)
+        weight = event_weights[event_type] * recency
+        if category_id:
+            category_scores[category_id] += weight
+        if brand_id:
+            brand_scores[brand_id] += weight
 
-    top_categories = [c for c, _ in category_counts.most_common(3)]
-    top_brands = [b for b, _ in brand_counts.most_common(3)]
+    for product_id, category_id, brand_id, purchased_at in purchased_products:
+        seen_ids.add(product_id)
+        age_days = max((now - purchased_at).total_seconds() / 86400, 0)
+        weight = event_weights["purchase"] * 0.5 ** (age_days / 90)
+        if category_id:
+            category_scores[category_id] += weight
+        if brand_id:
+            brand_scores[brand_id] += weight
 
-    candidates = _active().exclude(id__in=seen_ids).filter(
-        Q(category_id__in=top_categories) | Q(brand_id__in=top_brands)
-    ).select_related("category", "brand")[:300]
+    top_categories = [category_id for category_id, score in category_scores.most_common(5) if score > 0]
+    top_brands = [brand_id for brand_id, score in brand_scores.most_common(5) if score > 0]
+
+    candidates = _active().exclude(id__in=seen_ids).select_related("category", "brand")
+    if top_categories or top_brands:
+        candidates = candidates.filter(
+            Q(category_id__in=top_categories) | Q(brand_id__in=top_brands)
+        )[:300]
+    else:
+        candidates = candidates.none()
 
     scored = []
     for p in candidates:
         score = 0.0
-        if p.category_id in top_categories:
-            score += 2 * category_counts[p.category_id]
-        if p.brand_id in top_brands:
-            score += 1.5 * brand_counts[p.brand_id]
+        score += category_scores[p.category_id] if p.category_id else 0
+        score += brand_scores[p.brand_id] if p.brand_id else 0
         score += float(p.rating_avg) * 0.5
         scored.append((score, p))
     scored.sort(key=lambda t: t[0], reverse=True)

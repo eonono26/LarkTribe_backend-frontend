@@ -115,6 +115,9 @@ class ChatbotView(views.APIView):
         awaiting_ticket_details = bool(
             latest_bot and "describe the issue in one message" in latest_bot.text.lower()
         )
+        awaiting_order_number = bool(
+            latest_bot and "send your order number and i'll check" in latest_bot.text.lower()
+        )
         ChatMessage.objects.create(session=session, sender="user", text=data["message"])
 
         if awaiting_ticket_details:
@@ -132,6 +135,7 @@ class ChatbotView(views.APIView):
             reply_text, products = chatbot.answer(
                 data["message"],
                 user=request.user if request.user.is_authenticated else None,
+                awaiting_order_number=awaiting_order_number,
             )
 
         bot_msg = ChatMessage.objects.create(session=session, sender="bot", text=reply_text)

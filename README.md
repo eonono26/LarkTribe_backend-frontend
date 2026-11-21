@@ -111,3 +111,5 @@ wired in (see the TODOs in `lib/screens/login_screen.dart` and `pubspec.yaml`).
   similarity, pending a vision embedding model.
 - **M-Pesa, Google/Apple token verification, and SMS OTP delivery** are stubbed for local
   dev with clear TODOs at the integration points.
+
+
