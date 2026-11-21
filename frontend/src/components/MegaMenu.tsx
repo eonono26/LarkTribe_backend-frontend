@@ -93,7 +93,7 @@ function Column({
   heading?: { label: string; href: string };
 }) {
   return (
-    <ul className="min-w-[210px] max-w-[260px] max-h-[62vh] overflow-y-auto pr-2 space-y-0.5">
+    <ul className="min-w-[180px] max-w-[220px] pr-2 space-y-0.5">
       {heading && (
         <li>
           <Link
@@ -149,8 +149,8 @@ export function MegaPanel({
   const second = first?.children.find((n) => n.id === l2);
 
   return (
-    <div className="container-shell py-8">
-      <div className="flex gap-10 lg:gap-14">
+    <div className="container-shell max-h-[70vh] overflow-y-auto overscroll-contain py-6">
+      <div className="flex gap-6 lg:gap-10">
         {/* Column 1 — main sections */}
         <Column
           nodes={data.nodes}
@@ -182,7 +182,7 @@ export function MegaPanel({
 
         {/* Shop by age / gender — Kids & Babies only */}
         {data.quick.length > 0 && (
-          <div className="ml-auto hidden xl:block pl-10 border-l border-stone-100 space-y-6 max-w-sm">
+          <div className="ml-auto hidden xl:block pl-6 border-l border-stone-100 space-y-6 max-w-xs">
             {data.quick.map((g) => (
               <div key={g.title}>
                 <p className="text-[11px] tracking-[0.14em] uppercase text-stone-400 mb-3">{g.title}</p>
