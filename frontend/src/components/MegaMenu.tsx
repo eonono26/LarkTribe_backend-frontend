@@ -93,7 +93,7 @@ function Column({
   heading?: { label: string; href: string };
 }) {
   return (
-    <ul className="min-w-[180px] max-w-[220px] pr-2 space-y-0.5">
+    <ul className="w-[190px] shrink-0 space-y-0.5">
       {heading && (
         <li>
           <Link
@@ -149,8 +149,8 @@ export function MegaPanel({
   const second = first?.children.find((n) => n.id === l2);
 
   return (
-    <div className="container-shell max-h-[70vh] overflow-y-auto overscroll-contain py-6">
-      <div className="flex gap-6 lg:gap-10">
+    <div className="container-shell overflow-visible py-5">
+      <div className="flex items-start gap-8 lg:gap-12">
         {/* Column 1 — main sections */}
         <Column
           nodes={data.nodes}
