@@ -20,6 +20,9 @@ interface DemandForecast {
   reorder_point: number;
   reorder_recommended: boolean;
   reorder_quantity: number;
+  demand_trend?: "accelerating" | "steady" | "falling";
+  recent_units_30d?: number;
+  views_30d?: number;
 }
 
 export default function VendorInsightsPage() {
@@ -28,6 +31,42 @@ export default function VendorInsightsPage() {
   const [forecast, setForecast] = useState<DemandForecast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [acting, setActing] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState("");
+
+  async function applyPrice(productId: number) {
+    setActing(`price-${productId}`);
+    setActionMessage("");
+    try {
+      const result = await vendorApi.applyPricingSuggestion(productId);
+      setActionMessage(`Price updated to ${formatKES((result as { current_price: number }).current_price)}.`);
+      const [p, pricingRes, forecastRes] = await Promise.all([
+        vendorApi.myProducts(),
+        vendorApi.pricingSuggestions(),
+        vendorApi.demandForecast(),
+      ]);
+      setProducts(Array.isArray(p) ? p : p.results);
+      setPricing((pricingRes as PricingSuggestion[]) || []);
+      setForecast((forecastRes as DemandForecast[]) || []);
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "Couldn't apply the price suggestion.");
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function requestReorder(productId: number) {
+    setActing(`reorder-${productId}`);
+    setActionMessage("");
+    try {
+      const result = await vendorApi.requestReorder(productId);
+      setActionMessage(result.detail);
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "Couldn't submit the replenishment request.");
+    } finally {
+      setActing(null);
+    }
+  }
 
   useEffect(() => {
     Promise.all([vendorApi.myProducts(), vendorApi.pricingSuggestions(), vendorApi.demandForecast()])
@@ -53,6 +92,11 @@ export default function VendorInsightsPage() {
           Pricing and demand signals generated from recent sales activity across your store.
         </p>
       </div>
+      {actionMessage && (
+        <p role="status" className="border border-[var(--color-line)] bg-[var(--color-mist)] px-4 py-3 text-sm">
+          {actionMessage}
+        </p>
+      )}
 
       <section>
         <h2 className="font-display font-bold mb-3">Dynamic pricing suggestions</h2>
@@ -70,6 +114,16 @@ export default function VendorInsightsPage() {
                   </span>
                 </div>
                 <p className="text-neutral-500 text-xs mt-1">{s.reason}</p>
+                {s.change_percent !== 0 && (
+                  <button
+                    type="button"
+                    disabled={acting === `price-${s.product_id}`}
+                    onClick={() => applyPrice(s.product_id)}
+                    className="mt-3 border border-[var(--color-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-wide hover:bg-black hover:text-white disabled:opacity-50"
+                  >
+                    {acting === `price-${s.product_id}` ? "Applying…" : "Apply suggested price"}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -89,10 +143,27 @@ export default function VendorInsightsPage() {
                   Forecast next period: <span className="font-semibold text-[var(--color-ink)]">{f.forecast_units_next_period} units</span>
                   {" · "}Current stock: <span className="font-semibold text-[var(--color-ink)]">{f.current_stock}</span>
                 </p>
+                {f.demand_trend && (
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Demand {f.demand_trend}
+                    {typeof f.recent_units_30d === "number" ? ` · ${f.recent_units_30d} sold / 30 days` : ""}
+                    {typeof f.views_30d === "number" ? ` · ${f.views_30d} views` : ""}
+                  </p>
+                )}
                 {f.reorder_recommended ? (
-                  <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--color-flag)]/10 text-[var(--color-flag)]">
-                    Reorder {f.reorder_quantity} units — below reorder point ({f.reorder_point})
-                  </span>
+                  <>
+                    <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--color-flag)]/10 text-[var(--color-flag)]">
+                      Reorder {f.reorder_quantity} units — below reorder point ({f.reorder_point})
+                    </span>
+                    <button
+                      type="button"
+                      disabled={acting === `reorder-${f.product_id}`}
+                      onClick={() => requestReorder(f.product_id)}
+                      className="mt-3 block border border-[var(--color-ink)] px-3 py-2 text-[11px] font-bold uppercase tracking-wide hover:bg-black hover:text-white disabled:opacity-50"
+                    >
+                      {acting === `reorder-${f.product_id}` ? "Submitting…" : "Request replenishment"}
+                    </button>
+                  </>
                 ) : (
                   <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--dept-maternity)]/10 text-[var(--dept-maternity)]">
                     Stock healthy

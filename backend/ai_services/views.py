@@ -172,6 +172,66 @@ class VendorDemandForecastView(views.APIView):
         return Response([forecasting.forecast_product_demand(p) for p in products])
 
 
+class ApplyVendorPricingView(views.APIView):
+    """Apply an AI-generated suggested price to one of the vendor's own products."""
+    permission_classes = [IsVendorOrAdmin]
+
+    def post(self, request, product_id):
+        if not hasattr(request.user, "vendor_profile"):
+            return Response({"detail": "Vendor profile is required."}, status=status.HTTP_403_FORBIDDEN)
+        product = get_object_or_404(
+            Product,
+            id=product_id,
+            vendor=request.user.vendor_profile,
+        )
+        result = pricing.suggest_price(product)
+        product.price = result["suggested_price"]
+        product.save(update_fields=["price"])
+        return Response({
+            "product_id": product.id,
+            "previous_price": float(result["current_price"]),
+            "current_price": float(product.price),
+            "change_percent": result["change_percent"],
+            "reason": result["reason"],
+        })
+
+
+class RequestVendorReorderView(views.APIView):
+    """Create a real replenishment support request from an AI demand forecast."""
+    permission_classes = [IsVendorOrAdmin]
+
+    def post(self, request, product_id):
+        if not hasattr(request.user, "vendor_profile"):
+            return Response({"detail": "Vendor profile is required."}, status=status.HTTP_403_FORBIDDEN)
+        product = get_object_or_404(
+            Product,
+            id=product_id,
+            vendor=request.user.vendor_profile,
+        )
+        forecast = forecasting.forecast_product_demand(product)
+        if not forecast["reorder_recommended"]:
+            return Response({
+                "detail": "This product is not currently below its AI reorder point.",
+                "forecast": forecast,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        ticket = SupportTicket.objects.create(
+            user=request.user,
+            subject=f"Replenishment request: {product.name}",
+            message=(
+                f"AI reorder request for product #{product.id} ({product.name}). "
+                f"Suggested quantity: {forecast['reorder_quantity']} units. "
+                f"Current stock: {forecast['current_stock']}; reorder point: {forecast['reorder_point']}."
+            ),
+        )
+        return Response({
+            "ticket_id": ticket.id,
+            "product_id": product.id,
+            "reorder_quantity": forecast["reorder_quantity"],
+            "detail": "Replenishment request submitted to LarkTribe operations.",
+        }, status=status.HTTP_201_CREATED)
+
+
 # ---------- Admin AI dashboard ----------
 
 class AdminAIDashboardView(views.APIView):

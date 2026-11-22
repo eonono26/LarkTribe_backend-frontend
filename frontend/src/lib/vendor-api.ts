@@ -125,6 +125,13 @@ export const vendorApi = {
   salesDashboard: () => authedRequest("/vendors/sales-dashboard/"),
   pricingSuggestions: () => authedRequest("/ai/vendor/pricing-suggestions/"),
   demandForecast: () => authedRequest("/ai/vendor/demand-forecast/"),
+  applyPricingSuggestion: (productId: number) =>
+    authedRequest(`/ai/vendor/pricing-suggestions/${productId}/apply/`, { method: "POST" }),
+  requestReorder: (productId: number) =>
+    authedRequest<{ ticket_id: number; reorder_quantity: number; detail: string }>(
+      `/ai/vendor/demand-forecast/${productId}/request-reorder/`,
+      { method: "POST" }
+    ),
   // Coupons & Promotions — backend permits vendors to manage coupons (IsAdminOrVendor)
   coupons: () => authedRequest<{ results: VendorCoupon[] } | VendorCoupon[]>("/promotions/coupons/"),
   createCoupon: (payload: Partial<VendorCoupon>) =>

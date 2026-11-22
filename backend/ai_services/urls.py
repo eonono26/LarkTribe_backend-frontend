@@ -13,6 +13,8 @@ urlpatterns = [
     # vendor-facing (AI Sales Insights)
     path("vendor/pricing-suggestions/", views.VendorPricingSuggestionsView.as_view(), name="ai-vendor-pricing"),
     path("vendor/demand-forecast/", views.VendorDemandForecastView.as_view(), name="ai-vendor-forecast"),
+    path("vendor/pricing-suggestions/<int:product_id>/apply/", views.ApplyVendorPricingView.as_view(), name="ai-vendor-pricing-apply"),
+    path("vendor/demand-forecast/<int:product_id>/request-reorder/", views.RequestVendorReorderView.as_view(), name="ai-vendor-reorder-request"),
 
     # admin-facing (AI Dashboard)
     path("admin/dashboard/", views.AdminAIDashboardView.as_view(), name="ai-admin-dashboard"),

@@ -23,18 +23,46 @@ import { useToast } from '@/admin-ui/components/feedback';
 
 // ----------------------------------------------------------------------
 
+interface MarketingSuggestion {
+  type: string;
+  title: string;
+  detail: string;
+  suggested_action: string;
+  product_id?: number;
+  user_id?: number;
+}
+
+interface AtRiskCustomer {
+  id: number;
+  username: string;
+  recency_days: number;
+  frequency: number;
+  monetary: number;
+  segment: string;
+}
+
+interface FraudSignal {
+  id: number;
+  order_number: string;
+  reasons?: string[];
+  risk_score: number;
+  created_at: string;
+}
+
 export function InsightsView() {
   const theme = useTheme();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [applyingSuggestion, setApplyingSuggestion] = useState<number | null>(null);
   const { data, loading, error, reload } = useAsync(() => adminApi.ai.dashboard(), []);
 
   const segments = Object.entries((data?.customer_segments ?? {}) as Record<string, number>);
   const history: number[] = data?.sales_forecast?.weekly_revenue_history ?? [];
   const projected: number | undefined = data?.sales_forecast?.projected_next_week_revenue;
-  const atRisk: any[] = data?.at_risk_customers ?? [];
-  const flagged: any[] = data?.flagged_orders ?? [];
-  const suggestions: any[] = data?.marketing_suggestions ?? [];
+  const atRisk = (data?.at_risk_customers as AtRiskCustomer[]) ?? [];
+  const flagged = (data?.flagged_orders as FraudSignal[]) ?? [];
+  const suggestions: MarketingSuggestion[] =
+    (data?.marketing_suggestions as MarketingSuggestion[]) ?? [];
 
   const forecastCats = [...history.map((_, i) => `Week ${i + 1}`), 'Next week (projected)'];
   const forecastOptions = useChart({
@@ -50,6 +78,50 @@ export function InsightsView() {
   const recompute = async () => {
     setBusy(true);
     try { const r = await adminApi.ai.recompute(); toast.success(`Segments recalculated for ${r.updated} customers.`); reload(); } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
+  };
+
+  const applyCampaignSuggestion = async (suggestion: MarketingSuggestion, index: number) => {
+    setApplyingSuggestion(index);
+    try {
+      if (suggestion.type === "clearance_campaign" && suggestion.product_id) {
+        const code = `CLEAR10-P${suggestion.product_id}`;
+        const coupon = await adminApi.coupons.create({
+          code,
+          percent_off: 10,
+          amount_off: null,
+          active: true,
+          is_public: true,
+        });
+        await adminApi.campaigns.create({
+          title: suggestion.title,
+          description: suggestion.detail,
+          placement: "homepage_banner",
+          style: "strip",
+          cta_label: "Shop sale",
+          link_url: "/shop",
+          coupon: coupon.id,
+          active: true,
+          starts_at: new Date().toISOString(),
+          ends_at: null,
+        });
+        toast.success("Coupon and homepage campaign created.");
+      } else {
+        const code = `WINBACK10-U${suggestion.user_id ?? index}`;
+        await adminApi.coupons.create({
+          code,
+          percent_off: 10,
+          amount_off: null,
+          active: true,
+          is_public: false,
+        });
+        toast.success(`Personalized win-back coupon ${code} created.`);
+      }
+      reload();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setApplyingSuggestion(null);
+    }
   };
 
   return (
@@ -123,7 +195,18 @@ export function InsightsView() {
                   <Typography variant="subtitle2">{s.title}</Typography>
                   <Typography variant="body2" color="text.secondary">{s.detail}</Typography>
                   <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>→ {s.suggested_action}</Typography>
-                  {s.product_id && <Button component={RouterLink} href={`/admin/products/${s.product_id}`} size="small" sx={{ mt: 1 }} color="inherit">View product</Button>}
+                  <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    {s.product_id && <Button component={RouterLink} href={`/admin/products/${s.product_id}`} size="small" color="inherit">View product</Button>}
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="inherit"
+                      loading={applyingSuggestion === i}
+                      onClick={() => applyCampaignSuggestion(s, i)}
+                    >
+                      {s.type === "clearance_campaign" ? "Create campaign" : "Create win-back coupon"}
+                    </Button>
+                  </Box>
                 </Box>
               ))}
               {!suggestions.length && <Typography sx={{ py: 3, color: 'text.secondary' }}>No suggestions right now.</Typography>}

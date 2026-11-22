@@ -8,7 +8,9 @@ change, `views.py` just calls `forecast_product_demand`.
 from datetime import timedelta
 from collections import defaultdict
 from django.utils import timezone
+from django.db.models import Sum
 from orders.models import OrderItem
+from analytics.models import BehaviorEvent
 
 
 def _weekly_sales(product, weeks=8):
@@ -37,6 +39,31 @@ def forecast_product_demand(product, weeks_ahead=1):
     reorder_recommended = product.stock <= reorder_point
     reorder_quantity = max(0, reorder_point + round(forecast * 2) - product.stock) if reorder_recommended else 0
 
+    since = timezone.now() - timedelta(days=30)
+    prior_since = since - timedelta(days=30)
+    recent_units = OrderItem.objects.filter(
+        product=product,
+        order__created_at__gte=since,
+    ).aggregate(units=Sum("quantity"))["units"] or 0
+    prior_units = OrderItem.objects.filter(
+        product=product,
+        order__created_at__gte=prior_since,
+        order__created_at__lt=since,
+    ).aggregate(units=Sum("quantity"))["units"] or 0
+    views = BehaviorEvent.objects.filter(
+        product=product,
+        event_type="product_view",
+        created_at__gte=since,
+    ).count()
+    if prior_units == 0:
+        trend = "accelerating" if recent_units > 0 else "steady"
+    elif recent_units > prior_units * 1.15:
+        trend = "accelerating"
+    elif recent_units < prior_units * 0.85:
+        trend = "falling"
+    else:
+        trend = "steady"
+
     return {
         "product_id": product.id,
         "weekly_history": history,
@@ -45,6 +72,10 @@ def forecast_product_demand(product, weeks_ahead=1):
         "reorder_point": reorder_point,
         "reorder_recommended": reorder_recommended,
         "reorder_quantity": reorder_quantity,
+        "demand_trend": trend,
+        "recent_units_30d": recent_units,
+        "prior_units_30d": prior_units,
+        "views_30d": views,
     }
 
 
