@@ -13,7 +13,7 @@ import {
   User2,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
-import { isLoggedIn, auth, type AuthUser } from "@/lib/auth";
+import { AUTH_CHANGED_EVENT, isLoggedIn, auth, type AuthUser } from "@/lib/auth";
 import { api, mediaUrl } from "@/lib/api";
 import type { Wishlist, ProductListItem } from "@/lib/types";
 import {
@@ -198,21 +198,72 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Keep the shared header in sync with login/logout, token refreshes,
+  // profile edits, and authentication changes made in another browser tab.
+  const accountLoadId = useRef(0);
+
   useEffect(() => {
-    if (!isLoggedIn()) return;
+    let active = true;
 
-    auth.me().then(setUser).catch(() => {});
+    const loadAccountState = async () => {
+      const loadId = ++accountLoadId.current;
 
-    api
-      .wishlist()
-      .then((r) => {
-        const items = Array.isArray(r)
-          ? r
-          : (r as { results: Wishlist[] }).results;
+      if (!isLoggedIn()) {
+        setUser(null);
+        setWishlistCount(0);
+        return;
+      }
 
+      try {
+        const currentUser = await auth.me();
+        if (!active || loadId !== accountLoadId.current) return;
+        setUser(currentUser);
+      } catch {
+        if (!active || loadId !== accountLoadId.current) return;
+        setUser(null);
+      }
+
+      // Wishlist is independent: a temporary wishlist API failure must not
+      // hide a successfully authenticated account from the header.
+      try {
+        const response = await api.wishlist();
+        if (!active || loadId !== accountLoadId.current) return;
+        const items = Array.isArray(response)
+          ? response
+          : (response as { results: Wishlist[] }).results;
         setWishlistCount(items.length);
-      })
-      .catch(() => {});
+      } catch {
+        if (active && loadId === accountLoadId.current) {
+          setWishlistCount(0);
+        }
+      }
+    };
+
+    const handleAuthChange = () => {
+      void loadAccountState();
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key === "duka_access_token" ||
+        event.key === "duka_refresh_token"
+      ) {
+        void loadAccountState();
+      }
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("pageshow", handleAuthChange);
+    void loadAccountState();
+
+    return () => {
+      active = false;
+      accountLoadId.current += 1;
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("pageshow", handleAuthChange);
+    };
   }, []);
 
   useEffect(() => {

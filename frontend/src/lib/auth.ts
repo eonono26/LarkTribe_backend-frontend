@@ -1,6 +1,14 @@
 import { API_URL } from "./config";
 const TOKEN_KEY = "duka_access_token";
 const REFRESH_KEY = "duka_refresh_token";
+export const AUTH_CHANGED_EVENT = "larktribe:auth-changed";
+
+/** Notify every mounted client component that authentication/profile state changed. */
+export function notifyAuthChanged() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+  }
+}
 
 export interface AuthUser {
   id: number;
@@ -37,11 +45,13 @@ export function getRefreshToken(): string | null {
 export function setTokens(access: string, refresh?: string) {
   localStorage.setItem(TOKEN_KEY, access);
   if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+  notifyAuthChanged();
 }
 
 export function clearTokens() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  notifyAuthChanged();
 }
 
 export function isLoggedIn(): boolean {
@@ -248,27 +258,33 @@ export const auth = {
     return authedFetch("/auth/me/");
   },
   
-  updateMe(payload: Partial<AuthUser> | FormData): Promise<AuthUser> {
+  async updateMe(payload: Partial<AuthUser> | FormData): Promise<AuthUser> {
     const isFormData = payload instanceof FormData;
-    return authedFetch("/auth/me/", { 
-      method: "PATCH", 
+    const user = await authedFetch("/auth/me/", {
+      method: "PATCH",
       body: isFormData ? payload : JSON.stringify(payload),
     });
+    notifyAuthChanged();
+    return user;
   },
   
   // Profile picture management
   async uploadProfilePicture(file: File): Promise<AuthUser> {
     const formData = new FormData();
     formData.append('profile_picture', file);
-    return authedFetch("/auth/profile-picture/", {
+    const user = await authedFetch("/auth/profile-picture/", {
       method: "POST",
       body: formData,
     });
+    notifyAuthChanged();
+    return user;
   },
   
   async deleteProfilePicture(): Promise<AuthUser> {
-    return authedFetch("/auth/profile-picture/", {
+    const user = await authedFetch("/auth/profile-picture/", {
       method: "DELETE",
     });
+    notifyAuthChanged();
+    return user;
   },
 };
