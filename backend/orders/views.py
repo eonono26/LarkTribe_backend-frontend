@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework import generics, permissions, views, status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, NotFound
-from . import mpesa
+from . import mpesa, gateways
 from .models import Order, OrderItem, Coupon, MpesaTransaction
 from .serializers import OrderSerializer, CheckoutSerializer
 from cart.views import get_or_create_cart
@@ -43,8 +43,8 @@ class CheckoutView(views.APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         method = data["payment_method"]
-        if method == Order.PaymentMethod.CARD:
-            raise ValidationError("Card payments are not available yet. Please pay with M-Pesa or Cash on Delivery.")
+        if method == Order.PaymentMethod.CARD and not gateways.available_providers():
+            raise ValidationError("Card payments are temporarily unavailable. Please pay with M-Pesa or Cash on Delivery.")
 
         mpesa_phone = ""
         if method == Order.PaymentMethod.MPESA:
@@ -96,6 +96,13 @@ class CheckoutView(views.APIView):
         combined_discount = coupon_discount + member_discount
 
         shipping_fee = 0 if subtotal > 5000 else 250
+        if data.get("shipping_lat") is not None and data.get("shipping_lng") is not None:
+            # Distance-based fee from the nearest hub (same free-shipping threshold).
+            try:
+                from integrations.geo import delivery_quote
+                shipping_fee = delivery_quote(data["shipping_lat"], data["shipping_lng"], subtotal)["fee"]
+            except Exception:
+                logger.exception("delivery_quote failed; using flat fee")
         total = subtotal - combined_discount + shipping_fee
 
         with transaction.atomic():
@@ -172,12 +179,23 @@ class CheckoutView(views.APIView):
             )
 
         body = OrderSerializer(order).data
+        if method == Order.PaymentMethod.CARD:
+            body["payment"] = _start_card_payment(order, data.get("card_provider") or None)
         if method == Order.PaymentMethod.MPESA:
             # The order is already saved (pending_payment). If the PIN prompt can't be
             # sent we keep it so the shopper can retry from the order page without
             # losing their bag.
             body["payment"] = _start_mpesa_payment(order, mpesa_phone)
         return Response(body, status=status.HTTP_201_CREATED)
+
+
+def _start_card_payment(order, preferred=None):
+    try:
+        res = gateways.create_card_checkout(order, preferred)
+        return {"status": "redirect", "provider": res["provider"], "redirect_url": res["redirect_url"],
+                "message": "Redirecting you to our secure card payment page…"}
+    except gateways.GatewayError as exc:
+        return {"status": "error", "message": str(exc)}
 
 
 def _start_mpesa_payment(order, phone):
@@ -221,6 +239,15 @@ class MpesaCallbackView(views.APIView):
 
 
 def _payment_snapshot(order):
+    if order.payment_method == Order.PaymentMethod.CARD:
+        if order.status == Order.Status.CANCELLED:
+            state, message = "expired", "This order was cancelled because payment was not completed."
+        elif order.status == Order.Status.PENDING_PAYMENT:
+            state, message = "pending", "Waiting for your card payment to be confirmed…"
+        else:
+            state, message = "paid", "Payment received. Thank you!"
+        return {"order_status": order.status, "payment_status": state, "message": message,
+                "receipt": order.payment_reference if state == "paid" else "", "attempts": 1 if order.payment_reference else 0}
     tx = order.mpesa_transactions.first()
     if order.status != Order.Status.PENDING_PAYMENT and order.mpesa_receipt:
         state, message = "paid", "Payment received. Thank you!"
@@ -264,6 +291,78 @@ class PaymentStatusView(views.APIView):
                     pass
                 order.refresh_from_db()
         return Response(_payment_snapshot(order))
+
+
+class PayWithCardView(views.APIView):
+    """(Re)start card payment for an unpaid card order - e.g. shopper closed the tab, or Stripe was down."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number)
+        if order.status != Order.Status.PENDING_PAYMENT or order.payment_method != Order.PaymentMethod.CARD:
+            raise ValidationError("This order isn't waiting for a card payment.")
+        if gateways.reconcile(order):  # maybe they already paid
+            order.refresh_from_db()
+            return Response({**_payment_snapshot(order), "payment": {"status": "paid"}})
+        preferred = request.data.get("card_provider") or None
+        return Response({**_payment_snapshot(order), "payment": _start_card_payment(order, preferred)})
+
+
+class CardVerifyView(views.APIView):
+    """Called by the order page when the shopper returns from the hosted payment page."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number)
+        if order.payment_method == Order.PaymentMethod.CARD and order.status == Order.Status.PENDING_PAYMENT:
+            gateways.reconcile(order)
+            order.refresh_from_db()
+        return Response(_payment_snapshot(order))
+
+
+class StripeWebhookView(views.APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        raw = request.body
+        if not gateways.verify_stripe_signature(raw, request.META.get("HTTP_STRIPE_SIGNATURE", "")):
+            return Response({"detail": "bad signature"}, status=400)
+        import json
+        try:
+            event = json.loads(raw)
+        except ValueError:
+            return Response(status=400)
+        if event.get("type") in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+            obj = event["data"]["object"]
+            if obj.get("payment_status") == "paid":
+                order = Order.objects.filter(order_number=obj.get("client_reference_id")).first()
+                if order:
+                    gateways.mark_paid(order, "stripe", obj.get("payment_intent") or obj.get("id"), obj.get("amount_total"))
+        return Response({"received": True})
+
+
+class PaystackWebhookView(views.APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        raw = request.body
+        if not gateways.verify_paystack_signature(raw, request.META.get("HTTP_X_PAYSTACK_SIGNATURE", "")):
+            return Response({"detail": "bad signature"}, status=400)
+        import json
+        try:
+            event = json.loads(raw)
+        except ValueError:
+            return Response(status=400)
+        if event.get("event") == "charge.success":
+            d = event.get("data", {})
+            ref = d.get("reference", "")
+            order = (Order.objects.filter(payment_reference=ref).first()
+                     or Order.objects.filter(order_number=(d.get("metadata") or {}).get("order_number")).first())
+            if order and d.get("status") == "success":
+                gateways.mark_paid(order, "paystack", ref, d.get("amount"))
+        return Response({"received": True})
 
 
 class PayWithMpesaView(views.APIView):

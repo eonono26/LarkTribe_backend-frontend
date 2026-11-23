@@ -11,6 +11,8 @@ import { auth, isLoggedIn } from "@/lib/auth";
 import CouponField from "@/components/CouponField";
 import VariantBadge from "@/components/VariantBadge";
 import { Smartphone, CreditCard, Banknote } from "lucide-react";
+import { features, type DeliveryQuote } from "@/lib/features-api";
+import { trackEvent } from "@/lib/tracking";
 
 const MEMBER_DISCOUNT_PERCENT = 5;
 
@@ -39,6 +41,8 @@ export default function CheckoutPage() {
     payment_method: "mpesa",
   });
   const [mpesaPhone, setMpesaPhone] = useState("");
+  const [cardEnabled, setCardEnabled] = useState(false);
+  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
 
   const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationMessage, setLocationMessage] = useState("");
@@ -60,6 +64,21 @@ export default function CheckoutPage() {
     }
   }, []);
 
+  useEffect(() => {
+    features.publicConfig().then(c => setCardEnabled(c.payments.card_providers.length > 0)).catch(() => {});
+  }, []);
+
+  const subtotalForQuote = cart ? parseFloat(cart.total) || 0 : 0;
+  useEffect(() => {
+    if (!deliveryCoords) { setQuote(null); return; }
+    features.deliveryEstimate(deliveryCoords.lat, deliveryCoords.lng, subtotalForQuote).then(setQuote).catch(() => setQuote(null));
+  }, [deliveryCoords, subtotalForQuote]);
+
+  useEffect(() => {
+    if (cart && cart.items.length) trackEvent("InitiateCheckout", { value: parseFloat(cart.total) || 0, contents: cart.items.map(i => ({ id: i.product.id, quantity: i.quantity })) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart?.items.length]);
+
   if (cartLoading) {
     return <main className="bg-white min-h-[60vh] flex items-center justify-center"><p className="text-sm text-stone-400">Loading your bag…</p></main>;
   }
@@ -77,7 +96,7 @@ export default function CheckoutPage() {
 
   const subtotal = parseFloat(cart.total) || 0;
   const memberDiscount = mode === "member" ? Math.round(subtotal * MEMBER_DISCOUNT_PERCENT / 100) : 0;
-  const shippingFee = subtotal > 5000 ? 0 : 250;
+  const shippingFee = quote ? quote.fee : subtotal > 5000 ? 0 : 250;
   const total = Math.max(0, subtotal - discount - memberDiscount + shippingFee);
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
@@ -109,7 +128,6 @@ export default function CheckoutPage() {
   }
 
   function captureDeliveryLocation() {
-    setDeliveryCoords(null);
     setLocationMessage("");
     if (!navigator.geolocation) {
       setLocationMessage("Location is not available in this browser. You can still enter your address manually.");
@@ -127,17 +145,7 @@ export default function CheckoutPage() {
 
   function applyAddress(a: any) {
     setSelectedAddressId(a.id);
-    setDeliveryCoords(null);
-    setLocationMessage("");
     setForm(f => ({ ...f, shipping_name: a.full_name, shipping_phone: a.phone, shipping_address: a.address_line, shipping_city: a.city }));
-  }
-
-  function updateDeliveryAddress(field: "shipping_address" | "shipping_city", value: string) {
-    setForm(f => ({ ...f, [field]: value }));
-    if (deliveryCoords) {
-      setDeliveryCoords(null);
-      setLocationMessage("Address changed. Add a new delivery pin if needed.");
-    }
   }
 
   async function handlePlaceOrder() {
@@ -161,7 +169,12 @@ export default function CheckoutPage() {
         coupon_code: couponCode || undefined,
       };
       if (mode === "guest") payload.guest_email = email;
-      const order = await api.checkout(payload);
+      const order = await api.checkout(payload) as { order_number: string; payment?: { status: string; redirect_url?: string; message?: string } };
+      if (form.payment_method === "card" && order.payment?.redirect_url) {
+        try { await refreshCart(); } catch {}
+        window.location.href = order.payment.redirect_url;   // secure hosted card page (Stripe / Paystack)
+        return;
+      }
       // The order is already committed on the server; a failed cart refresh
       // must not make the shopper think checkout failed and submit twice.
       try { await refreshCart(); } catch {}
@@ -241,13 +254,13 @@ export default function CheckoutPage() {
                 <div className="space-y-3">
                   <input placeholder="Full name" value={form.shipping_name} onChange={e => setForm({ ...form, shipping_name: e.target.value })} className={inputClass} />
                   <input placeholder="Phone number" value={form.shipping_phone} onChange={e => setForm({ ...form, shipping_phone: e.target.value })} className={inputClass} />
-                  <input placeholder="Delivery address" value={form.shipping_address} onChange={e => updateDeliveryAddress("shipping_address", e.target.value)} className={inputClass} />
-                  <input placeholder="Town / City" value={form.shipping_city} onChange={e => updateDeliveryAddress("shipping_city", e.target.value)} className={inputClass} />
+                  <input placeholder="Delivery address" value={form.shipping_address} onChange={e => setForm({ ...form, shipping_address: e.target.value })} className={inputClass} />
+                  <input placeholder="Town / City" value={form.shipping_city} onChange={e => setForm({ ...form, shipping_city: e.target.value })} className={inputClass} />
                   <div className="flex flex-wrap items-center gap-3">
                     <button type="button" onClick={captureDeliveryLocation} className="border border-stone-300 rounded-full px-4 py-2 text-xs font-medium hover:border-black transition">
                       {deliveryCoords ? "Delivery pin saved" : "Use my location for delivery"}
                     </button>
-                    <span className="text-xs text-stone-500">{locationMessage || "Optional — improves live map accuracy."}</span>
+                    <span className="text-xs text-stone-500">{quote ? `${quote.eta} · nearest pickup: ${quote.pickup_point.name}` : (locationMessage || "Optional — gives an exact delivery fee, time and live map accuracy.")}</span>
                   </div>
                   <CouponField subtotal={subtotal} onApplied={(code, d) => { setCouponCode(code); setDiscount(d); }} />
                 </div>
@@ -257,7 +270,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { value: "mpesa", label: "M-Pesa", icon: Smartphone, disabled: false },
-                      { value: "card", label: "Card", icon: CreditCard, disabled: true },
+                      { value: "card", label: "Card", icon: CreditCard, disabled: !cardEnabled },
                       { value: "cod", label: "Cash on delivery", icon: Banknote, disabled: false },
                     ].map(opt => {
                       const Icon = opt.icon;
@@ -266,14 +279,11 @@ export default function CheckoutPage() {
                         <button key={opt.value} type="button" disabled={opt.disabled} onClick={() => !opt.disabled && setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200"} ${opt.disabled ? "cursor-not-allowed opacity-45" : "hover:border-stone-400"}`}>
                           <Icon size={18} strokeWidth={1.5} />
                           {opt.label}
-                          {opt.disabled && <span className="text-[9px] normal-case tracking-normal">Provider setup needed</span>}
+                          {opt.disabled && <span className="text-[9px] normal-case tracking-normal">Coming soon</span>}
                         </button>
                       );
                     })}
                   </div>
-                  <p className="mt-2 text-xs text-stone-500">
-                    Card payments are unavailable until Stripe and a Kenya-compatible backup gateway are configured. M-Pesa and cash on delivery remain available.
-                  </p>
                 </div>
                 {form.payment_method === "mpesa" ? (
                   <div className="mt-4 space-y-2">
@@ -286,6 +296,8 @@ export default function CheckoutPage() {
                     />
                     <p className="text-xs text-stone-500">We&apos;ll send an M-Pesa prompt to this number when you place the order. Enter your PIN to pay.</p>
                   </div>
+                ) : form.payment_method === "card" ? (
+                  <p className="mt-3 text-xs text-stone-500">You&apos;ll be taken to our secure payment page to pay with Visa, Mastercard or Amex. We never see or store your card details.</p>
                 ) : (
                   <p className="mt-3 text-xs text-stone-500">Pay in cash when your order arrives.</p>
                 )}
@@ -293,7 +305,7 @@ export default function CheckoutPage() {
                 {error && <p className="text-sm text-red-700 mt-4">{error}</p>}
 
                 <button onClick={handlePlaceOrder} disabled={placing || !form.shipping_name || !form.shipping_phone || !form.shipping_address} className="w-full mt-8 py-4 bg-black text-white text-[11px] uppercase tracking-widest font-medium hover:bg-stone-800 transition disabled:opacity-40">
-                  {placing ? "Placing Order…" : form.payment_method === "mpesa" ? `Pay with M-Pesa — ${formatPrice(total)}` : `Place Order — ${formatPrice(total)}`}
+                  {placing ? "Placing Order…" : form.payment_method === "mpesa" ? `Pay with M-Pesa — ${formatPrice(total)}` : form.payment_method === "card" ? `Pay by Card — ${formatPrice(total)}` : `Place Order — ${formatPrice(total)}`}
                 </button>
               </>
             )}

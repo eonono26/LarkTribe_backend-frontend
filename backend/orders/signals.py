@@ -6,13 +6,23 @@ from .models import Order
 @receiver(pre_save, sender=Order)
 def notify_on_status_change(sender, instance, **kwargs):
     """Order Tracking: push/email/in-app notification whenever admin/vendor changes status."""
-    if not instance.pk or not instance.user_id:
+    if not instance.pk:
         return
     try:
         previous = Order.objects.get(pk=instance.pk)
     except Order.DoesNotExist:
         return
     if previous.status == instance.status:
+        return
+    # WhatsApp Business update (works for guests too; no-op unless configured).
+    try:
+        import threading
+        from integrations.whatsapp import send_order_update, configured
+        if configured():  # network call: keep it off the request thread
+            threading.Thread(target=send_order_update, args=(instance, instance.get_status_display()), daemon=True).start()
+    except Exception:
+        pass
+    if not instance.user_id:
         return
     from notifications.utils import notify
     from notifications.models import Notification

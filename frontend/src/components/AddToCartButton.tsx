@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { apiErrorMessage } from "@/lib/api";
+import { trackEvent } from "@/lib/tracking";
 
 export default function AddToCartButton({
   productId,
@@ -43,6 +44,7 @@ export default function AddToCartButton({
           setError(null);
           try {
             await addItem(productId, quantity, variantId ?? null);
+            trackEvent("AddToCart", { id: productId, quantity });
           } catch (e) {
             setError(apiErrorMessage(e, "Couldn't add this to your bag. Please try again."));
           } finally {

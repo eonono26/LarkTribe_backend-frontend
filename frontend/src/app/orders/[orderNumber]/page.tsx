@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Circle, Download } from "lucide-react";
 import { api, mediaUrl } from "@/lib/api";
 import { useLocalization } from "@/lib/localization-context";
 import LiveDeliveryTracker from "@/components/LiveDeliveryTracker";
 import MpesaPaymentPanel from "@/components/MpesaPaymentPanel";
+import CardPaymentPanel from "@/components/CardPaymentPanel";
+import { trackEvent } from "@/lib/tracking";
 
 interface OrderItem {
   id: number;
@@ -31,6 +33,7 @@ interface OrderData {
   shipping_address: string;
   shipping_city: string;
   payment_method: string;
+  payment_provider?: string;
   shipping_phone?: string;
   mpesa_receipt?: string;
   created_at: string;
@@ -65,6 +68,7 @@ const STATUS_SUBCOPY: Record<string, string> = {
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const { formatPrice } = useLocalization();
+  const searchParams = useSearchParams();
   const [order, setOrder] = useState<OrderData | null>(null);
   const [ticketOpen, setTicketOpen] = useState(false);
   const [ticketMessage, setTicketMessage] = useState("");
@@ -77,6 +81,14 @@ export default function OrderTrackingPage() {
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
+
+  // One Purchase event per order, once it is actually paid.
+  useEffect(() => {
+    if (!order || order.status === "pending_payment" || order.status === "cancelled") return;
+    const key = `lt_purchase_${order.order_number}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch { /* ignore */ }
+    trackEvent("Purchase", { value: parseFloat(order.total), eventId: order.order_number, contents: order.items.map(i => ({ id: i.product_name, quantity: i.quantity, item_price: parseFloat(i.unit_price) })) });
+  }, [order]);
 
   async function submitTicket() {
     await api.openSupportTicket(`Return/refund request — ${orderNumber}`, ticketMessage);
@@ -124,6 +136,10 @@ export default function OrderTrackingPage() {
             defaultPhone={order.shipping_phone}
             onPaid={loadOrder}
           />
+        )}
+
+        {order.status === "pending_payment" && order.payment_method === "card" && (
+          <CardPaymentPanel orderNumber={order.order_number} returned={searchParams.get("card") === "return"} cancelled={searchParams.get("card") === "cancelled"} onPaid={loadOrder} />
         )}
 
         {!isCancelled && (

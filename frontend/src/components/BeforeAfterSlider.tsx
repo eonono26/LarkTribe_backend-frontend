@@ -1,69 +1,44 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { MoveHorizontal } from "lucide-react";
 
-/**
- * Drag-to-compare "Before / After" view (the try-on reference screens).
- * Both images are plain <img> because they are local blob/object URLs.
- */
-export default function BeforeAfterSlider({
-  before,
-  after,
-  beforeLabel = "Before",
-  afterLabel = "After",
-}: {
-  before: string;
-  after: string;
-  beforeLabel?: string;
-  afterLabel?: string;
-}) {
+/** Drag-to-compare slider (before = left, after = right). */
+export default function BeforeAfterSlider({ before, after, alt = "Try-on preview" }: { before: string; after: string; alt?: string }) {
   const [pos, setPos] = useState(50);
   const box = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
 
-  function moveTo(clientX: number) {
-    const el = box.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
+  const move = useCallback((clientX: number) => {
+    const r = box.current?.getBoundingClientRect();
+    if (!r) return;
     setPos(Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100)));
-  }
+  }, []);
 
   return (
     <div
       ref={box}
-      className="relative h-full w-full select-none overflow-hidden bg-stone-100 touch-none"
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        moveTo(e.clientX);
-      }}
-      onPointerMove={(e) => {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) moveTo(e.clientX);
-      }}
+      className="relative w-full aspect-[3/4] bg-stone-100 overflow-hidden select-none touch-pan-y"
+      onPointerDown={(e) => { dragging.current = true; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); move(e.clientX); }}
+      onPointerMove={(e) => dragging.current && move(e.clientX)}
+      onPointerUp={() => { dragging.current = false; }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={after} alt={afterLabel} draggable={false} className="absolute inset-0 h-full w-full object-contain" />
+      <img src={after} alt={`${alt} — after`} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
       <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={before} alt={beforeLabel} draggable={false} className="h-full w-full object-contain" />
+        <img src={before} alt={`${alt} — before`} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
       </div>
-
-      <span className="absolute left-3 top-3 bg-white/90 px-2 py-1 text-[10px] uppercase tracking-widest">{beforeLabel}</span>
-      <span className="absolute right-3 top-3 bg-black/80 px-2 py-1 text-[10px] uppercase tracking-widest text-white">{afterLabel}</span>
-
-      <div className="pointer-events-none absolute inset-y-0 w-px bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.25)]" style={{ left: `${pos}%` }}>
-        <span className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-stone-300 bg-white text-xs shadow">
-          ↔
-        </span>
+      <span className="absolute top-3 left-3 bg-black/60 text-white text-[10px] uppercase tracking-widest px-2 py-1">Before</span>
+      <span className="absolute top-3 right-3 bg-black/60 text-white text-[10px] uppercase tracking-widest px-2 py-1">After</span>
+      <div className="absolute top-0 bottom-0 w-px bg-white shadow" style={{ left: `${pos}%` }}>
+        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-black">
+          <MoveHorizontal size={16} />
+        </div>
       </div>
-
-      {/* Keyboard / screen-reader control for the same position */}
       <input
-        type="range"
-        min={0}
-        max={100}
-        value={Math.round(pos)}
-        onChange={(e) => setPos(Number(e.target.value))}
-        aria-label="Compare before and after"
-        className="sr-only"
+        type="range" min={0} max={100} value={pos} onChange={(e) => setPos(Number(e.target.value))}
+        aria-label="Compare before and after" className="sr-only"
       />
     </div>
   );

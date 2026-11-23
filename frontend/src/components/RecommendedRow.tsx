@@ -1,6 +1,7 @@
 // components/RecommendedRow.tsx
 "use client";
 
+import { PRODUCT_GRID } from "@/lib/layout";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ProductCard from "./ProductCard";
@@ -79,7 +80,7 @@ export default function RecommendedRow({
     return (
       <section className="py-8 lg:py-12">
         <h2 className="font-editorial text-2xl lg:text-3xl tracking-tight mb-2">{title}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-10">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="animate-pulse">
               <div className="bg-stone-100 aspect-square" />
@@ -107,7 +108,7 @@ export default function RecommendedRow({
           View All
         </Link>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-1 gap-y-3">
+      <div className={PRODUCT_GRID}>
         {products.slice(0, 12).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

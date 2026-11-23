@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCT_GRID } from "@/lib/layout";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
@@ -34,7 +35,7 @@ export default function ShopProductGrid({ initialProducts, totalCount, productPa
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-10">
+      <div className={PRODUCT_GRID}>
         {products.map(p => (
           <ProductCard key={p.id} product={p} />
         ))}

@@ -1,3 +1,4 @@
+import { PRODUCT_GRID } from "@/lib/layout";
 import ProductCard from "@/components/ProductCard";
 import { HeroBanner } from "@/components/Banner";
 import SaleTiers from "@/components/SaleTiers";
@@ -55,7 +56,7 @@ export default async function DealsPage({
         {products.length === 0 ? (
           <p className="text-neutral-500">No live deals right now — check back soon.</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div className={PRODUCT_GRID}>
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

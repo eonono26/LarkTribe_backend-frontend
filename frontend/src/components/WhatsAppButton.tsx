@@ -1,13 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { features } from "@/lib/features-api";
+
 // Floating WhatsApp "Stylist Concierge" button — styled to match the
 // approved Lark Tribe design's FloatingConciergeWidgets exactly: a green
 // pill that reveals its label on hover, stacked above the chat bubble.
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "254700000000";
+const ENV_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "254700000000";
 const DEFAULT_MESSAGE = "Hi Lark Tribe! I have a question about an order.";
 
 export default function WhatsAppButton() {
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;
+  const [number, setNumber] = useState(ENV_NUMBER);
+  useEffect(() => { features.publicConfig().then((c) => c.whatsapp_number && setNumber(c.whatsapp_number)).catch(() => {}); }, []);
+  const href = `https://wa.me/${number}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;
 
   return (
     <a

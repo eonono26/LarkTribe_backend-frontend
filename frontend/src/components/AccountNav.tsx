@@ -11,6 +11,7 @@ import {
   TicketPercent,
   UserRound,
   MessagesSquare,
+  Sparkles,
 } from "lucide-react";
 
 const LINKS = [
@@ -20,6 +21,7 @@ const LINKS = [
   { href: "/account/payment-methods", label: "Payment", icon: CreditCard },
   { href: "/account/coupons", label: "Coupons", icon: TicketPercent },
   { href: "/account/wishlist", label: "Wishlist", icon: Heart },
+  { href: "/account/looks", label: "My Looks", icon: Sparkles },
   { href: "/account/notifications", label: "Notifications", icon: Bell },
   { href: "/account/support", label: "Support", icon: MessagesSquare },
 ];

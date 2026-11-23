@@ -18,6 +18,8 @@ urlpatterns = [
     path("api/localization/", include("localization.urls")),
     path("api/delivery/", include("delivery.urls")),
     path("api/admin-panel/", include("adminpanel.urls")),
+    path("api/tryon/", include("tryon.urls")),
+    path("api/integrations/", include("integrations.urls")),
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
 

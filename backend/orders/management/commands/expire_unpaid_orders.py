@@ -33,4 +33,14 @@ class Command(BaseCommand):
             order.refresh_from_db()
             if order.status == Order.Status.PENDING_PAYMENT and cancel_unpaid_order(order):
                 cancelled += 1
+        # Card orders: hosted checkout sessions stay open longer, so allow 4x the M-Pesa window.
+        card_cutoff = timezone.now() - timedelta(minutes=settings.MPESA_ORDER_EXPIRY_MINUTES * 4)
+        for order in Order.objects.filter(
+            status=Order.Status.PENDING_PAYMENT, payment_method=Order.PaymentMethod.CARD, created_at__lt=card_cutoff,
+        ):
+            from orders import gateways
+            gateways.reconcile(order)  # a webhook may have been missed
+            order.refresh_from_db()
+            if order.status == Order.Status.PENDING_PAYMENT and cancel_unpaid_order(order):
+                cancelled += 1
         self.stdout.write(self.style.SUCCESS(f"Cancelled {cancelled} unpaid order(s)."))

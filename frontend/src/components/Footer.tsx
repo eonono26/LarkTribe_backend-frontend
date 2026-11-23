@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SocialLinks from "@/components/SocialLinks";
 
 const COLS = [
   {
@@ -47,6 +48,7 @@ export default function Footer() {
             <p className="text-sm text-white/60 mt-4 leading-relaxed">
               Family fashion, designed in Kenya.
             </p>
+            <SocialLinks className="mt-5" />
           </div>
           {COLS.map(col => (
             <div key={col.title}>

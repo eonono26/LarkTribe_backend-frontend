@@ -40,6 +40,9 @@ class Order(models.Model):
     shipping_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     coupon_code = models.CharField(max_length=32, blank=True)
     mpesa_receipt = models.CharField(max_length=64, blank=True)
+    # Card payments (Stripe / Paystack): which gateway took the payment and its reference.
+    payment_provider = models.CharField(max_length=20, blank=True)
+    payment_reference = models.CharField(max_length=120, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

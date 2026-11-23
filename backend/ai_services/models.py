@@ -77,22 +77,3 @@ class FraudSignal(models.Model):
     flagged = models.BooleanField(default=False)
     reviewed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
-
-class SavedLook(models.Model):
-    """A try-on preview the signed-in shopper explicitly chose to keep.
-
-    Generated previews are NOT stored automatically; the client posts the
-    image here only when the shopper taps "Save look" (see TryOnView).
-    """
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="saved_looks")
-    product = models.ForeignKey("catalog.Product", on_delete=models.CASCADE, related_name="saved_looks")
-    color = models.CharField(max_length=40, blank=True)
-    image = models.ImageField(upload_to="looks/")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"Look of {self.product_id} for user {self.user_id}"

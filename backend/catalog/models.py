@@ -779,6 +779,17 @@ class Product(models.Model):
         help_text="Optional care/washing instructions shown under Materials & Care.",
     )
 
+    # 3D / 360 presentation (Proposal item 3). Both optional: products without
+    # them simply show the normal photo gallery.
+    model_3d = models.FileField(
+        upload_to="products/3d/", null=True, blank=True,
+        help_text="Optional .glb / .gltf 3D model shown in the interactive 3D viewer.",
+    )
+    model_3d_poster = models.ImageField(
+        upload_to="products/3d/", null=True, blank=True,
+        help_text="Static fallback image shown while the 3D model loads, or on devices that cannot render it.",
+    )
+
     size_guide = models.ForeignKey(
         "SizeGuide",
         on_delete=models.SET_NULL,
@@ -1105,3 +1116,20 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.product.name}"
+
+
+class ProductSpinFrame(models.Model):
+    """One frame of a 360-degree turntable set. Upload 12-36 evenly spaced photos
+    (front -> around -> front) per colour; the storefront viewer scrubs them as
+    the shopper drags."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="spin_frames")
+    color = models.CharField(max_length=40, blank=True, help_text="Colour this set belongs to. Blank = all colours.")
+    order = models.PositiveIntegerField(default=0, help_text="Position in the rotation, lowest first.")
+    image = models.ImageField(upload_to="products/360/")
+
+    class Meta:
+        ordering = ["color", "order", "id"]
+
+    def __str__(self):
+        return f"{self.product_id} 360 frame {self.order}"

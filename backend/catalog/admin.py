@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html, format_html_join
 from django.db.models import Count
 from .models import (
+    ProductSpinFrame,
     Department, Category, Brand, BrandMedia, Product, ProductImage,
     ProductVariant, Review, Wishlist, DepartmentMedia, CategoryMedia,
     AgeGroup, AgeGroupMedia, SizeGuide
@@ -131,6 +132,16 @@ class ProductImageInline(admin.TabularInline):
         return ProductImageFormSetWithParent
 
 
+class ProductSpinFrameInline(admin.TabularInline):
+    """360-degree turntable frames (12-36 evenly spaced photos per colour)."""
+    model = ProductSpinFrame
+    extra = 0
+    fields = ["color", "order", "image"]
+    ordering = ["color", "order", "id"]
+    verbose_name = "360 frame"
+    verbose_name_plural = "360 viewer frames (optional) - turntable photos, lowest order first"
+
+
 class ProductVariantInline(admin.TabularInline):
     """Inline editor for product variants"""
     model = ProductVariant
@@ -149,12 +160,16 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ['price', 'stock', 'status', 'is_featured']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at', 'rating_avg', 'rating_count', 'photo_gallery_summary']
-    inlines = [ProductImageInline, ProductVariantInline]
+    inlines = [ProductImageInline, ProductSpinFrameInline, ProductVariantInline]
     filter_horizontal = ['age_groups']
     actions = ["approve_products", "reject_products"]
     fieldsets = (
         ('Basic Information', {
             'fields': ('vendor', 'category', 'brand', 'name', 'slug', 'description', 'features'),
+        }),
+        ('3D model (optional)', {
+            'fields': ('model_3d', 'model_3d_poster'),
+            'description': 'Upload a .glb model for the interactive 3D viewer. For a 360 photo spin, use the 360 frames section below instead.',
         }),
         ('Materials, Care & Sizing', {
             'fields': ('materials', 'care_instructions', 'size_guide'),

@@ -3,15 +3,15 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import views, permissions, generics, status
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-from django.http import HttpResponse
+from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import MultiPartParser
 from catalog.models import Product
 from catalog.serializers import ProductListSerializer
 from orders.models import Order
 from notifications.models import SupportTicket
-from .engines import tryon, sizing, recommendations, search as search_engine, chatbot, pricing, forecasting, segmentation, fraud, marketing
-from .models import ChatSession, ChatMessage, CustomerSegment, FraudSignal, SavedLook
-from .serializers import ChatMessageSerializer, ChatAskSerializer, CustomerSegmentSerializer, FraudSignalSerializer, SavedLookSerializer
+from .engines import recommendations, search as search_engine, chatbot, pricing, forecasting, segmentation, fraud, marketing
+from .models import ChatSession, ChatMessage, CustomerSegment, FraudSignal
+from .serializers import ChatMessageSerializer, ChatAskSerializer, CustomerSegmentSerializer, FraudSignalSerializer
 
 
 class IsAdminUser(permissions.BasePermission):
@@ -293,90 +293,34 @@ class ScoreOrderFraudView(views.APIView):
         )
         return Response(FraudSignalSerializer(signal).data)
 
-# ---------- Virtual try-on (proposal item 1) ----------
-
-class TryOnView(views.APIView):
-    """
-    POST multipart: photo (file), product_id, consent=true, optional color.
-
-    The shopper's photo is validated, processed in memory and never stored.
-    Returns the generated preview image bytes. 503 {"code": "not_configured"}
-    until an AI provider is approved and configured (see engines/tryon.py).
-    """
+class SizeRecommendationView(views.APIView):
+    """POST {product_id, height_cm?, chest_cm?, waist_cm?, hips_cm?, weight_kg?, age_months?, foot_cm?} -> suggested size.
+    Guidance only; the response always carries a no-guarantee disclaimer."""
     permission_classes = [permissions.AllowAny]
-    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        if str(request.data.get("consent", "")).lower() not in {"true", "1", "yes", "on"}:
-            return Response({"detail": "Photo permission must be confirmed."}, status=status.HTTP_400_BAD_REQUEST)
-        photo = request.FILES.get("photo")
-        if not photo:
-            return Response({"detail": "photo file is required"}, status=status.HTTP_400_BAD_REQUEST)
-        if not tryon.is_configured():
-            return Response(
-                {"code": "not_configured", "detail": "AI try-on is not enabled yet."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        product = get_object_or_404(Product, id=request.data.get("product_id"))
-        color = (request.data.get("color") or "").strip()
-        images = product.images.all()
-        garment = (images.filter(color__iexact=color).first() if color else None) or images.first()
-        if not garment:
-            return Response({"detail": "This product has no photo to try on."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            person = tryon.normalise_photo(photo.read())
-            with garment.image.open("rb") as fh:
-                result = tryon.generate(person, fh.read(), product.name)
-        except tryon.InvalidPhoto as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except tryon.NotConfigured:
-            return Response({"code": "not_configured", "detail": "AI try-on is not enabled yet."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        except tryon.ProviderError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
-        resp = HttpResponse(result, content_type="image/jpeg")
-        resp["Cache-Control"] = "no-store"
-        return resp
+        from catalog.models import Product
+        from .engines import size as size_engine
 
+        product = Product.objects.filter(pk=request.data.get("product_id"), status=Product.Status.ACTIVE).first()
+        if not product:
+            return Response({"detail": "Unknown product."}, status=status.HTTP_404_NOT_FOUND)
 
-class SavedLookListCreateView(generics.ListCreateAPIView):
-    """Saved looks live in the customer's profile; only created on explicit save."""
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = SavedLookSerializer
-    parser_classes = [MultiPartParser, FormParser]
-    pagination_class = None
-
-    def get_queryset(self):
-        return SavedLook.objects.filter(user=self.request.user).select_related("product")
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class SavedLookDetailView(generics.DestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return SavedLook.objects.filter(user=self.request.user)
-
-
-class SizeRecommendationView(views.APIView):
-    """Guidance only: matches measurements against the product's size chart."""
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        product = get_object_or_404(Product, id=request.query_params.get("product_id"))
-        guide = product.size_guide
-        if not guide:
-            return Response({"size": None, "detail": "This product has no size chart yet."})
-
-        def num(name):
-            try:
-                return float(request.query_params.get(name, ""))
-            except ValueError:
+        def num(key, lo, hi):
+            raw = request.data.get(key)
+            if raw in (None, ""):
                 return None
+            try:
+                val = float(raw)
+            except (TypeError, ValueError):
+                raise ValidationError({key: "Must be a number."})
+            if not lo <= val <= hi:
+                raise ValidationError({key: f"Must be between {lo} and {hi}."})
+            return val
 
-        result = sizing.recommend(
-            guide.columns, guide.rows,
-            height_cm=num("height_cm"), weight_kg=num("weight_kg"), age_years=num("age_years"),
-        )
-        return Response(result)
+        m = {
+            "height": num("height_cm", 40, 230), "chest": num("chest_cm", 30, 180), "waist": num("waist_cm", 30, 180),
+            "hips": num("hips_cm", 30, 200), "weight": num("weight_kg", 2, 250), "age": num("age_months", 0, 18 * 12),
+            "foot": num("foot_cm", 8, 35),
+        }
+        return Response(size_engine.recommend(product, m))

@@ -817,6 +817,11 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    spin_frames = serializers.SerializerMethodField()
+    model_3d_url = serializers.SerializerMethodField()
+    model_3d_poster_url = serializers.SerializerMethodField()
+    has_360 = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
 
@@ -825,6 +830,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "name",
             "slug",
             "description",
+            "spin_frames",
+            "model_3d_url",
+            "model_3d_poster_url",
+            "has_360",
             "features",
             "materials",
             "care_instructions",
@@ -870,6 +879,26 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
             "age_groups",
         ]
+
+    def _abs(self, f):
+        if not f:
+            return None
+        request = self.context.get("request")
+        url = f.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_spin_frames(self, obj):
+        # [{color, url}] ordered for the 360 viewer.
+        return [{"color": fr.color, "url": self._abs(fr.image)} for fr in obj.spin_frames.all()]
+
+    def get_has_360(self, obj):
+        return obj.spin_frames.exists() or bool(obj.model_3d)
+
+    def get_model_3d_url(self, obj):
+        return self._abs(obj.model_3d)
+
+    def get_model_3d_poster_url(self, obj):
+        return self._abs(obj.model_3d_poster)
 
     def get_available_sizes(self, obj):
         sizes = (

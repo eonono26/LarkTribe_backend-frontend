@@ -1,0 +1,63 @@
+"use client";
+
+import { createElement, useEffect, useState } from "react";
+
+const SRC = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
+let scriptPromise: Promise<void> | null = null;
+
+function loadModelViewer(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.customElements?.get("model-viewer")) return Promise.resolve();
+  scriptPromise ??= new Promise<void>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.type = "module";
+    s.src = SRC;
+    s.onload = () => resolve();
+    s.onerror = () => { scriptPromise = null; reject(new Error("3D viewer failed to load")); };
+    document.head.appendChild(s);
+  });
+  return scriptPromise;
+}
+
+/**
+ * Interactive 3D model (.glb) with an AR button on supported phones.
+ * Falls back to the static poster on slow connections / unsupported devices.
+ */
+export default function Model3DViewer({ src, poster, alt }: { src: string; poster?: string | null; alt: string }) {
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    // Respect Data Saver / very slow connections: show the poster only.
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (conn?.saveData || conn?.effectiveType === "2g" || conn?.effectiveType === "slow-2g") { setFailed(true); return; }
+    loadModelViewer().then(() => setReady(true)).catch(() => setFailed(true));
+  }, []);
+
+  if (failed || !ready) {
+    return (
+      <div className="relative aspect-[3/4] bg-stone-50 flex items-center justify-center overflow-hidden">
+        {poster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt={alt} className="absolute inset-0 w-full h-full object-contain" />
+        ) : null}
+        <span className="relative text-[11px] uppercase tracking-widest text-stone-500 bg-white/80 px-3 py-1.5">
+          {failed ? "3D view unavailable on this connection" : "Loading 3D…"}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-[3/4] bg-stone-50">
+      {createElement("model-viewer", {
+        src, poster: poster || undefined, alt, "camera-controls": "", "auto-rotate": "", "shadow-intensity": "1",
+        ar: "", "ar-modes": "webxr scene-viewer quick-look", "touch-action": "pan-y", loading: "lazy",
+        style: { width: "100%", height: "100%", background: "transparent" },
+      } as Record<string, unknown>)}
+      <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-3 py-1.5 whitespace-nowrap pointer-events-none">
+        Drag to rotate · Pinch to zoom
+      </span>
+    </div>
+  );
+}

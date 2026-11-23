@@ -1,3 +1,4 @@
+import { PRODUCT_GRID } from "@/lib/layout";
 import Link from "next/link";
 import { api, mediaUrl } from "@/lib/api";
 import type {
@@ -9,9 +10,10 @@ import type {
 } from "@/lib/types";
 import HeroCarousel from "@/components/HeroCarousel";
 import ProductCard from "@/components/ProductCard";
-import ShowroomStage from "@/components/ShowroomStage";
 import RecommendedRow from "@/components/RecommendedRow";
 import VideoShowcase from "@/components/VideoShowcase";
+import Tilt3DShowcase from "@/components/Tilt3DShowcase";
+import PopularNearYou from "@/components/PopularNearYou";
 
 const FALLBACK_IMG = {
   hero: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop",
@@ -431,7 +433,7 @@ export default async function Home() {
 
           </div>
 
-          <div className="grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-2">
+          <div className={PRODUCT_GRID}>
 
             {products
               .slice(0, 12)
@@ -447,8 +449,11 @@ export default async function Home() {
         </section>
       )}
 
-      {/* 3D SHOWROOM */}
-      <ShowroomStage products={products} />
+      {/* 3D COLLECTION SHOWCASE */}
+      <Tilt3DShowcase products={products} />
+
+      {/* POPULAR NEAR YOU */}
+      <PopularNearYou />
 
       {/* WATCH & SHOP */}
       <section className="py-2 lg:py-4">

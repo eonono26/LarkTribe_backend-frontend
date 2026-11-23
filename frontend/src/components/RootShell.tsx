@@ -9,6 +9,8 @@ import Footer from "@/components/Footer";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import BackToTop from "@/components/BackToTop";
+import MarketingScripts from "@/components/MarketingScripts";
+import ConsentBanner from "@/components/ConsentBanner";
 
 /**
  * Wraps every page in the storefront chrome (header, footer, cart, chatbot) —
@@ -28,6 +30,8 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
         <ChatbotWidget />
         <WhatsAppButton />
         <BackToTop />
+        <MarketingScripts />
+        <ConsentBanner />
       </CartProvider>
     </LocalizationProvider>
   );

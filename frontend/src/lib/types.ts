@@ -173,6 +173,11 @@ export interface ProductDetail extends Omit<ProductListItem, "image"> {
   materials?: string;
   care_instructions?: string;
   size_guide?: SizeGuide | null;
+  // 360 / 3D presentation (optional per product)
+  has_360?: boolean;
+  spin_frames?: { color: string; url: string }[];
+  model_3d_url?: string | null;
+  model_3d_poster_url?: string | null;
   stock: number;
   sku: string;
   status: string;

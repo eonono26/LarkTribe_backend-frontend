@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     "localization",
     "delivery",
     "adminpanel",
+    "tryon",
+    "integrations",
 ]
 
 MIDDLEWARE = [
@@ -200,3 +202,66 @@ MPESA_CALLBACK_BASE_URL = os.environ.get("MPESA_CALLBACK_BASE_URL", "")
 MPESA_CALLBACK_TOKEN = os.environ.get("MPESA_CALLBACK_TOKEN", "change-me-callback-token")
 # Unpaid M-Pesa orders hold stock; the expire_unpaid_orders command releases them after this.
 MPESA_ORDER_EXPIRY_MINUTES = int(os.environ.get("MPESA_ORDER_EXPIRY_MINUTES", "30"))
+
+
+# ---------------------------------------------------------------------------
+# Public storefront URL (used for payment return URLs and share links)
+# ---------------------------------------------------------------------------
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+
+# ---------------------------------------------------------------------------
+# AI Virtual Try-On (Proposal item 1)
+#   TRYON_PROVIDER = "gemini" (Google image model, needs GEMINI_API_KEY) or
+#                    "mock"   (Pillow composite, for local dev - no key needed).
+#   Defaults to gemini when a key is present, otherwise mock.
+# Privacy: customers must consent per request; the uploaded photo is deleted as
+# soon as the preview is generated (TRYON_KEEP_SOURCE=0) and unsaved previews
+# are purged after TRYON_RETENTION_DAYS (run `manage.py purge_tryon` daily).
+# ---------------------------------------------------------------------------
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+TRYON_PROVIDER = os.environ.get("TRYON_PROVIDER", "gemini" if GEMINI_API_KEY else "mock")
+TRYON_GEMINI_MODEL = os.environ.get("TRYON_GEMINI_MODEL", "gemini-2.5-flash-image")
+TRYON_RETENTION_DAYS = int(os.environ.get("TRYON_RETENTION_DAYS", "30"))
+TRYON_KEEP_SOURCE = os.environ.get("TRYON_KEEP_SOURCE", "0") == "1"
+TRYON_DAILY_LIMIT = int(os.environ.get("TRYON_DAILY_LIMIT", "10"))
+TRYON_MAX_UPLOAD_MB = int(os.environ.get("TRYON_MAX_UPLOAD_MB", "8"))
+# Pilot rollout: only products in these category slugs / flagged ids can be tried on.
+# Empty = every product is eligible.
+TRYON_PILOT_PRODUCT_IDS = [int(x) for x in os.environ.get("TRYON_PILOT_PRODUCT_IDS", "").split(",") if x.strip().isdigit()]
+
+# ---------------------------------------------------------------------------
+# Card payments (Proposal item 7): Stripe primary, Paystack backup (works fully in Kenya)
+#   CARD_PROVIDERS  - comma list in priority order; a provider is only offered
+#                     when its secret key is set.
+# Webhooks to register in each dashboard:
+#   Stripe   -> <backend>/api/orders/webhooks/stripe/
+#   Paystack -> <backend>/api/orders/webhooks/paystack/
+# ---------------------------------------------------------------------------
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_CURRENCY = os.environ.get("STRIPE_CURRENCY", "kes").lower()
+PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
+PAYSTACK_CURRENCY = os.environ.get("PAYSTACK_CURRENCY", "KES").upper()
+CARD_PROVIDERS = [p.strip() for p in os.environ.get("CARD_PROVIDERS", "stripe,paystack").split(",") if p.strip()]
+
+# ---------------------------------------------------------------------------
+# Social / marketing (Proposal item 4) - exposed to the storefront via
+# /api/integrations/public-config/. Leave blank to disable.
+# ---------------------------------------------------------------------------
+META_PIXEL_ID = os.environ.get("META_PIXEL_ID", "")
+TIKTOK_PIXEL_ID = os.environ.get("TIKTOK_PIXEL_ID", "")
+WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "")  # international, digits only e.g. 254712345678
+SOCIAL_INSTAGRAM_URL = os.environ.get("SOCIAL_INSTAGRAM_URL", "")
+SOCIAL_FACEBOOK_URL = os.environ.get("SOCIAL_FACEBOOK_URL", "")
+SOCIAL_TIKTOK_URL = os.environ.get("SOCIAL_TIKTOK_URL", "")
+# Secret in the product-feed URL so Meta/TikTok can pull the catalogue without it being public-guessable.
+FEED_TOKEN = os.environ.get("FEED_TOKEN", "")
+
+# WhatsApp Business Cloud API - order updates (optional). Free-form text only
+# reaches customers who messaged you in the last 24h; for proactive updates
+# create an approved template and set WHATSAPP_TEMPLATE_NAME (body: 2 params
+# = order number, status).
+WHATSAPP_CLOUD_TOKEN = os.environ.get("WHATSAPP_CLOUD_TOKEN", "")
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_TEMPLATE_NAME = os.environ.get("WHATSAPP_TEMPLATE_NAME", "")
+WHATSAPP_TEMPLATE_LANG = os.environ.get("WHATSAPP_TEMPLATE_LANG", "en")

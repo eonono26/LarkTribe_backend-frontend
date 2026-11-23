@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ImageOff, Star } from "lucide-react";
+import TryOnButton from "@/components/TryOnButton";
+import { trackEvent } from "@/lib/tracking";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
 import { api, apiErrorMessage } from "@/lib/api";
@@ -218,6 +220,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     setAddError(null);
     try {
       await addItem(id, 1, resolvedVariantId);
+      trackEvent("AddToCart", { id, name, value: numericPrice });
     } catch (err) {
       setAddError(apiErrorMessage(err, "Couldn't add this to your bag."));
     } finally {
@@ -240,7 +243,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         onClick={() => api.track("click", { product: id })}
       >
         {/* Image */}
-        <div className="relative w-full aspect-square bg-stone-50 overflow-hidden">
+        <div className="relative w-full aspect-[4/5] bg-stone-50 overflow-hidden">
           {!hasCurrentImageError ? (
             <Image
               key={currentImageKey}
@@ -248,7 +251,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               alt={name}
               fill
               className="object-cover transition-opacity duration-300"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
               onError={handleImageError}
               unoptimized={finalImage.startsWith("data:")}
             />
@@ -329,39 +332,27 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             )}
           </div>
           <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{name}</h3>
-          <div
-            className="mt-1 flex h-4 items-center gap-1 text-[11px] text-stone-500"
-            aria-label={rating_count > 0 ? `Rated ${ratingValue.toFixed(1)} out of 5 from ${rating_count} reviews` : "No reviews yet"}
-          >
-            {rating_count > 0 ? (
-              <>
-                <Star size={12} className="fill-espresso text-espresso" aria-hidden />
-                <span className="text-espresso">{ratingValue.toFixed(1)}</span>
-                <span>({rating_count})</span>
-              </>
-            ) : (
-              <span className="text-stone-400">No reviews yet</span>
-            )}
-          </div>
+          {rating_count > 0 && (
+            <div className="flex items-center gap-1 mt-0.5" aria-label={`Rated ${ratingValue.toFixed(1)} out of 5`}>
+              <Star size={11} className="fill-espresso text-espresso" />
+              <span className="text-[11px] text-stone-600">{ratingValue.toFixed(1)}</span>
+              <span className="text-[11px] text-stone-400">({rating_count})</span>
+            </div>
+          )}
         </div>
       </Link>
 
-      {/* Per-card actions: Try It On opens the product page's try-on studio. */}
+      {/* Persistent actions: Try it on / Add to cart */}
       {isInStock && (
         <div className="grid grid-cols-2 gap-1.5 px-3 pb-3">
-          <Link
-            href={`/product/${slug}?${selectedColor ? `color=${encodeURIComponent(selectedColor)}&` : ""}tryon=1`}
-            className="flex items-center justify-center border border-stone-300 py-2 text-[10px] uppercase tracking-wider text-espresso transition hover:border-black"
-          >
-            Try It On
-          </Link>
+          <TryOnButton product={{ id, name, slug, colors }} color={selectedColor} label="Try on" />
           <button
             type="button"
             onClick={handlePrimaryAction}
             disabled={adding}
-            className="bg-black py-2 text-[10px] uppercase tracking-wider text-white transition hover:bg-stone-800 disabled:opacity-60"
+            className="py-2 bg-black text-white text-[10px] uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-60"
           >
-            {adding ? "Adding…" : (<><span className="sm:hidden">Add</span><span className="hidden sm:inline">Add to Cart</span></>)}
+            {adding ? "Adding…" : canQuickAdd ? "Add to cart" : "Select size"}
           </button>
         </div>
       )}

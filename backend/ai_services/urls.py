@@ -8,9 +8,6 @@ urlpatterns = [
     path("products/<int:product_id>/frequently-bought-together/", views.FrequentlyBoughtTogetherView.as_view(), name="ai-fbt"),
     path("search/", views.SmartSearchView.as_view(), name="ai-smart-search"),
     path("image-search/", views.ImageSearchView.as_view(), name="ai-image-search"),
-    path("try-on/", views.TryOnView.as_view(), name="ai-try-on"),
-    path("saved-looks/", views.SavedLookListCreateView.as_view(), name="ai-saved-looks"),
-    path("saved-looks/<int:pk>/", views.SavedLookDetailView.as_view(), name="ai-saved-look-detail"),
     path("size-recommendation/", views.SizeRecommendationView.as_view(), name="ai-size-recommendation"),
     path("chatbot/", views.ChatbotView.as_view(), name="ai-chatbot"),
 
