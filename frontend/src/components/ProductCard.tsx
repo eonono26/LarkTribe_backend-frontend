@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ImageOff } from "lucide-react";
+import { Heart, ImageOff, Star } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
 import { api, apiErrorMessage } from "@/lib/api";
@@ -56,7 +56,10 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     color_images = {},
     color_variant_ids = {},
     needs_size = false,
+    rating_avg,
+    rating_count = 0,
   } = product;
+  const ratingValue = Number(rating_avg) || 0;
 
   const numericPrice = Number(price) || 0;
   const numericComparePrice = compare_at_price != null ? Number(compare_at_price) || 0 : null;
@@ -290,25 +293,6 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             <Heart size={16} className={isWishlisted ? "fill-espresso" : ""} />
           </button>
 
-          {/* Primary action — center overlay on hover: "Quick add" straight to
-              the bag when the selected color/size resolves to a real variant,
-              else "Quick view" so the shopper can finish picking options. */}
-          {isInStock && (
-            <div
-              className={`absolute inset-x-0 bottom-0 flex items-center justify-center pb-0 bg-white/0 transition-opacity duration-200 ${
-                isHovering ? "opacity-100" : "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={handlePrimaryAction}
-                disabled={adding}
-                className="w-full bg-white/90 py-2 text-[11px] uppercase tracking-widest text-espresso hover:bg-white transition-colors disabled:opacity-60"
-              >
-                {adding ? "Adding…" : canQuickAdd ? "Quick add" : "Quick view"}
-              </button>
-            </div>
-          )}
         </div>
         {/* Compact, aligned colour selector — choosing a swatch updates the product image */}
         {colors.length > 0 && (
@@ -344,9 +328,43 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               <span className="text-md text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
             )}
           </div>
-          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1 mb-2">{name}</h3>
+          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{name}</h3>
+          <div
+            className="mt-1 flex h-4 items-center gap-1 text-[11px] text-stone-500"
+            aria-label={rating_count > 0 ? `Rated ${ratingValue.toFixed(1)} out of 5 from ${rating_count} reviews` : "No reviews yet"}
+          >
+            {rating_count > 0 ? (
+              <>
+                <Star size={12} className="fill-espresso text-espresso" aria-hidden />
+                <span className="text-espresso">{ratingValue.toFixed(1)}</span>
+                <span>({rating_count})</span>
+              </>
+            ) : (
+              <span className="text-stone-400">No reviews yet</span>
+            )}
+          </div>
         </div>
       </Link>
+
+      {/* Per-card actions: Try It On opens the product page's try-on studio. */}
+      {isInStock && (
+        <div className="grid grid-cols-2 gap-1.5 px-3 pb-3">
+          <Link
+            href={`/product/${slug}?${selectedColor ? `color=${encodeURIComponent(selectedColor)}&` : ""}tryon=1`}
+            className="flex items-center justify-center border border-stone-300 py-2 text-[10px] uppercase tracking-wider text-espresso transition hover:border-black"
+          >
+            Try It On
+          </Link>
+          <button
+            type="button"
+            onClick={handlePrimaryAction}
+            disabled={adding}
+            className="bg-black py-2 text-[10px] uppercase tracking-wider text-white transition hover:bg-stone-800 disabled:opacity-60"
+          >
+            {adding ? "Adding…" : (<><span className="sm:hidden">Add</span><span className="hidden sm:inline">Add to Cart</span></>)}
+          </button>
+        </div>
+      )}
 
       
       {addError && (

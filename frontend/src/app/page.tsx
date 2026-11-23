@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import HeroCarousel from "@/components/HeroCarousel";
 import ProductCard from "@/components/ProductCard";
+import ShowroomStage from "@/components/ShowroomStage";
 import RecommendedRow from "@/components/RecommendedRow";
 import VideoShowcase from "@/components/VideoShowcase";
 
@@ -430,10 +431,10 @@ export default async function Home() {
 
           </div>
 
-          <div className="grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 lg:gap-x-2">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-2">
 
             {products
-              .slice(0, 9)
+              .slice(0, 12)
               .map((product) => (
                 <ProductCard
                   key={product.id}
@@ -445,6 +446,9 @@ export default async function Home() {
 
         </section>
       )}
+
+      {/* 3D SHOWROOM */}
+      <ShowroomStage products={products} />
 
       {/* WATCH & SHOP */}
       <section className="py-2 lg:py-4">

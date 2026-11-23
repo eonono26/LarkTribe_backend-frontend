@@ -17,7 +17,7 @@ const SECTIONS = [
   },
   {
     title: "5. Virtual styling photos",
-    body: "Photos selected for virtual styling are previewed on your device only and are not uploaded or processed. If a virtual try-on provider is added later, we will disclose its privacy and retention terms and request your consent before sending a photo.",
+    body: "Virtual try-on only starts after you confirm you have permission to use the photo. When try-on is switched on, your photo is sent to our try-on service to create a preview, is processed in memory and is not stored. A generated look is kept only if you choose Save look, and you can delete saved looks at any time. Size guidance is a suggestion, not a guarantee of fit.",
   },
   {
     title: "6. Your choices",

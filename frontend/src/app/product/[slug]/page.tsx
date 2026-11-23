@@ -11,9 +11,10 @@ import ReviewForm from "@/components/ReviewForm";
 import RecommendedRow from "@/components/RecommendedRow";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import VirtualTryOn from "@/components/VirtualTryOn";
+import Product360Viewer, { type Frame } from "@/components/Product360Viewer";
 import SizeGuideModal from "@/components/SizeGuideModal";
 import ColorSwatch from "@/components/ColorSwatch";
-import { colorsOf, colorStock, findVariant, imagesForColor, initialColor, pickSize, sizesForColor } from "@/lib/variants";
+import { colorsOf, colorStock, findVariant, galleryForColor, imagesForColor, initialColor, pickSize, sizesForColor } from "@/lib/variants";
 import { notFound } from "next/navigation";
 import type { ProductDetail, ProductListItem } from "@/lib/types";
 
@@ -84,6 +85,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const sizeOptions = sizesForColor(variants, color);
   const matched = findVariant(variants, color, size);
   const images = imagesForColor(product.images || [], color);
+  // 360° view: only real multi-angle photos of the selected colour (never faked).
+  const ANGLE_ORDER = ["front", "side", "back", "other"];
+  const frames: Frame[] = galleryForColor(product.images || [], color, product.color_galleries)
+    .filter((i) => ANGLE_ORDER.includes(i.view))
+    .sort((a, b) => ANGLE_ORDER.indexOf(a.view) - ANGLE_ORDER.indexOf(b.view))
+    .map((i) => ({ url: mediaUrl(i.image), label: i.view_display || i.view.charAt(0).toUpperCase() + i.view.slice(1) }));
   const requiresSelection = variants.length > 0 && !matched;
   const stockLeft = matched ? matched.stock : product.stock;
   const inStock = stockLeft > 0;
@@ -215,9 +222,34 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 requiresSelection={requiresSelection}
                 fullWidth
               />
+              <Product360Viewer
+                productName={product.name}
+                frames={frames}
+                colors={colors}
+                color={color}
+                onColorChange={selectColor}
+                sizes={sizeOptions.map((o) => o.size)}
+                size={size}
+                onSizeChange={setSize}
+                priceLabel={`KES ${numericPrice.toLocaleString("en-KE")}`}
+              />
               <VirtualTryOn
+                productId={product.id}
                 productName={product.name}
                 productImageUrl={mediaUrl(images[0]?.image ?? null)}
+                selectedColor={color}
+                hasSizeGuide={!!product.size_guide}
+                colors={colors.map((c) => ({
+                  id: c,
+                  name: c,
+                  color: c,
+                  imageUrl: mediaUrl(imagesForColor(product.images || [], c)[0]?.image ?? null) || null,
+                }))}
+                suggestions={[...similar, ...fbt].slice(0, 8).map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  imageUrl: p.image ? mediaUrl(p.image) : null,
+                }))}
               />
 
               <p className="text-[11px] text-stone-500">
