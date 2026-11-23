@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Storefront feature readiness
+
+- Product pages include a virtual try-on photo-selection flow. Selected
+  images are only previewed in the browser; they are not sent to a service
+  until an AI provider and its privacy/retention terms are approved and
+  configured.
+- Product and recommendation grids use two columns on mobile, three on
+  smaller tablets, four at desktop/tablet widths, and six on desktop screens.
+- Existing M-Pesa and cash-on-delivery checkout remain available. Card
+  checkout, social catalogue sync/ad pixels, and generated try-on previews
+  remain gated until their provider accounts and credentials are configured.
+- Existing product galleries are the fallback until 360-degree photography
+  or optimized 3D assets are supplied.
+
 ## Getting Started
 
 First, run the development server:

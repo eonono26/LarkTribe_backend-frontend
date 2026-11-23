@@ -3,13 +3,14 @@
 import { use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 import PriceTag from "@/components/PriceTag";
 import AddToCartButton from "@/components/AddToCartButton";
 import WishlistButton from "@/components/WishlistButton";
 import ReviewForm from "@/components/ReviewForm";
 import RecommendedRow from "@/components/RecommendedRow";
 import ProductImageGallery from "@/components/ProductImageGallery";
+import VirtualTryOn from "@/components/VirtualTryOn";
 import SizeGuideModal from "@/components/SizeGuideModal";
 import ColorSwatch from "@/components/ColorSwatch";
 import { colorsOf, colorStock, findVariant, imagesForColor, initialColor, pickSize, sizesForColor } from "@/lib/variants";
@@ -213,6 +214,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 quantity={qty}
                 requiresSelection={requiresSelection}
                 fullWidth
+              />
+              <VirtualTryOn
+                productName={product.name}
+                productImageUrl={mediaUrl(images[0]?.image ?? null)}
               />
 
               <p className="text-[11px] text-stone-500">

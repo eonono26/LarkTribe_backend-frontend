@@ -109,6 +109,7 @@ export default function CheckoutPage() {
   }
 
   function captureDeliveryLocation() {
+    setDeliveryCoords(null);
     setLocationMessage("");
     if (!navigator.geolocation) {
       setLocationMessage("Location is not available in this browser. You can still enter your address manually.");
@@ -126,7 +127,17 @@ export default function CheckoutPage() {
 
   function applyAddress(a: any) {
     setSelectedAddressId(a.id);
+    setDeliveryCoords(null);
+    setLocationMessage("");
     setForm(f => ({ ...f, shipping_name: a.full_name, shipping_phone: a.phone, shipping_address: a.address_line, shipping_city: a.city }));
+  }
+
+  function updateDeliveryAddress(field: "shipping_address" | "shipping_city", value: string) {
+    setForm(f => ({ ...f, [field]: value }));
+    if (deliveryCoords) {
+      setDeliveryCoords(null);
+      setLocationMessage("Address changed. Add a new delivery pin if needed.");
+    }
   }
 
   async function handlePlaceOrder() {
@@ -230,8 +241,8 @@ export default function CheckoutPage() {
                 <div className="space-y-3">
                   <input placeholder="Full name" value={form.shipping_name} onChange={e => setForm({ ...form, shipping_name: e.target.value })} className={inputClass} />
                   <input placeholder="Phone number" value={form.shipping_phone} onChange={e => setForm({ ...form, shipping_phone: e.target.value })} className={inputClass} />
-                  <input placeholder="Delivery address" value={form.shipping_address} onChange={e => setForm({ ...form, shipping_address: e.target.value })} className={inputClass} />
-                  <input placeholder="Town / City" value={form.shipping_city} onChange={e => setForm({ ...form, shipping_city: e.target.value })} className={inputClass} />
+                  <input placeholder="Delivery address" value={form.shipping_address} onChange={e => updateDeliveryAddress("shipping_address", e.target.value)} className={inputClass} />
+                  <input placeholder="Town / City" value={form.shipping_city} onChange={e => updateDeliveryAddress("shipping_city", e.target.value)} className={inputClass} />
                   <div className="flex flex-wrap items-center gap-3">
                     <button type="button" onClick={captureDeliveryLocation} className="border border-stone-300 rounded-full px-4 py-2 text-xs font-medium hover:border-black transition">
                       {deliveryCoords ? "Delivery pin saved" : "Use my location for delivery"}
@@ -255,11 +266,14 @@ export default function CheckoutPage() {
                         <button key={opt.value} type="button" disabled={opt.disabled} onClick={() => !opt.disabled && setForm({ ...form, payment_method: opt.value })} className={`flex flex-col items-center gap-1.5 border py-3 text-[11px] font-medium uppercase tracking-wide transition ${active ? "border-black bg-black text-white" : "border-stone-200"} ${opt.disabled ? "cursor-not-allowed opacity-45" : "hover:border-stone-400"}`}>
                           <Icon size={18} strokeWidth={1.5} />
                           {opt.label}
-                          {opt.disabled && <span className="text-[9px] normal-case tracking-normal">Coming soon</span>}
+                          {opt.disabled && <span className="text-[9px] normal-case tracking-normal">Provider setup needed</span>}
                         </button>
                       );
                     })}
                   </div>
+                  <p className="mt-2 text-xs text-stone-500">
+                    Card payments are unavailable until Stripe and a Kenya-compatible backup gateway are configured. M-Pesa and cash on delivery remain available.
+                  </p>
                 </div>
                 {form.payment_method === "mpesa" ? (
                   <div className="mt-4 space-y-2">
@@ -273,7 +287,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-stone-500">We&apos;ll send an M-Pesa prompt to this number when you place the order. Enter your PIN to pay.</p>
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-stone-500">Pay in cash when your order arrives. Card payments are coming soon.</p>
+                  <p className="mt-3 text-xs text-stone-500">Pay in cash when your order arrives.</p>
                 )}
 
                 {error && <p className="text-sm text-red-700 mt-4">{error}</p>}

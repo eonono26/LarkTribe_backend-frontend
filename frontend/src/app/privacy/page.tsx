@@ -13,18 +13,22 @@ const SECTIONS = [
   },
   {
     title: "4. Location data",
-    body: "With your consent, we use your delivery location to estimate shipping times and suggest nearby availability. You can update or clear your saved location at any time from the header's location picker.",
+    body: "Location access is requested only when you choose to add a delivery pin during checkout. If you grant permission, the coordinates are sent with that order for delivery; we do not track your location in the background. You can always enter your address manually.",
   },
   {
-    title: "5. Your choices",
+    title: "5. Virtual styling photos",
+    body: "Photos selected for virtual styling are previewed on your device only and are not uploaded or processed. If a virtual try-on provider is added later, we will disclose its privacy and retention terms and request your consent before sending a photo.",
+  },
+  {
+    title: "6. Your choices",
     body: "You can review and update your profile from My account, manage notification channels from Notifications settings, and request account data deletion by contacting support.",
   },
   {
-    title: "6. Data security",
+    title: "7. Data security",
     body: "We use industry-standard encryption in transit and restrict access to personal data on a need-to-know basis. No online platform can guarantee absolute security, so please use a strong, unique password.",
   },
   {
-    title: "7. Changes to this policy",
+    title: "8. Changes to this policy",
     body: "We'll update this page when our practices change materially. Significant changes will also be communicated via in-app notification.",
   },
 ];

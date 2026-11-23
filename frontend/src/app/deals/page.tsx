@@ -55,7 +55,7 @@ export default async function DealsPage({
         {products.length === 0 ? (
           <p className="text-neutral-500">No live deals right now — check back soon.</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

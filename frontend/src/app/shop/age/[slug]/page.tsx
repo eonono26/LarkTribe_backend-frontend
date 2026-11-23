@@ -95,7 +95,7 @@ export default async function AgeGroupPage({
           <p className="text-neutral-500">No products tagged for this age group yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {products.results.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
