@@ -167,7 +167,7 @@ export default function Tilt3DShowcase({
           className="relative mx-auto h-[clamp(420px,48vw,640px)] w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
           style={{ perspective: `clamp(1000px, 125vw, 1700px)` }}
           onPointerDown={(event) => {
-            if (event.button !== 0 || (event.target as HTMLElement).closest("button, a")) return;
+            if (event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
             drag.current = { x: event.clientX, angle: angle.current };
             dragged.current = false;
             paused.current = true;
