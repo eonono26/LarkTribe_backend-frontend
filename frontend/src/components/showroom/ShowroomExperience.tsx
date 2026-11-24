@@ -61,7 +61,16 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
     const id = Number(selected.id);
     engine.current.inspect(id);
     let alive = true;
-    api.product(selected.slug).then((d) => { if (alive && d.model_3d_url) engine.current?.inspect(id, d.model_3d_url); }).catch(() => {});
+    api.product(selected.slug).then((d) => {
+      if (!alive) return;
+      const color = selected.colors?.[0] ?? "";
+      const spinFrames = (d.spin_frames ?? [])
+        .filter((frame) => !frame.color || frame.color === color)
+        .map((frame) => frame.url);
+      if (d.model_3d_url || spinFrames.length > 1) {
+        engine.current?.inspect(id, d.model_3d_url, spinFrames);
+      }
+    }).catch(() => {});
     return () => { alive = false; };
   }, [selected]);
 

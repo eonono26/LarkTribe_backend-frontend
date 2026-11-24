@@ -312,12 +312,12 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   window.addEventListener("keydown", kd); window.addEventListener("keyup", ku);
 
   /* ---- inspect mode: the product floats in front of the camera, drag to turn it through 360° */
-  let insp: { rec: Rec; group: THREE.Group; holder: THREE.Group; ry: number; rx: number; scale: number; auto: boolean; tryRy: number | null; tryRx: number | null } | null = null;
+  let insp: { rec: Rec; group: THREE.Group; holder: THREE.Group; ry: number; rx: number; scale: number; auto: boolean; tryRy: number | null; tryRx: number | null; frames?: THREE.Texture[]; frameMesh?: THREE.Mesh; frameIndex?: number } | null = null;
   const dim = new THREE.Mesh(new THREE.PlaneGeometry(6, 4), new THREE.MeshBasicMaterial({ color: 0x0b0b0b, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
   dim.position.z = -1.0; dim.renderOrder = 900; dim.visible = false; camera.add(dim);
   const inspectOffset = () => (container.clientWidth > 900 ? new THREE.Vector3(-0.32, -0.02, -1.35) : new THREE.Vector3(0, 0.16, -1.45));
 
-  async function inspect(id: number, glbUrl?: string | null) {
+  async function inspect(id: number, glbUrl?: string | null, spinFrameUrls: string[] = []) {
     closeInspect();
     const rec = byId.get(id); if (!rec) return;
     const holder = new THREE.Group(); holder.position.copy(inspectOffset()); camera.add(holder);
@@ -336,6 +336,21 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         const light = new THREE.AmbientLight(0xffffff, 2.2); turn.add(light); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(1, 2, 2); turn.add(dl); turn.add(obj);
         return;
       }
+      if (spinFrameUrls.length > 1) {
+        const frames = await Promise.all(spinFrameUrls.map(async (url) => cutout(await loadImage(url))));
+        if (insp !== mine) { frames.forEach((frame) => frame.tex.dispose()); return; }
+        const first = frames[0];
+        const material = new THREE.MeshBasicMaterial({
+          map: first.tex, transparent: true, alphaTest: 0.04,
+          side: THREE.DoubleSide, toneMapped: false
+        });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.95 * first.aspect, 0.95), material);
+        turn.add(mesh);
+        mine.frames = frames.map((frame) => frame.tex);
+        mine.frameMesh = mesh;
+        mine.frameIndex = 0;
+        return;
+      }
       const tx = await ensureTextures(rec);
       if (insp !== mine) return;
       const { group } = buildSlab(tx.front, tx.back, tx.aspect, 0.95, true);
@@ -348,6 +363,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
     if (!insp) return;
     camera.remove(insp.holder);
     insp.holder.traverse((o) => { const m = o as THREE.Mesh; if (m.geometry && !(m.geometry as THREE.BufferGeometry & { shared?: boolean }).shared) m.geometry.dispose(); });
+    insp.frames?.forEach((frame) => frame.dispose());
     insp = null; dim.visible = false; (dim.material as THREE.MeshBasicMaterial).opacity = 0;
   }
   const VIEWS: Record<InspectView, [number, number]> = { front: [0, 0], right: [Math.PI / 2, 0], back: [Math.PI, 0], left: [-Math.PI / 2, 0], top: [0, Math.PI / 2 - 0.05] };
@@ -411,7 +427,20 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       const mat = dim.material as THREE.MeshBasicMaterial; mat.opacity += (0.5 - mat.opacity) * 0.15;
       if (insp.auto) insp.ry += dt * 0.7;
       if (insp.tryRy != null) { insp.ry += (insp.tryRy - insp.ry) * 0.14; insp.rx += ((insp.tryRx ?? 0) - insp.rx) * 0.14; }
-      insp.group.rotation.set(insp.rx, insp.ry, 0);
+      if (insp.frames?.length && insp.frameMesh) {
+        // A real API-supplied 360° turntable set: scrub the ordered frames as the shopper drags.
+        const turns = ((insp.ry % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const index = Math.round((turns / (Math.PI * 2)) * insp.frames.length) % insp.frames.length;
+        if (index !== insp.frameIndex) {
+          const material = insp.frameMesh.material as THREE.MeshBasicMaterial;
+          material.map = insp.frames[index];
+          material.needsUpdate = true;
+          insp.frameIndex = index;
+        }
+        insp.group.rotation.set(0, 0, 0);
+      } else {
+        insp.group.rotation.set(insp.rx, insp.ry, 0);
+      }
       const s = insp.holder.scale.x + (insp.scale - insp.holder.scale.x) * 0.2; insp.holder.scale.setScalar(s);
     }
     // where am I? (for the department / category chips)
