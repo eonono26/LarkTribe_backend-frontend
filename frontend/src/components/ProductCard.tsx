@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, Heart, ImageOff, ShoppingBag, Sparkles, Star } from "lucide-react";
@@ -13,6 +13,7 @@ import QuickViewModal from "@/components/QuickViewModal";
 import ColorSwatch from "@/components/ColorSwatch";
 import { API_BASE_URL } from "@/lib/config";
 import { isLoggedIn } from "@/lib/auth";
+import { useWishlist } from "@/lib/wishlist-context";
 import type { ProductListItem } from "@/lib/types";
 
 interface ProductCardProps {
@@ -28,8 +29,9 @@ interface CardImage {
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f8f0f0'/%3E%3Ctext x='200' y='200' font-family='Arial' font-size='16' fill='%23999' text-anchor='middle' dominant-baseline='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
-  const [wishlistId, setWishlistId] = useState<number | null>(null);
   const [wishlistBusy, setWishlistBusy] = useState(false);
+  const { isSaved, toggle: toggleWishlistItem } = useWishlist();
+  const isWishlisted = isSaved(product.id);
   const [showQuickView, setShowQuickView] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
@@ -123,17 +125,6 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   // Default color is the first swatch, like the reference (first swatch ring-selected on load).
   const [selectedColor, setSelectedColor] = useState<string | undefined>(colors[0]);
 
-  useEffect(() => {
-    if (!isLoggedIn()) return;
-    let active = true;
-    api.wishlist().then((response) => {
-      if (!active) return;
-      const saved = Array.isArray(response) ? response : response.results;
-      const match = saved.find((item) => Number(item.product?.id) === Number(id));
-      setWishlistId(match?.id ?? null);
-    }).catch(() => {});
-    return () => { active = false; };
-  }, [id]);
 
   // Photos for the color currently selected: that color's own shots first,
   // then general shots — same convention as the product page gallery. Falls
@@ -183,13 +174,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     setWishlistBusy(true);
     setAddError(null);
     try {
-      if (wishlistId != null) {
-        await api.removeFromWishlist(wishlistId);
-        setWishlistId(null);
-      } else {
-        const saved = await api.addToWishlist(id);
-        setWishlistId(saved.id);
-      }
+      await toggleWishlistItem(id);
     } catch (error) {
       setAddError(apiErrorMessage(error, "Couldn't update your wishlist."));
     } finally {
@@ -283,11 +268,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             <button
               onClick={handleWishlist}
               className="lark-card-wishlist absolute top-2.5 right-2.5 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur text-espresso transition-opacity"
-              aria-label={wishlistId != null ? "Remove from wishlist" : "Add to wishlist"}
-              aria-pressed={wishlistId != null}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={isWishlisted}
               disabled={wishlistBusy}
             >
-              <Heart size={15} className={wishlistId != null ? "fill-espresso" : ""} />
+              <Heart size={15} className={isWishlisted ? "fill-espresso" : ""} />
             </button>
 
             {/* Actions float above the image (z-lifted): Quick view · Try on · Add */}
