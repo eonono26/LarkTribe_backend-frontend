@@ -13,6 +13,7 @@ import ProductCard from "@/components/ProductCard";
 import RecommendedRow from "@/components/RecommendedRow";
 import VideoShowcase from "@/components/VideoShowcase";
 import PopularNearYou from "@/components/PopularNearYou";
+import Tilt3DShowcase from "@/components/Tilt3DShowcase";
 
 const FALLBACK_IMG = {
   hero: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop",
@@ -446,6 +447,13 @@ export default async function Home() {
 
           </div>
 
+        </section>
+      )}
+
+      {/* THE COLLECTION, IN THE ROUND */}
+      {products.length >= 4 && (
+        <section className="py-7 sm:py-10">
+          <Tilt3DShowcase products={products} />
         </section>
       )}
 
