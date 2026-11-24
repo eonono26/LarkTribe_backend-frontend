@@ -254,9 +254,19 @@ export default function Header() {
       }
     };
 
+    const handleWishlistChange = () => {
+      if (!isLoggedIn()) { setWishlistCount(0); return; }
+      api.wishlist().then((response) => {
+        if (!active) return;
+        const items = Array.isArray(response) ? response : response.results;
+        setWishlistCount(items.length);
+      }).catch(() => {});
+    };
+
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
     window.addEventListener("storage", handleStorage);
     window.addEventListener("pageshow", handleAuthChange);
+    window.addEventListener("larktribe:wishlist-changed", handleWishlistChange);
     void loadAccountState();
 
     return () => {
@@ -265,6 +275,7 @@ export default function Header() {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("pageshow", handleAuthChange);
+      window.removeEventListener("larktribe:wishlist-changed", handleWishlistChange);
     };
   }, []);
 
