@@ -133,7 +133,7 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
                     }}
                   >
                     <div className="relative h-full w-full overflow-hidden bg-[#f7f5f0]">
-                      <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="170px" className="object-cover" draggable={false} />
+                      <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="220px" className="object-contain p-3" draggable={false} />
                     </div>
                   </div>
                 );
