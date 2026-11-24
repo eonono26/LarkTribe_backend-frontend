@@ -16,7 +16,8 @@ export type InspectView = "front" | "right" | "back" | "left" | "top";
 const HALL_W = 16;
 const HALL_H = 5.2;
 const EYE = 1.6;
-const SLOT = 11.8;           // spacious dedicated aisle length for one category
+const MIN_BAY_DEPTH = 12.8;   // minimum dedicated category zone depth
+const PRODUCT_ROW_DEPTH = 3.35;
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
 const ITEM_H = 2.1;
@@ -114,7 +115,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 /** A product as a thin 3D slab: front photo, back photo (or mirrored front) and shaded layers between,
  *  so it has real thickness and can be seen from every side. */
 function buildSlab(front: THREE.Texture, back: THREE.Texture, aspect: number, height: number, ontop = false) {
-  const g = new THREE.Group(); const w = height * Math.min(0.72, Math.max(0.48, aspect));
+  const g = new THREE.Group(); const w = height * aspect;
   const geo = new THREE.PlaneGeometry(w, height);
   const meshes: THREE.Mesh[] = [];
   for (let i = 0; i < LAYERS; i++) {
@@ -161,15 +162,17 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   let cursor = -2.5;
   wings.forEach((wing) => {
     const z0 = cursor; const bays: BayPos[] = []; const slots: { z: number; ws: number; bs: number }[] = [];
+    let bayCursor = z0 - GATE;
     wing.bays.forEach((bay, i) => {
-      // Each category gets its own full-length zone; alternate sides, never share a bay.
-      const z = z0 - GATE - i * SLOT - SLOT / 2;
-      const side: -1 | 1 = i % 2 === 0 ? -1 : 1;
-      bays.push({ z, side, bay });
+      // Each category gets a dedicated aisle segment sized to its own product count.
+      const rows = Math.max(1, Math.ceil(Math.min(bay.items.length, 12) / 2));
+      const depth = Math.max(MIN_BAY_DEPTH, rows * PRODUCT_ROW_DEPTH + 4.2);
+      const z = bayCursor - depth / 2;
+      bays.push({ z, side: -1, bay });
       slots.push({ z, ws: wingInfo.length, bs: i });
+      bayCursor -= depth + 2.4;
     });
-    const nSlots = Math.max(1, wing.bays.length);
-    const z1 = z0 - GATE - nSlots * SLOT - 2;
+    const z1 = bayCursor - 1.5;
     wingInfo.push({ z0, z1, bays, slots }); cursor = z1;
   });
   const endZ = cursor - 3;
@@ -227,15 +230,15 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       cat.position.set(side * 6.1, 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
       if (bi % 2 === 0) mkHotspot(0, z, { wing: wi, bay: bi });
 
-      // Each garment is an individually selectable open-floor display across the island rows.
-      // No wall-mounted product grids or shelf stacks.
-      bay.items.slice(0, 12).forEach((item, k) => {
-        // Two clean columns by up to six rows, all inside this category's own display bay.
-        // The centre aisle remains clear and every product has breathing room.
+      // Products face the central aisle in a one-by-one sequence on both sides.
+      // Each forward position has one item on the left and one on the right.
+      const displayItems = bay.items.slice(0, 12);
+      const rowCount = Math.max(1, Math.ceil(displayItems.length / 2));
+      displayItems.forEach((item, k) => {
         const row = Math.floor(k / 2);
-        const column = k % 2;
-        const displayX = side * (4.55 + column * 1.75);
-        const lz = z + (row - 2.5) * 1.85;
+        const productSide: -1 | 1 = k % 2 === 0 ? -1 : 1;
+        const displayX = productSide * 5.05;
+        const lz = z + (row - (rowCount - 1) / 2) * PRODUCT_ROW_DEPTH;
 
         // Individual compact gallery plinths with clear gaps between neighbouring pieces.
         const plinth = new THREE.Group();
@@ -251,7 +254,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
         const holder = new THREE.Group();
         holder.position.set(displayX, 0.2, lz);
-        holder.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
+        holder.rotation.y = productSide < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
 
         // Neutral mannequin silhouette sits behind the transparent garment cut-out.
@@ -305,10 +308,23 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   async function ensureTextures(rec: Rec): Promise<NonNullable<Rec["textures"]>> {
     if (rec.textures) return rec.textures;
     const img = await loadImage(rec.item.imageUrl);
-    const f = cutout(img);
+    // Preserve the catalogue image exactly as uploaded: no background removal,
+    // cropping, edge trimming or forced aspect ratio.
+    const front = new THREE.Texture(img);
+    front.colorSpace = THREE.SRGBColorSpace;
+    front.anisotropy = 4;
+    front.needsUpdate = true;
     let back: THREE.Texture;
-    if (rec.item.backUrl) { try { back = cutout(await loadImage(rec.item.backUrl)).tex; } catch { back = mirrored(f.tex); } } else back = mirrored(f.tex);
-    rec.textures = { front: f.tex, back, aspect: f.aspect }; return rec.textures;
+    if (rec.item.backUrl) {
+      try {
+        const backImage = await loadImage(rec.item.backUrl);
+        back = new THREE.Texture(backImage);
+        back.colorSpace = THREE.SRGBColorSpace;
+        back.anisotropy = 4;
+        back.needsUpdate = true;
+      } catch { back = mirrored(front); }
+    } else back = mirrored(front);
+    rec.textures = { front, back, aspect: img.width / img.height }; return rec.textures;
   }
   function mirrored(t: THREE.Texture) { const m = t.clone(); m.wrapS = THREE.RepeatWrapping; m.repeat.x = -1; m.offset.x = 1; m.needsUpdate = true; return m; }
   function loadRec(rec: Rec) {
