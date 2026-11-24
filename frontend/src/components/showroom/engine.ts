@@ -263,7 +263,8 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         holder.add(standPole);
 
         // Always-visible product name and price, sourced from the catalogue API.
-        const labelText = item.name.length > 22 ? item.name.slice(0, 21) + "…" : item.name;
+        const displayName = item.name.charAt(0).toUpperCase() + item.name.slice(1).toLowerCase();
+        const labelText = displayName.length > 22 ? displayName.slice(0, 21) + "…" : displayName;
         const label = new THREE.Mesh(
           new THREE.PlaneGeometry(1.16, 0.18),
           new THREE.MeshBasicMaterial({
