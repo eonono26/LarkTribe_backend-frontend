@@ -208,7 +208,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       cat.position.set(side * (DISPLAY_X - 0.04), 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
       if (bi % 2 === 0) mkHotspot(0, z, { wing: wi, bay: bi });
 
-      // Each garment is an individually selectable open-floor display in a two-row island.
+      // Each garment is an individually selectable open-floor display across the island rows.
       // No wall-mounted product grids or shelf stacks.
       bay.items.slice(0, 24).forEach((item, k) => {
         const row = Math.floor(k / 6);

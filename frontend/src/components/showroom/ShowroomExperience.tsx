@@ -55,7 +55,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wings]);
 
-  // Start inspecting when a piece is picked; upgrade to a real 3D model if the product has one.
+  // Start inspecting when a piece is picked; use its API GLB model or 360 turntable frames when available.
   useEffect(() => {
     if (!selected || !engine.current) return;
     const id = Number(selected.id);
