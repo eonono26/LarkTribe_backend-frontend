@@ -12,7 +12,6 @@ import HeroCarousel from "@/components/HeroCarousel";
 import ProductCard from "@/components/ProductCard";
 import RecommendedRow from "@/components/RecommendedRow";
 import VideoShowcase from "@/components/VideoShowcase";
-import Tilt3DShowcase from "@/components/Tilt3DShowcase";
 import PopularNearYou from "@/components/PopularNearYou";
 
 const FALLBACK_IMG = {
@@ -421,7 +420,7 @@ export default async function Home() {
 
           <div className="mb-4 flex items-end justify-between lg:mb-4">
 
-            <h2 className="font-editorial text-3xl pl-2 tracking-tight lg:text-5xl">
+            <h2 className="font-editorial text-3xl tracking-tight lg:text-5xl">
               New In
             </h2>
 
@@ -450,23 +449,21 @@ export default async function Home() {
         </section>
       )}
 
-      {/* WALK INTO THE STORE */}
-      <section className="container-shell py-6">
-        <Link href="/showroom" className="group relative block overflow-hidden bg-stone-900 text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,236,210,.35),transparent_60%),linear-gradient(120deg,#2a211a,#0f0d0b)]" />
-          <div className="relative px-6 py-14 sm:px-14 sm:py-20 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-white/60 mb-3">New · 3D Store</p>
-              <h2 className="font-editorial text-3xl sm:text-5xl leading-tight max-w-xl">Step inside the LarkTribe store</h2>
-              <p className="mt-3 text-sm text-white/70 max-w-md">Explore each department, inspect catalogue pieces in 3D, rotate supported products through 360° and try on selected looks.</p>
+      {/* WALK-IN 3D SHOWROOM */}
+      <section className="py-7 sm:py-10">
+        <Link href="/showroom" className="group relative block min-h-[340px] overflow-hidden bg-[#b9a99a] text-white sm:min-h-[460px]">
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(20,15,12,.78)_0%,rgba(20,15,12,.42)_48%,rgba(20,15,12,.08)_100%),url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=85&w=2000&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-[1.025]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+          <div className="relative flex min-h-[340px] flex-col justify-end gap-7 px-5 py-9 sm:min-h-[460px] sm:flex-row sm:items-end sm:justify-between sm:px-12 sm:py-12 lg:px-16">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-[10px] uppercase tracking-[0.32em] text-white/75">LarkTribe · Virtual flagship</p>
+              <h2 className="max-w-xl font-editorial text-4xl leading-[1.05] tracking-tight sm:text-6xl">A store you can step into.</h2>
+              <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/80 sm:text-base">Walk the departments, explore pieces on display and pick up a look to inspect it up close.</p>
             </div>
-            <span className="inline-flex items-center gap-2 self-start sm:self-auto px-8 py-4 bg-white text-black text-[11px] uppercase tracking-widest group-hover:bg-stone-200 transition">Enter the store →</span>
+            <span className="inline-flex shrink-0 items-center gap-3 self-start border border-white/70 bg-white px-7 py-4 text-[10px] uppercase tracking-[0.2em] text-black transition group-hover:bg-black group-hover:text-white sm:self-auto">Enter the showroom <span aria-hidden>↗</span></span>
           </div>
         </Link>
       </section>
-
-      {/* 3D COLLECTION SHOWCASE */}
-      <Tilt3DShowcase products={products} />
 
       {/* POPULAR NEAR YOU */}
       <PopularNearYou />
@@ -485,7 +482,7 @@ export default async function Home() {
       </section>
 
       {/* EDITORIAL STATEMENT */}
-      <section className="container-shell border-stone-200 text-center">
+      <section className="border-stone-200 py-12 text-center sm:py-16">
 
         <h2 className="mx-auto max-w-2xl font-editorial text-2xl leading-snug tracking-tight lg:text-4xl">
           Designed for modern Larktribe. Made in Kenya,
