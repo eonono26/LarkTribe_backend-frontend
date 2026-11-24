@@ -63,7 +63,7 @@ export default function Tilt3DShowcase({ products, title = "The Collection, in t
             alt={p.name}
             fill
             sizes={ring ? "260px" : "176px"}
-            className="object-contain transition-transform duration-500 group-hover:scale-105"
+            className="object-contain"
             draggable={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90" />
