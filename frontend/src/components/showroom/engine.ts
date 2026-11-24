@@ -264,7 +264,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         const rightArm = leftArm.clone(); rightArm.position.x = 0.31; rightArm.rotation.z = 0.18;
         const standPole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x252321, metalness: 0.65, roughness: 0.38 }));
         standPole.position.set(0, 0.53, -0.1);
-        mannequin.add(torso, neck, head, leftArm, rightArm, standPole); holder.add(mannequin);
+        mannequin.add(torso, neck, head, leftArm, rightArm, standPole); mannequin.position.z = -0.12; holder.add(mannequin);
 
         // Always-visible product name and price, sourced from the catalogue API.
         const labelText = item.name.length > 22 ? item.name.slice(0, 21) + "…" : item.name;
