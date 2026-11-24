@@ -20,7 +20,11 @@ function wingKey(d: Department): string | null {
 
 export const productImage = (p: ProductListItem) => mediaUrl((p.image || p.image_url || "") as string);
 export const backImage = (p: ProductListItem) => {
-  const b = (p.images || []).find((i) => i.view === "back");
+  const preferredColor = p.colors?.[0] || "";
+  const gallery = p.images || [];
+  const b = gallery.find((i) => i.view === "back" && i.color === preferredColor)
+    || gallery.find((i) => i.view === "back" && !i.color)
+    || gallery.find((i) => i.view === "back");
   return b ? mediaUrl(b.image) : undefined;
 };
 
