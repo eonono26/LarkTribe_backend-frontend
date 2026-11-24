@@ -237,12 +237,15 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       displayItems.forEach((item, k) => {
         const row = Math.floor(k / 2);
         const productSide: -1 | 1 = k % 2 === 0 ? -1 : 1;
-        // Bring the first pair of products toward the entrance and central aisle
-        // so shoppers can recognise the collection without walking deep into the bay.
-        const displayX = productSide * 4.05;
+        // Bring the first pair right up to the front of the department, not halfway
+        // down the category bay. Later pairs remain progressively deeper in the gallery.
+        const displayX = productSide * 3.35;
         const centeredRowZ = z + (row - (rowCount - 1) / 2) * PRODUCT_ROW_DEPTH;
-        const entrancePull = row === 0 ? Math.min(3.2, PRODUCT_ROW_DEPTH * 0.95) : 0;
-        const lz = centeredRowZ + entrancePull;
+        const isFirstBay = bi === 0;
+        const frontDisplayZ = isFirstBay
+          ? info.z0 - 2.2
+          : z + Math.max(MIN_BAY_DEPTH, rowCount * PRODUCT_ROW_DEPTH + 4.2) / 2 - 1.4;
+        const lz = row === 0 ? frontDisplayZ : centeredRowZ;
 
         // Individual compact gallery plinths with clear gaps between neighbouring pieces.
         const plinth = new THREE.Group();
