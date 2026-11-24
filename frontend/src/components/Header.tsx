@@ -647,10 +647,10 @@ export default function Header() {
                           Register
                         </Link>
                         <Link
-                          href="/orders"
+                          href="/delivery"
                           className="block px-4 py-2.5 hover:bg-stone-50 transition border-t border-stone-100"
                         >
-                          Track Order
+                          Delivery &amp; Tracking
                         </Link>
                       </>
                     )}
