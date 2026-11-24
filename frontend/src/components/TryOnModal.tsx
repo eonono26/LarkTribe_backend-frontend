@@ -48,6 +48,7 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
   const [renders, setRenders] = useState<Render[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
   const cancelled = useRef(false);
 
   useEffect(() => {
@@ -167,7 +168,10 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
           ) : phase === "result" && active ? (
             <div className="grid sm:grid-cols-2 gap-6 mt-4">
               <div>
-                {beforeSrc ? <BeforeAfterSlider before={beforeSrc} after={active.look.result_url!} /> : (
+                {showOriginal && beforeSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={beforeSrc} alt="Original photo" className="w-full aspect-[3/4] object-cover" />
+                ) : beforeSrc ? <BeforeAfterSlider before={beforeSrc} after={active.look.result_url!} /> : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={active.look.result_url!} alt="Try-on preview" className="w-full aspect-[3/4] object-cover" />
                 )}
@@ -175,19 +179,31 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
               </div>
 
               <div className="flex flex-col gap-4">
-                {renders.length > 1 && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-stone-500 mb-2">Compare looks</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {renders.map((r, i) => (
-                        <button key={r.look.id} onClick={() => setActiveIdx(i)} className={`shrink-0 w-16 border ${i === activeIdx ? "border-black" : "border-stone-200"}`} title={r.label}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={r.look.result_url!} alt={r.label} className="w-full aspect-[3/4] object-cover" />
-                        </button>
-                      ))}
-                    </div>
+                {/* Try-on results grid (Ello-style): original + every look, same shopper */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">Try-on results</p>
+                    <span className="text-[10px] px-2 py-1 border border-stone-200 rounded-full text-stone-600">Same shopper</span>
                   </div>
-                )}
+                  <div className="grid grid-cols-3 gap-2">
+                    {beforeSrc && (
+                      <button onClick={() => setShowOriginal(true)} className={`text-left border ${showOriginal ? "border-blue-600 ring-1 ring-blue-600" : "border-stone-200"}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={beforeSrc} alt="Original photo" className="w-full aspect-[3/4] object-cover" />
+                        <span className="block text-[10px] text-center py-1">Original Photo</span>
+                      </button>
+                    )}
+                    {renders.map((r, i) => (
+                      <button key={r.look.id} onClick={() => { setActiveIdx(i); setShowOriginal(false); }} title={r.label}
+                        className={`relative text-left border ${!showOriginal && i === activeIdx ? "border-blue-600 ring-1 ring-blue-600" : "border-stone-200"}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={r.look.result_url!} alt={r.label} className="w-full aspect-[3/4] object-cover" />
+                        {!showOriginal && i === activeIdx && <Check size={14} className="absolute top-1 right-1 bg-blue-600 text-white rounded-full p-0.5" />}
+                        <span className="block text-[10px] text-center py-1 truncate px-1">{r.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {(product.colors?.length ?? 0) > 1 && (
                   <div>
