@@ -90,26 +90,13 @@ h1, h2, h3, h4, h5, h6, .font-display {
   color: var(--color-paper);
 }
 
+/* One shared page grid: header, page content and footer align exactly. */
+.container-shell,
 .container-shellheader {
-  max-width: 1600px;
-  margin-inline: auto;
-  /* padding-inline: clamp(8px, 2.5vw, 24px); */
-
-  padding-inline: clamp(16px, 3.5vw, 48px);
-}
-
-/* .container-shell {
-  width: 100%;
-  max-width: 1800px;
-  margin-inline: auto;
-  padding-inline: clamp(6px, 0.8vw, 12px);
-} */
-
-.container-shell {
   width: 100%;
   max-width: 1600px;
   margin-inline: auto;
-  padding-inline: clamp(1px, 0.25vw, 6px);
+  padding-inline: clamp(16px, 3.2vw, 48px);
 }
 
 .account-page {
