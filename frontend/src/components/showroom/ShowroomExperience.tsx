@@ -128,7 +128,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
         )}
       </div>
 
-      <Link href="/shop" className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur px-4 py-3 text-[10px] uppercase tracking-widest hover:bg-white shadow-sm hidden sm:block">Grid view</Link>
+      <Link href="/shop" className="absolute bottom-4 right-4 z-10 bg-white/90 backdrop-blur px-4 py-3 text-[10px] uppercase tracking-widest hover:bg-white shadow-sm sm:bottom-auto sm:top-3 sm:right-3">Grid view</Link>
 
       {loading && <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white/90 px-4 py-2 text-[11px] tracking-wide shadow-sm">Preparing the collection… {Math.round((progress.done / progress.total) * 100)}%</div>}
 
