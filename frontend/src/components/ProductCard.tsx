@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, Heart, ImageOff, ShoppingBag, Sparkles, Star } from "lucide-react";
+import { Eye, Heart, ImageOff, ShoppingBag, Star } from "lucide-react";
 import TryOnButton from "@/components/TryOnButton";
 import { trackEvent } from "@/lib/tracking";
 import { useCart } from "@/lib/cart-context";
