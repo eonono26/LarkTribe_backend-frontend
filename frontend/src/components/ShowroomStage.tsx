@@ -44,7 +44,7 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
     setActive((a) => (((a + d) % n) + n) % n);
   };
   const current = items[active];
-  const sentenceCase = (value: string) => value.trim().toLowerCase().replace(/^\\S/, (letter) => letter.toUpperCase());
+  const sentenceCase = (value: string) => value.trim().toLowerCase().replace(/^\S/, (letter) => letter.toUpperCase());
 
   const caption = (
     <div className="mt-6 flex flex-col items-center gap-3 text-center">
