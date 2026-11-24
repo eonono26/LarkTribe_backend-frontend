@@ -257,20 +257,10 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         holder.rotation.y = productSide < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
 
-        // Neutral mannequin silhouette sits behind the transparent garment cut-out.
-        const mannequin = new THREE.Group();
-        const mannequinMat = new THREE.MeshStandardMaterial({ color: 0xd8cbb9, roughness: 0.62 });
-        const torso = new THREE.Mesh(new THREE.SphereGeometry(0.31, 18, 14), mannequinMat);
-        torso.scale.set(1, 1.42, 0.48); torso.position.y = 1.12;
-        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.22, 12), mannequinMat); neck.position.y = 1.57;
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 12), mannequinMat);
-        head.position.y = 1.78; head.scale.set(0.82, 1.12, 0.78);
-        const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.075, 0.72, 10), mannequinMat);
-        leftArm.position.set(-0.31, 1.12, 0); leftArm.rotation.z = -0.18;
-        const rightArm = leftArm.clone(); rightArm.position.x = 0.31; rightArm.rotation.z = 0.18;
-        const standPole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x252321, metalness: 0.65, roughness: 0.38 }));
-        standPole.position.set(0, 0.53, -0.1);
-        mannequin.add(torso, neck, head, leftArm, rightArm, standPole); mannequin.position.z = -0.12; holder.add(mannequin);
+        // Keep the catalogue photo clear; no mannequin geometry should show through garment openings.
+        const standPole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.92, 8), new THREE.MeshStandardMaterial({ color: 0x252321, metalness: 0.65, roughness: 0.38 }));
+        standPole.position.set(0, 0.48, -0.16);
+        holder.add(standPole);
 
         // Always-visible product name and price, sourced from the catalogue API.
         const labelText = item.name.length > 22 ? item.name.slice(0, 21) + "…" : item.name;
