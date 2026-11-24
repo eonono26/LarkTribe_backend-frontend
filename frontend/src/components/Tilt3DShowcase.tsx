@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist-context";
@@ -12,22 +12,7 @@ import QuickViewModal from "@/components/QuickViewModal";
 import TryOnButton from "@/components/TryOnButton";
 import type { ProductListItem } from "@/lib/types";
 
-const ringEnabled = () =>
-  window.matchMedia("(min-width: 768px)").matches &&
-  !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-const subscribeRingEnabled = (notify: () => void) => {
-  const desktop = window.matchMedia("(min-width: 768px)");
-  const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  desktop.addEventListener("change", notify);
-  motion.addEventListener("change", notify);
-  return () => {
-    desktop.removeEventListener("change", notify);
-    motion.removeEventListener("change", notify);
-  };
-};
-
-/** A broad, touch-friendly mobile carousel and a pointer-driven CSS 3D ring on desktop. */
+/** A responsive CSS 3D product ring. Pointer dragging works with mouse, pen and touch. */
 export default function Tilt3DShowcase({
   products,
   title = "The Collection, in the Round",
@@ -37,38 +22,38 @@ export default function Tilt3DShowcase({
 }) {
   const items = products.filter((product) => product.image || product.image_url).slice(0, 12);
   const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
-  const { isSaved, toggle: toggleWishlistItem } = useWishlist();
   const [wishlistBusy, setWishlistBusy] = useState<number | null>(null);
   const [wishlistError, setWishlistError] = useState("");
-  const [radius, setRadius] = useState(520);
+  const [radius, setRadius] = useState(220);
+  const [activeIndex, setActiveIndex] = useState(0);
   const ringRef = useRef<HTMLDivElement>(null);
   const angle = useRef(0);
   const drag = useRef<{ x: number; angle: number } | null>(null);
-  const paused = useRef(false);
   const dragged = useRef(false);
+  const { isSaved, toggle: toggleWishlistItem } = useWishlist();
   const { formatPrice } = useLocalization();
-  const enabled = useSyncExternalStore(subscribeRingEnabled, ringEnabled, () => false);
 
   useEffect(() => {
-    const resize = () => setRadius(Math.max(380, Math.min(620, window.innerWidth * 0.52)));
+    const resize = () => {
+      const width = window.innerWidth;
+      setRadius(Math.max(190, Math.min(500, width * (width < 640 ? 0.49 : 0.38))));
+    };
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", resize, { passive: true });
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  useEffect(() => {
-    if (!enabled || !ringRef.current) return;
-    let raf = 0;
-    const render = () => {
-      if (!paused.current && !drag.current) angle.current -= 0.08;
-      if (ringRef.current) {
-        ringRef.current.style.transform = `translateZ(-${radius}px) rotateY(${angle.current}deg)`;
-      }
-      raf = requestAnimationFrame(render);
-    };
-    render();
-    return () => cancelAnimationFrame(raf);
-  }, [enabled, radius, items.length]);
+  function applyAngle(next: number) {
+    angle.current = next;
+    if (ringRef.current) ringRef.current.style.transform = `rotateY(${next}deg)`;
+    const step = 360 / items.length;
+    const index = ((Math.round(-next / step) % items.length) + items.length) % items.length;
+    setActiveIndex(index);
+  }
+
+  function rotate(direction: number) {
+    applyAngle(angle.current - direction * (360 / items.length));
+  }
 
   async function toggleWishlist(productId: number) {
     if (wishlistBusy === productId) return;
@@ -90,7 +75,7 @@ export default function Tilt3DShowcase({
   if (items.length < 4) return null;
   const step = 360 / items.length;
 
-  const card = (product: ProductListItem, index: number, inRing: boolean) => {
+  const card = (product: ProductListItem, index: number) => {
     const image = product.image || product.image_url;
     if (!image) return null;
     const productId = Number(product.id);
@@ -98,24 +83,23 @@ export default function Tilt3DShowcase({
     return (
       <article
         key={product.id}
-        className={`group relative shrink-0 bg-[#f7f5f0] ${inRing
-          ? "absolute left-1/2 top-1/2 h-[clamp(320px,32vw,420px)] w-[clamp(220px,23vw,300px)]"
-          : "w-52 snap-start sm:w-60"}`}
-        style={inRing ? {
+        className="lark-round-card group absolute left-1/2 top-1/2 w-[clamp(160px,22vw,280px)]"
+        style={{
+          height: "clamp(240px,32vw,400px)",
           transform: `translate(-50%, -50%) rotateY(${index * step}deg) translateZ(${radius}px)`,
           backfaceVisibility: "hidden",
-        } : undefined}
+        }}
       >
         <Link
           href={`/product/${product.slug}`}
-          className={`relative block overflow-hidden bg-[#f7f5f0] ${inRing ? "h-[clamp(320px,32vw,420px)] w-full" : "aspect-[3/4] w-full"}`}
+          className="relative block h-full w-full overflow-hidden bg-[#f7f5f0]"
         >
           <Image
             src={mediaUrl(image)}
             alt={product.name}
             fill
-            sizes={inRing ? "(max-width: 1100px) 240px, 300px" : "(max-width: 640px) 208px, 240px"}
-            className="object-contain p-4"
+            sizes="(max-width: 640px) 160px, (max-width: 1100px) 240px, 280px"
+            className="object-contain p-3 sm:p-4"
             draggable={false}
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
@@ -125,11 +109,11 @@ export default function Tilt3DShowcase({
           </div>
         </Link>
 
-        <div className="lark-round-actions absolute inset-x-2 bottom-14 z-10 flex items-center justify-center gap-2">
+        <div className="lark-round-actions absolute inset-x-1 bottom-3 z-10 flex items-center justify-center gap-1.5 sm:inset-x-2 sm:gap-2">
           <button
             type="button"
             onClick={() => setQuickViewSlug(product.slug)}
-            className="rounded-full bg-white/95 px-3 py-2 text-[9px] uppercase tracking-wider text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
+            className="rounded-full bg-white/95 px-2.5 py-2 text-[9px] uppercase tracking-wider text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white sm:px-3"
           >
             Quick view
           </button>
@@ -154,57 +138,70 @@ export default function Tilt3DShowcase({
   };
 
   return (
-    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-12 sm:py-14" aria-label={title}>
+    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#f3f0eb_0%,#fff_68%)] py-10 sm:py-14" aria-label={title}>
       <div className="mx-auto max-w-screen-2xl px-4 sm:px-8">
         <h2 className="text-center font-editorial text-3xl tracking-tight sm:text-4xl">{title}</h2>
-        <p className="mb-7 mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-stone-500">
-          {enabled ? "Drag to spin" : "Swipe to explore"}
+        <p className="mb-2 mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-stone-500">
+          Drag to spin
         </p>
       </div>
 
-      {enabled ? (
-        <div
-          className="relative mx-auto h-[clamp(420px,48vw,640px)] w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
-          style={{ perspective: `clamp(1000px, 125vw, 1700px)` }}
-          onPointerDown={(event) => {
-            if (event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
-            drag.current = { x: event.clientX, angle: angle.current };
+      <div
+        className="relative mx-auto h-[clamp(330px,42vw,560px)] w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        style={{ perspective: "1400px", perspectiveOrigin: "50% 45%" }}
+        role="group"
+        aria-roledescription="carousel"
+        aria-label="Drag horizontally to rotate the product collection"
+        onPointerDown={(event) => {
+          if (event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
+          drag.current = { x: event.clientX, angle: angle.current };
+          dragged.current = false;
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (!drag.current) return;
+          const delta = event.clientX - drag.current.x;
+          if (Math.abs(delta) > 4) dragged.current = true;
+          applyAngle(drag.current.angle + delta * 0.42);
+        }}
+        onPointerUp={() => { drag.current = null; }}
+        onPointerCancel={() => { drag.current = null; }}
+        onLostPointerCapture={() => { drag.current = null; }}
+        onClickCapture={(event) => {
+          if (dragged.current) {
+            event.preventDefault();
+            event.stopPropagation();
             dragged.current = false;
-            paused.current = true;
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }}
-          onPointerMove={(event) => {
-            if (!drag.current) return;
-            const delta = event.clientX - drag.current.x;
-            if (Math.abs(delta) > 5) dragged.current = true;
-            angle.current = drag.current.angle + delta * 0.32;
-            if (ringRef.current) ringRef.current.style.transform = `translateZ(-${radius}px) rotateY(${angle.current}deg)`;
-          }}
-          onPointerUp={() => { drag.current = null; paused.current = false; }}
-          onPointerCancel={() => { drag.current = null; paused.current = false; }}
-          onLostPointerCapture={() => { drag.current = null; paused.current = false; }}
-          onMouseEnter={() => { paused.current = true; }}
-          onMouseLeave={() => { if (!drag.current) paused.current = false; }}
-          onClickCapture={(event) => {
-            if (dragged.current) {
-              event.preventDefault();
-              event.stopPropagation();
-              dragged.current = false;
-            }
-          }}
-          aria-label="Drag horizontally to rotate the product collection"
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") rotate(-1);
+          if (event.key === "ArrowRight") rotate(1);
+        }}
+        tabIndex={0}
+      >
+        <div
+          ref={ringRef}
+          className="absolute left-1/2 top-1/2 h-0 w-0"
+          style={{ transformStyle: "preserve-3d", transform: "rotateY(0deg)" }}
         >
-          <div ref={ringRef} className="absolute left-1/2 top-1/2 h-0 w-0" style={{ transformStyle: "preserve-3d" }}>
-            {items.map((product, index) => card(product, index, true))}
-          </div>
+          {items.map(card)}
         </div>
-      ) : (
-        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:px-8">
-          {items.map((product, index) => card(product, index, false))}
-        </div>
-      )}
+      </div>
 
-      {wishlistError && <p role="status" className="mt-2 text-center text-xs text-red-700">{wishlistError}</p>}
+      <div className="mx-auto -mt-1 flex max-w-3xl items-center justify-center gap-6">
+        <button type="button" onClick={() => rotate(-1)} aria-label="Previous product" className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-black transition hover:bg-black hover:text-white">
+          <ChevronLeft size={19} />
+        </button>
+        <span className="min-w-14 text-center text-[11px] tabular-nums tracking-widest text-stone-500">
+          {activeIndex + 1} / {items.length}
+        </span>
+        <button type="button" onClick={() => rotate(1)} aria-label="Next product" className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-black transition hover:bg-black hover:text-white">
+          <ChevronRight size={19} />
+        </button>
+      </div>
+
+      {wishlistError && <p role="status" className="mt-3 text-center text-xs text-red-700">{wishlistError}</p>}
       {quickViewSlug && <QuickViewModal slug={quickViewSlug} onClose={() => setQuickViewSlug(null)} />}
     </section>
   );
