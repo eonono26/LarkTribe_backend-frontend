@@ -153,7 +153,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
       {/* Floating product label: live catalogue name + price */}
       {hover && !selected && (
         <div className="pointer-events-none fixed z-30 -translate-x-1/2 -translate-y-full bg-white px-3 py-2 shadow-lg text-center" style={{ left: hover.x, top: hover.y - 14 }}>
-          <p className="text-[11px] uppercase tracking-wider">{hover.p.name}</p>
+          <p className="text-[11px] uppercase tracking-wider">{hover.p.name.charAt(0).toUpperCase() + hover.p.name.slice(1).toLowerCase()}</p>
           <p className="text-sm font-medium">{formatPrice(parseFloat(hover.p.price) || 0)}</p>
         </div>
       )}
@@ -164,7 +164,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
           <button onClick={close} aria-label="Close" className="absolute top-3 right-3 p-1.5 hover:bg-stone-100"><X size={16} /></button>
           <div className="p-5 sm:p-6 sm:pt-16">
             <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">{selected.category_name}</p>
-            <h2 className="font-editorial text-2xl mt-1 pr-6">{selected.name}</h2>
+            <h2 className="font-editorial text-2xl mt-1 pr-6">{selected.name.charAt(0).toUpperCase() + selected.name.slice(1).toLowerCase()}</h2>
             <p className="mt-1 text-lg">{formatPrice(parseFloat(selected.price) || 0)}</p>
 
             <p className="mt-5 mb-2 text-[10px] uppercase tracking-widest text-stone-500 flex items-center gap-1.5"><RotateCw size={12} /> Turn it · drag the product in any direction</p>
