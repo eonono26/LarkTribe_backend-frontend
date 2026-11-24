@@ -32,7 +32,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    void Promise.resolve().then(refresh);
     const onAuthChange = () => { void refresh(); };
     const onStorage = (event: StorageEvent) => {
       if (event.key === "duka_access_token" || event.key === "duka_refresh_token") void refresh();
