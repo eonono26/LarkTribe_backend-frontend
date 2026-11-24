@@ -210,10 +210,10 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
       // Each garment is an individually selectable open-floor display in a two-row island.
       // No wall-mounted product grids or shelf stacks.
-      bay.items.slice(0, 12).forEach((item, k) => {
+      bay.items.slice(0, 24).forEach((item, k) => {
         const row = Math.floor(k / 6);
         const col6 = k % 6;
-        const displayX = side * (row === 0 ? 2.2 : 3.45);
+        const displayX = side * (1.85 + row * 1.2);
         const lz = z + (col6 - 2.5) * 0.5;
 
         // Open-floor presentation: soft contact shadow instead of a display plinth.

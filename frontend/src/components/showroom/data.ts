@@ -4,8 +4,7 @@ import type { Category, Department, ProductListItem } from "@/lib/types";
 /** Shopping order of the store: the first wing you walk into is Babies, then Kids, Women, Men. */
 export const WING_ORDER = ["baby", "kids", "women", "men"] as const;
 const ACCENTS: Record<string, number> = { baby: 0xc4857f, kids: 0x4c86ad, women: 0x9c5671, men: 0x3b4a5f };
-const MAX_BAYS = 8;
-const MAX_PER_BAY = 12;
+const MAX_PER_BAY = 24;
 
 export interface StoreBay { title: string; products: ProductListItem[] }
 export interface StoreWing { slug: string; title: string; subtitle: string; accent: number; bays: StoreBay[] }
@@ -34,7 +33,7 @@ export async function loadStore(): Promise<StoreWing[]> {
       const key = wingKey(d)!;
       const [cats, pages] = await Promise.all([
         api.categories({ department: d.slug, page_size: "300" }).then((r) => r.results as Category[]).catch(() => [] as Category[]),
-        Promise.all([1, 2, 3].map((n) => api.products({ department: d.slug, page: String(n) }).then((r) => r.results).catch(() => [] as ProductListItem[]))),
+        Promise.all([1, 2, 3, 4, 5].map((n) => api.products({ department: d.slug, page: String(n) }).then((r) => r.results).catch(() => [] as ProductListItem[]))),
       ]);
       const seen = new Set<number>();
       const products = pages.flat().filter((p) => (seen.has(Number(p.id)) ? false : (seen.add(Number(p.id)), true)) && (p.image || p.image_url));
@@ -43,7 +42,6 @@ export async function loadStore(): Promise<StoreWing[]> {
       const rank = (name: string) => { const i = cats.findIndex((c) => c.name === name); return i === -1 ? 999 : i; };
       const bays: StoreBay[] = [...groups.entries()]
         .sort((a, b) => rank(a[0]) - rank(b[0]) || b[1].length - a[1].length)
-        .slice(0, MAX_BAYS)
         .map(([title, items]) => ({ title, products: items.slice(0, MAX_PER_BAY) }));
       const count = bays.reduce((n, b) => n + b.products.length, 0);
       return { slug: key, title: key === "baby" ? "Babies" : d.name, subtitle: `${bays.length} categories · ${count} pieces`, accent: ACCENTS[key], bays } as StoreWing;
