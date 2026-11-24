@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, Eye, Minus, Plus, RotateCw, ShoppingBag, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Eye, Minus, Plus, RotateCw, ShoppingBag, X } from "lucide-react";
 import { createShowroom, type InspectView, type ShowWing } from "@/components/showroom/engine";
 import { backImage, productImage, type StoreWing } from "@/components/showroom/data";
 import TryOnButton from "@/components/TryOnButton";
@@ -31,6 +31,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
   const [added, setAdded] = useState(false);
   const [err, setErr] = useState("");
   const [view, setView] = useState<InspectView>("front");
+  const [hasTrue360, setHasTrue360] = useState(false);
 
   const byId = useMemo(() => new Map(wings.flatMap((w) => w.bays.flatMap((b) => b.products)).map((p) => [Number(p.id), p] as [number, ProductListItem])), [wings]);
 
@@ -60,6 +61,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
     if (!selected || !engine.current) return;
     const id = Number(selected.id);
     engine.current.inspect(id);
+    setHasTrue360(false);
     let alive = true;
     api.product(selected.slug).then((d) => {
       if (!alive) return;
@@ -67,9 +69,9 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
       const spinFrames = (d.spin_frames ?? [])
         .filter((frame) => !frame.color || frame.color === color)
         .map((frame) => frame.url);
-      if (d.model_3d_url || spinFrames.length > 1) {
-        engine.current?.inspect(id, d.model_3d_url, spinFrames);
-      }
+      const has360 = Boolean(d.model_3d_url || spinFrames.length > 1);
+      setHasTrue360(has360);
+      if (has360) engine.current?.inspect(id, d.model_3d_url, spinFrames);
     }).catch(() => {});
     return () => { alive = false; };
   }, [selected]);
@@ -136,6 +138,18 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
         </div>
       )}
 
+      {/* Touch navigation: mobile users should not need a physical keyboard or mouse wheel. */}
+      {!selected && (
+        <div className="absolute bottom-4 left-4 z-10 grid grid-cols-3 gap-1.5 sm:hidden" aria-label="Showroom movement controls">
+          <span />
+          <button type="button" aria-label="Move forward" onClick={() => engine.current?.move("forward")} className="h-11 w-11 flex items-center justify-center bg-white/90 text-stone-900 shadow"><ArrowUp size={18} /></button>
+          <span />
+          <button type="button" aria-label="Move left" onClick={() => engine.current?.move("left")} className="h-11 w-11 flex items-center justify-center bg-white/90 text-stone-900 shadow"><ArrowLeft size={18} /></button>
+          <button type="button" aria-label="Move backward" onClick={() => engine.current?.move("back")} className="h-11 w-11 flex items-center justify-center bg-white/90 text-stone-900 shadow"><ArrowDown size={18} /></button>
+          <button type="button" aria-label="Move right" onClick={() => engine.current?.move("right")} className="h-11 w-11 flex items-center justify-center bg-white/90 text-stone-900 shadow"><ArrowRight size={18} /></button>
+        </div>
+      )}
+
       {/* Floating product label: live catalogue name + price */}
       {hover && !selected && (
         <div className="pointer-events-none fixed z-30 -translate-x-1/2 -translate-y-full bg-white px-3 py-2 shadow-lg text-center" style={{ left: hover.x, top: hover.y - 14 }}>
@@ -154,6 +168,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
             <p className="mt-1 text-lg">{formatPrice(parseFloat(selected.price) || 0)}</p>
 
             <p className="mt-5 mb-2 text-[10px] uppercase tracking-widest text-stone-500 flex items-center gap-1.5"><RotateCw size={12} /> Turn it · drag the product in any direction</p>
+            {!hasTrue360 && <p className="mb-3 text-[10px] leading-relaxed text-stone-400">Photo-based preview. A true 360° view appears when this product has a 3D model or turntable images.</p>}
             <div className="flex flex-wrap gap-1.5">
               {views.map((v, i) => <button key={i} onClick={() => { setView(v.k); engine.current?.setInspectView(v.k); }} className={`px-3 py-1.5 text-[10px] uppercase tracking-wider border ${view === v.k ? "bg-black text-white border-black" : "border-stone-200 hover:border-stone-500"}`}>{v.label}</button>)}
               <button onClick={() => engine.current?.zoomInspect(-0.25)} aria-label="Zoom out" className="px-2.5 border border-stone-200 hover:border-stone-500"><Minus size={13} /></button>
