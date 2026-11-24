@@ -9,6 +9,12 @@ const MAX_PER_BAY = 24;
 export interface StoreBay { title: string; products: ProductListItem[] }
 export interface StoreWing { slug: string; title: string; subtitle: string; accent: number; bays: StoreBay[] }
 
+function productFreshness(p: ProductListItem): number {
+  const timestamp = Date.parse(p.updated_at || p.created_at || "");
+  // Product IDs are a deterministic fallback when list responses omit timestamps.
+  return Number.isFinite(timestamp) ? timestamp : Number(p.id) || 0;
+}
+
 function wingKey(d: Department): string | null {
   const s = `${d.slug} ${d.name}`.toLowerCase();
   if (/\bbab(y|ies)\b/.test(s) || s.includes("baby")) return "baby";
