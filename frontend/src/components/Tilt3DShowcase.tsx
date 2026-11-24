@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { mediaUrl } from "@/lib/api";
+import { Heart } from "lucide-react";
+import { api, apiErrorMessage, mediaUrl } from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
 import { useLocalization } from "@/lib/localization-context";
 import QuickViewModal from "@/components/QuickViewModal";
 import TryOnButton from "@/components/TryOnButton";
-import type { ProductListItem } from "@/lib/types";
+import type { ProductListItem, Wishlist } from "@/lib/types";
 
 const ringEnabled = () =>
   window.matchMedia("(min-width: 768px)").matches &&
   !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 const subscribeRingEnabled = (notify: () => void) => {
   const desktop = window.matchMedia("(min-width: 768px)");
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -23,97 +26,211 @@ const subscribeRingEnabled = (notify: () => void) => {
   };
 };
 
-/**
- * 3D collection ring: product cards arranged on a rotating cylinder (CSS 3D, no
- * WebGL, no extra dependency). Drag to spin; slow auto-spin when idle.
- * Honours prefers-reduced-motion and falls back to a plain scroll row on small screens.
- */
-export default function Tilt3DShowcase({ products, title = "The Collection, in the Round" }: { products: ProductListItem[]; title?: string }) {
-  const items = products.filter((p) => p.image || p.image_url).slice(0, 12);
-  const [angle, setAngle] = useState(0);
+/** A broad, touch-friendly mobile carousel and a pointer-driven CSS 3D ring on desktop. */
+export default function Tilt3DShowcase({
+  products,
+  title = "The Collection, in the Round",
+}: {
+  products: ProductListItem[];
+  title?: string;
+}) {
+  const items = products.filter((product) => product.image || product.image_url).slice(0, 12);
   const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
-  const drag = useRef<{ x: number; a: number } | null>(null);
+  const [wishlistIds, setWishlistIds] = useState<Record<number, number>>({});
+  const [wishlistBusy, setWishlistBusy] = useState<number | null>(null);
+  const [wishlistError, setWishlistError] = useState("");
+  const [radius, setRadius] = useState(520);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const angle = useRef(0);
+  const drag = useRef<{ x: number; angle: number } | null>(null);
   const paused = useRef(false);
+  const dragged = useRef(false);
   const { formatPrice } = useLocalization();
   const enabled = useSyncExternalStore(subscribeRingEnabled, ringEnabled, () => false);
 
   useEffect(() => {
-    if (!enabled) return;
+    const resize = () => setRadius(Math.max(380, Math.min(620, window.innerWidth * 0.52)));
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    let active = true;
+    api.wishlist().then((response) => {
+      if (!active) return;
+      const saved: Wishlist[] = Array.isArray(response) ? response : response.results;
+      const next: Record<number, number> = {};
+      saved.forEach((item) => {
+        const productId = Number(item.product?.id);
+        if (productId) next[productId] = item.id;
+      });
+      setWishlistIds(next);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !ringRef.current) return;
     let raf = 0;
-    const tick = () => { if (!paused.current) setAngle((a) => a - 0.12); raf = requestAnimationFrame(tick); };
-    raf = requestAnimationFrame(tick);
+    const render = () => {
+      if (!paused.current && !drag.current) angle.current -= 0.08;
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translateZ(-${radius}px) rotateY(${angle.current}deg)`;
+      }
+      raf = requestAnimationFrame(render);
+    };
+    render();
     return () => cancelAnimationFrame(raf);
-  }, [enabled]);
+  }, [enabled, radius, items.length]);
+
+  async function toggleWishlist(productId: number) {
+    if (wishlistBusy === productId) return;
+    if (!isLoggedIn()) {
+      window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setWishlistBusy(productId);
+    setWishlistError("");
+    try {
+      const existing = wishlistIds[productId];
+      if (existing != null) {
+        await api.removeFromWishlist(existing);
+        setWishlistIds((current) => {
+          const next = { ...current };
+          delete next[productId];
+          return next;
+        });
+      } else {
+        const saved = await api.addToWishlist(productId);
+        setWishlistIds((current) => ({ ...current, [productId]: saved.id }));
+      }
+    } catch (error) {
+      setWishlistError(apiErrorMessage(error, "Couldn't update your wishlist."));
+    } finally {
+      setWishlistBusy(null);
+    }
+  }
 
   if (items.length < 4) return null;
   const step = 360 / items.length;
-  const radius = 620;
-  const card = (p: ProductListItem, i: number, ring: boolean) => {
-    const image = p.image || p.image_url;
+
+  const card = (product: ProductListItem, index: number, inRing: boolean) => {
+    const image = product.image || product.image_url;
     if (!image) return null;
+    const productId = Number(product.id);
+    const saved = wishlistIds[productId] != null;
     return (
       <article
-        key={p.id}
-        className={`group relative ${ring ? "absolute left-1/2 top-1/2 -ml-[150px] -mt-[210px] h-[420px] w-[300px]" : "w-44 shrink-0 snap-start"}`}
-        style={ring ? { transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, backfaceVisibility: "hidden" } : undefined}
+        key={product.id}
+        className={`group relative shrink-0 bg-[#f7f5f0] ${inRing
+          ? "absolute left-1/2 top-1/2 h-[clamp(320px,32vw,420px)] w-[clamp(220px,23vw,300px)]"
+          : "w-52 snap-start sm:w-60"}`}
+        style={inRing ? {
+          transform: `translate(-50%, -50%) rotateY(${index * step}deg) translateZ(${radius}px)`,
+          backfaceVisibility: "hidden",
+        } : undefined}
       >
-        <Link href={`/product/${p.slug}`} className={`relative block overflow-hidden bg-[#f7f5f0] ${ring ? "h-full w-full" : "aspect-[3/4] w-full"}`}>
+        <Link
+          href={`/product/${product.slug}`}
+          className={`relative block overflow-hidden bg-[#f7f5f0] ${inRing ? "h-[clamp(320px,32vw,420px)] w-full" : "aspect-[3/4] w-full"}`}
+        >
           <Image
             src={mediaUrl(image)}
-            alt={p.name}
+            alt={product.name}
             fill
-            sizes={ring ? "260px" : "176px"}
-            className="object-contain p-3"
+            sizes={inRing ? "(max-width: 1100px) 240px, 300px" : "(max-width: 640px) 208px, 240px"}
+            className="object-contain p-4"
             draggable={false}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent opacity-100" />
-          <div className="absolute inset-x-0 bottom-0 p-3 text-white">
-            <p className="truncate text-[10px] uppercase tracking-[0.16em]">{p.name}</p>
-            <p className="mt-1 text-xs">{formatPrice(Number(p.price) || 0)}</p>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 text-left text-white">
+            <p className="truncate text-[10px] uppercase tracking-[0.13em]">{product.name}</p>
+            <p className="mt-1 text-xs">{formatPrice(Number(product.price) || 0)}</p>
           </div>
         </Link>
-        <div className="absolute inset-x-2 bottom-14 z-10 flex items-center justify-center gap-2">
+
+        <div className="lark-round-actions absolute inset-x-2 bottom-14 z-10 flex items-center justify-center gap-2">
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickViewSlug(p.slug); }}
-            className="bg-white/90 px-3 py-2 text-[9px] uppercase tracking-wider text-black hover:bg-white"
+            onClick={() => setQuickViewSlug(product.slug)}
+            className="rounded-full bg-white/95 px-3 py-2 text-[9px] uppercase tracking-wider text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
           >
             Quick view
           </button>
           <TryOnButton
-            product={{ id: p.id, name: p.name, slug: p.slug, colors: p.colors }}
+            product={{ id: product.id, name: product.name, slug: product.slug, colors: product.colors }}
             label=""
-            className="h-8 w-8 rounded-full !border-0 bg-white/90 !py-0 text-black hover:bg-white"
+            className="h-9 w-9 rounded-full !border-0 bg-white/95 !py-0 text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
           />
+          <button
+            type="button"
+            onClick={() => void toggleWishlist(productId)}
+            disabled={wishlistBusy === productId}
+            aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={saved}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white disabled:opacity-50"
+          >
+            <Heart size={15} className={saved ? "fill-current" : ""} />
+          </button>
         </div>
       </article>
     );
   };
 
   return (
-    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-10" aria-label={title}>
-      <h2 className="font-editorial text-3xl lg:text-4xl tracking-tight text-center mb-2">{title}</h2>
-      <p className="text-center text-[11px] uppercase tracking-[0.2em] text-stone-500 mb-6">{enabled ? "Drag to spin" : "Swipe to explore"}</p>
+    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-12 sm:py-14" aria-label={title}>
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-8">
+        <h2 className="text-center font-editorial text-3xl tracking-tight sm:text-4xl">{title}</h2>
+        <p className="mb-7 mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-stone-500">
+          {enabled ? "Drag to spin" : "Swipe to explore"}
+        </p>
+      </div>
 
       {enabled ? (
         <div
-          className="relative mx-auto h-[640px] w-full cursor-grab select-none active:cursor-grabbing touch-pan-y"
-          style={{ perspective: "1600px" }}
-          onPointerDown={(e) => { drag.current = { x: e.clientX, a: angle }; paused.current = true; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
-          onPointerMove={(e) => { if (drag.current) setAngle(drag.current.a + (e.clientX - drag.current.x) * 0.3); }}
+          className="relative mx-auto h-[clamp(420px,48vw,640px)] w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
+          style={{ perspective: `clamp(1000px, 125vw, 1700px)` }}
+          onPointerDown={(event) => {
+            if (event.button !== 0 || (event.target as HTMLElement).closest("button, a")) return;
+            drag.current = { x: event.clientX, angle: angle.current };
+            dragged.current = false;
+            paused.current = true;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (!drag.current) return;
+            const delta = event.clientX - drag.current.x;
+            if (Math.abs(delta) > 5) dragged.current = true;
+            angle.current = drag.current.angle + delta * 0.32;
+            if (ringRef.current) ringRef.current.style.transform = `translateZ(-${radius}px) rotateY(${angle.current}deg)`;
+          }}
           onPointerUp={() => { drag.current = null; paused.current = false; }}
+          onPointerCancel={() => { drag.current = null; paused.current = false; }}
+          onLostPointerCapture={() => { drag.current = null; paused.current = false; }}
           onMouseEnter={() => { paused.current = true; }}
-          onMouseLeave={() => { paused.current = false; drag.current = null; }}
+          onMouseLeave={() => { if (!drag.current) paused.current = false; }}
+          onClickCapture={(event) => {
+            if (dragged.current) {
+              event.preventDefault();
+              event.stopPropagation();
+              dragged.current = false;
+            }
+          }}
+          aria-label="Drag horizontally to rotate the product collection"
         >
-          <div className="absolute left-1/2 top-1/2 w-0 h-0" style={{ transformStyle: "preserve-3d", transform: `translateZ(-${radius}px) rotateY(${angle}deg)` }}>
-            {items.map((p, i) => card(p, i, true))}
+          <div ref={ringRef} className="absolute left-1/2 top-1/2 h-0 w-0" style={{ transformStyle: "preserve-3d" }}>
+            {items.map((product, index) => card(product, index, true))}
           </div>
         </div>
       ) : (
-        <div className="flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:px-8">
-          {items.map((p, i) => card(p, i, false))}
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:px-8">
+          {items.map((product, index) => card(product, index, false))}
         </div>
       )}
+
+      {wishlistError && <p role="status" className="mt-2 text-center text-xs text-red-700">{wishlistError}</p>}
       {quickViewSlug && <QuickViewModal slug={quickViewSlug} onClose={() => setQuickViewSlug(null)} />}
     </section>
   );
