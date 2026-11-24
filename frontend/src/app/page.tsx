@@ -201,25 +201,20 @@ function CategoryBlock({
   subtitle?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className="group relative block aspect-[4/5] overflow-hidden bg-transparent ring-0 lg:aspect-[3/4]"
-    >
-      <img
-        src={image}
-        alt={title}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-      />
-
-      <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
-
-      <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 text-white lg:pb-12">
-        <h3 className="font-editorial text-2xl tracking-wide lg:text-4xl">
+    <Link href={href} className="group block min-w-0">
+      <div className="relative aspect-[4/5] overflow-hidden bg-transparent lg:aspect-[3/4]">
+        <img
+          src={image}
+          alt={title}
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      </div>
+      <div className="pt-3 text-center">
+        <h3 className="font-editorial text-xl tracking-wide text-black lg:text-2xl">
           {title}
         </h3>
-
         {subtitle && (
-          <p className="mt-2 text-[11px] uppercase tracking-[0.2em] opacity-80">
+          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-stone-500">
             {subtitle}
           </p>
         )}
@@ -329,7 +324,7 @@ export default async function Home() {
         slideInterval={7000}
       />
 
-      <section className="grid grid-cols-2 gap-2 py-2 lg:grid-cols-4 lg:gap-3 lg:py-3">
+      <section className="grid grid-cols-2 gap-3 py-3 lg:grid-cols-4 lg:gap-4 lg:py-4">
         <CategoryBlock
           href="/shop?stage=baby"
           image={babyImg}
