@@ -121,6 +121,9 @@ export interface ProductListItem {
   age_groups: AgeGroup[];
   gender: "girls" | "boys" | "unisex";
   
+  /** Optional catalogue timestamps used to order newest showroom items first. */
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductImage {
