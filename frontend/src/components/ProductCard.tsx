@@ -27,7 +27,6 @@ interface CardImage {
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f8f0f0'/%3E%3Ctext x='200' y='200' font-family='Arial' font-size='16' fill='%23999' text-anchor='middle' dominant-baseline='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
-  const [isHovering, setIsHovering] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -214,13 +213,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   return (
     <div
       className={`lark-product-card group relative ${className}`}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => {
-        setIsHovering(false);
-      }}
     >
       <div className="block">
-        {/* 3D stage: floor shadow + tilting image, no border */}
+        {/* Static product image; only the action buttons respond to hover. */}
         <div className="relative w-full aspect-[4/5]">
           <div className="absolute left-[12%] right-[12%] -bottom-1 h-3 rounded-[50%] bg-black/10 blur-md pointer-events-none" />
           <div
@@ -250,14 +245,6 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               className="absolute inset-0 z-0"
             />
 
-            {isHovering && galleryImages.length > 1 && (
-              <div className="absolute bottom-14 inset-x-0 flex items-center justify-center gap-1">
-                {galleryImages.map((_, i) => (
-                  <span key={i} className={`h-1 w-1 rounded-full transition-colors ${i === hoverIndex ? "bg-espresso" : "bg-white/80"}`} />
-                ))}
-              </div>
-            )}
-
             {!isInStock && (
               <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
                 <span className="text-espresso text-xs uppercase tracking-widest">Sold out</span>
@@ -272,7 +259,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
             <button
               onClick={handleWishlist}
-              className={`absolute top-2.5 right-2.5 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-white/85 backdrop-blur text-espresso transition-opacity ${isHovering || isMobile ? "opacity-100" : "opacity-0"}`}
+              className={`absolute top-2.5 right-2.5 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-white/85 backdrop-blur text-espresso transition-opacity opacity-100`}
               aria-label="Add to wishlist"
             >
               <Heart size={15} className={isWishlisted ? "fill-espresso" : ""} />
@@ -281,8 +268,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             {/* Actions float above the image (z-lifted): Quick view · Try on · Add */}
             {isInStock && (
               <div
-                className={`absolute inset-x-2 bottom-2 z-10 flex items-center gap-1.5 transition-all duration-300 ${isHovering || isMobile ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
-                style={{ transform: "translateZ(30px)" }}
+                className={`absolute inset-x-2 bottom-2 z-10 flex items-center gap-1.5 transition-all duration-300 opacity-100 translate-y-0`}
+                
               >
                 <button type="button" onClick={openQuick} className={`${glass} flex-1 gap-1.5 whitespace-nowrap text-[9px] uppercase tracking-wider px-2`} aria-label="Quick view">
                   <Eye size={13} /> <span className="hidden sm:inline">Quick view</span>
