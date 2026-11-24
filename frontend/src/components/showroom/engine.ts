@@ -20,7 +20,7 @@ const SLOT = 3.6;            // length (z) of one category bay
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
 const DISPLAY_X = 2.8; // category markers float above freestanding island displays
-const ITEM_H = 1.1;
+const ITEM_H = 1.65;
 const LAYERS = 6;
 const DEPTH = 0.055;
 
@@ -218,7 +218,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
         // Open-floor presentation: soft contact shadow instead of a display plinth.
         const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.48, 40),
+          new THREE.CircleGeometry(0.62, 40),
           new THREE.MeshBasicMaterial({ color: 0x51483d, transparent: true, opacity: 0.13, depthWrite: false })
         );
         shadow.rotation.x = -Math.PI / 2;
@@ -227,7 +227,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         scene.add(shadow);
 
         const holder = new THREE.Group();
-        holder.position.set(displayX, 0.22, lz);
+        holder.position.set(displayX, 0.16, lz);
         holder.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
 
@@ -247,7 +247,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
         // Clickable placeholder until the real API product photo is loaded.
         const pick = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.8, ITEM_H),
+          new THREE.PlaneGeometry(1.15, ITEM_H),
           new THREE.MeshBasicMaterial({ color: 0xe4e0d8, toneMapped: false, side: THREE.DoubleSide })
         );
         pick.position.y = ITEM_H / 2;
