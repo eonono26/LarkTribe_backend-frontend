@@ -30,6 +30,7 @@ export default function Tilt3DShowcase({
   const angle = useRef(0);
   const drag = useRef<{ x: number; angle: number } | null>(null);
   const dragged = useRef(false);
+  const hovering = useRef(false);
   const { isSaved, toggle: toggleWishlistItem } = useWishlist();
   const { formatPrice } = useLocalization();
 
@@ -50,6 +51,30 @@ export default function Tilt3DShowcase({
     const index = ((Math.round(-next / step) % items.length) + items.length) % items.length;
     setActiveIndex(index);
   }
+
+  useEffect(() => {
+    if (items.length < 4) return;
+    let frame = 0;
+    let previous = 0;
+    let lastLabel = 0;
+    const tick = (time: number) => {
+      if (previous && !drag.current && !hovering.current) {
+        const delta = Math.min((time - previous) / 1000, 0.05);
+        angle.current -= delta * 5;
+        if (ringRef.current) ringRef.current.style.transform = 'rotateY(' + angle.current + 'deg)';
+        if (time - lastLabel > 250) {
+          const step = 360 / items.length;
+          const index = ((Math.round(-angle.current / step) % items.length) + items.length) % items.length;
+          setActiveIndex(index);
+          lastLabel = time;
+        }
+      }
+      previous = time;
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [items.length]);
 
   function rotate(direction: number) {
     applyAngle(angle.current - direction * (360 / items.length));
@@ -104,7 +129,7 @@ export default function Tilt3DShowcase({
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 text-left text-white">
-            <p className="truncate text-[10px] uppercase tracking-[0.13em]">{product.name}</p>
+            <p className="truncate text-[10px] tracking-[0.13em]">{product.name.charAt(0).toUpperCase() + product.name.slice(1).toLowerCase()}</p>
             <p className="mt-1 text-xs">{formatPrice(Number(product.price) || 0)}</p>
           </div>
         </Link>
@@ -138,8 +163,8 @@ export default function Tilt3DShowcase({
   };
 
   return (
-    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#f3f0eb_0%,#fff_68%)] py-10 sm:py-14" aria-label={title}>
-      <div className="mx-auto max-w-screen-2xl px-4 sm:px-8">
+    <section className="relative w-full overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#f3f0eb_0%,#fff_68%)] py-10 sm:py-14" aria-label={title}>
+      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-8">
         <h2 className="text-center font-editorial text-3xl tracking-tight sm:text-4xl">{title}</h2>
         <p className="mb-2 mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-stone-500">
           Drag to spin
@@ -147,7 +172,7 @@ export default function Tilt3DShowcase({
       </div>
 
       <div
-        className="relative mx-auto h-[clamp(330px,42vw,560px)] w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        className="relative mx-auto h-[clamp(330px,42vw,560px)] w-full cursor-grab touch-pan-y select-none active:cursor-grabbing" onPointerEnter={() => { hovering.current = true; }} onPointerLeave={() => { hovering.current = false; }}
         style={{ perspective: "1400px", perspectiveOrigin: "50% 45%" }}
         role="group"
         aria-roledescription="carousel"
@@ -189,7 +214,7 @@ export default function Tilt3DShowcase({
         </div>
       </div>
 
-      <div className="mx-auto -mt-1 flex max-w-3xl items-center justify-center gap-6">
+      <div className="mx-auto -mt-1 flex w-full max-w-[1600px] items-center justify-center gap-6 px-4 sm:px-8">
         <button type="button" onClick={() => rotate(-1)} aria-label="Previous product" className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-black transition hover:bg-black hover:text-white">
           <ChevronLeft size={19} />
         </button>
