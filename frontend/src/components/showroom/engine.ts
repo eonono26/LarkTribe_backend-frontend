@@ -16,10 +16,9 @@ export type InspectView = "front" | "right" | "back" | "left" | "top";
 const HALL_W = 16;
 const HALL_H = 5.2;
 const EYE = 1.6;
-const SLOT = 9.4;            // dedicated aisle length for one category
+const SLOT = 11.8;           // spacious dedicated aisle length for one category
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
-const DISPLAY_X = 2.8; // category markers float above freestanding island displays
 const ITEM_H = 2.1;
 const LAYERS = 6;
 const DEPTH = 0.055;
@@ -235,8 +234,8 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         // The centre aisle remains clear and every product has breathing room.
         const row = Math.floor(k / 2);
         const column = k % 2;
-        const displayX = side * (4.65 + column * 1.48);
-        const lz = z + (row - 2.5) * 1.42;
+        const displayX = side * (4.55 + column * 1.75);
+        const lz = z + (row - 2.5) * 1.85;
 
         // Individual compact gallery plinths with clear gaps between neighbouring pieces.
         const plinth = new THREE.Group();
