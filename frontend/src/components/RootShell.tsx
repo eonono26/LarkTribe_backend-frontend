@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { CartProvider } from "@/lib/cart-context";
+import { WishlistProvider } from "@/lib/wishlist-context";
 import { LocalizationProvider } from "@/lib/localization-context";
 import Header from "@/components/Header";
 import CartDrawer from "@/components/CartDrawer";
@@ -23,6 +24,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <LocalizationProvider>
       <CartProvider>
+        <WishlistProvider>
         <Header />
         <div className="min-h-[60vh]">{children}</div>
         <Footer />
@@ -32,6 +34,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
         <BackToTop />
         <MarketingScripts />
         <ConsentBanner />
+        </WishlistProvider>
       </CartProvider>
     </LocalizationProvider>
   );
