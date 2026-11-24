@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Eye, Minus, Plus, RotateCw, ShoppingBag, X } from "lucide-react";
 import { createShowroom, type InspectView, type ShowWing } from "@/components/showroom/engine";
 import { backImage, productImage, type StoreWing } from "@/components/showroom/data";
@@ -18,6 +19,7 @@ type Engine = ReturnType<typeof createShowroom>;
 export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
   const host = useRef<HTMLDivElement>(null);
   const engine = useRef<Engine | null>(null);
+  const router = useRouter();
   const { formatPrice } = useLocalization();
   const { addItem } = useCart();
   const [selected, setSelected] = useState<ProductListItem | null>(null);
@@ -46,7 +48,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
     }));
     try {
       engine.current = createShowroom(host.current, data, {
-        onSelect: (id) => { const p = byId.get(id); if (!p) return; setSelected(p); setAdded(false); setErr(""); setView("front"); setHint(false); setHover(null); },
+        onSelect: (id) => { const p = byId.get(id); if (!p) return; router.push(`/product/${p.slug}`); },
         onLocation: (w, b) => setLoc({ w, b }),
         onHover: (id, x, y) => { const p = id != null ? byId.get(id) : null; setHover(p ? { p, x, y } : null); },
         onProgress: (done, total) => setProgress({ done, total }),
@@ -153,7 +155,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
       {/* Floating product label: live catalogue name + price */}
       {hover && !selected && (
         <div className="pointer-events-none fixed z-30 -translate-x-1/2 -translate-y-full bg-white px-3 py-2 shadow-lg text-center" style={{ left: hover.x, top: hover.y - 14 }}>
-          <p className="text-[11px] uppercase tracking-wider">{hover.p.name.charAt(0).toUpperCase() + hover.p.name.slice(1).toLowerCase()}</p>
+          <p className="text-[10px] normal-case tracking-normal">{hover.p.name.charAt(0).toUpperCase() + hover.p.name.slice(1).toLowerCase()}</p>
           <p className="text-sm font-medium">{formatPrice(parseFloat(hover.p.price) || 0)}</p>
         </div>
       )}
