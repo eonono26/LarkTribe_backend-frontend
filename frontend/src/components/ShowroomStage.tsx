@@ -44,12 +44,13 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
     setActive((a) => (((a + d) % n) + n) % n);
   };
   const current = items[active];
+  const sentenceCase = (value: string) => value.trim().toLowerCase().replace(/^\\S/, (letter) => letter.toUpperCase());
 
   const caption = (
     <div className="mt-6 flex flex-col items-center gap-3 text-center">
       <div>
         <p className="text-[10px] uppercase tracking-[0.22em] text-stone-400">{current.category_name}</p>
-        <h3 className="mt-1 font-editorial text-2xl text-white">{current.name}</h3>
+        <h3 className="mt-1 font-editorial text-2xl text-white normal-case">{sentenceCase(current.name)}</h3>
         <p className="mt-1 text-sm text-stone-300">{formatPrice(Number(current.price) || 0)}</p>
       </div>
       <div className="flex gap-2">
@@ -78,7 +79,7 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
                 <div className="relative aspect-[3/4] bg-[#f7f5f0]">
                   <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="160px" className="object-contain p-3" />
                 </div>
-                <p className="mt-2 line-clamp-1 text-xs">{p.name}</p>
+                <p className="mt-2 line-clamp-1 text-xs normal-case">{sentenceCase(p.name)}</p>
                 <p className="text-xs text-stone-400">{formatPrice(Number(p.price) || 0)}</p>
               </Link>
             </li>
