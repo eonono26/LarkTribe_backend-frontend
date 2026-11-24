@@ -486,7 +486,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       if (direction === "back") { x += Math.sin(yaw) * step; z += Math.cos(yaw) * step; }
       if (direction === "left") { x -= Math.cos(yaw) * step; z += Math.sin(yaw) * step; }
       if (direction === "right") { x += Math.cos(yaw) * step; z -= Math.sin(yaw) * step; }
-      clampPos(); goTo(Math.min(AISLE_HALF, Math.max(-AISLE_HALF, x)), Math.min(START_Z + 1.6, Math.max(endZ + 1.2, z)), yaw);
+      goTo(Math.min(AISLE_HALF, Math.max(-AISLE_HALF, x)), Math.min(START_Z + 1.6, Math.max(endZ + 1.2, z)), yaw);
     },
     inspect, closeInspect, setInspectView, zoomInspect,
     dispose: () => {
