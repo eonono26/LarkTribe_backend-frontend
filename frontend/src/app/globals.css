@@ -255,3 +255,17 @@ h1, h2, h3, h4, h5, h6, .font-display {
   .lark-product-card .lark-card-actions button,
   .lark-product-card .lark-card-wishlist { transition: none !important; }
 }
+
+/* Round collection actions: hover-reveal on mouse devices, persistent on touch. */
+.lark-round-actions { opacity: 1; pointer-events: auto; }
+@media (hover: hover) and (pointer: fine) {
+  .lark-round-actions { opacity: 0; pointer-events: none; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease; }
+  article:hover > .lark-round-actions,
+  article:focus-within > .lark-round-actions { opacity: 1; pointer-events: auto; transform: translateY(0); }
+}
+@media (hover: none), (pointer: coarse) {
+  .lark-round-actions { opacity: 1; pointer-events: auto; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lark-round-actions { transition: none !important; }
+}
