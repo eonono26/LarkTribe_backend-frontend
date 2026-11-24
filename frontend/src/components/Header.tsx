@@ -37,6 +37,7 @@ const NAV_LINKS = [
     source: { department: "men" },
   },
   { href: "/showroom", label: "3D Store", source: null },
+  { href: "/looks", label: "Looks", source: null },
 ] as const;
 
 const GENDER_QUICK = (stage: string) => [
@@ -461,7 +462,7 @@ export default function Header() {
             </button>
 
             {/* Desktop navigation */}
-            <nav className="hidden lg:flex items-center gap-8 flex-1">
+            <nav className="hidden lg:flex items-center gap-5 xl:gap-7 flex-1">
               {NAV_LINKS.map((link) => {
                 const menu = menus[link.label];
 

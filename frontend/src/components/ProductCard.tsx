@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ImageOff, Star } from "lucide-react";
+import { Eye, Heart, ImageOff, ShoppingBag, Sparkles, Star } from "lucide-react";
 import TryOnButton from "@/components/TryOnButton";
 import { trackEvent } from "@/lib/tracking";
 import { useCart } from "@/lib/cart-context";
@@ -189,6 +189,18 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
   const canQuickAdd = isInStock && !needs_size && (colors.length === 0 || resolvedVariantId != null);
 
+  // 3D tilt: the image stage follows the pointer (desktop only) like a card floating in space.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
+  const onTilt = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse" || !stageRef.current || !tiltRef.current) return;
+    const r = stageRef.current.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    tiltRef.current.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 12}deg) translateZ(18px)`;
+  };
+  const resetTilt = () => { if (tiltRef.current) tiltRef.current.style.transform = ""; };
+
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -228,13 +240,17 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     }
   }
 
+  const glass = "pointer-events-auto flex items-center justify-center h-9 rounded-full bg-white/85 backdrop-blur text-espresso shadow-[0_6px_18px_-6px_rgba(0,0,0,.35)] hover:bg-white hover:scale-105 active:scale-95 transition";
+  const openQuick = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setShowQuickView(true); };
+
   return (
     <div
-      className={`group relative bg-white border border-stone-200 ${className}`}
+      className={`group relative ${className}`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => {
         setIsHovering(false);
         setHoverIndex(0);
+        resetTilt();
       }}
     >
       <Link
@@ -242,126 +258,103 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         className="block"
         onClick={() => api.track("click", { product: id })}
       >
-        {/* Image */}
-        <div className="relative w-full aspect-[4/5] bg-stone-50 overflow-hidden">
-          {!hasCurrentImageError ? (
-            <Image
-              key={currentImageKey}
-              src={finalImage}
-              alt={name}
-              fill
-              className="object-cover transition-opacity duration-300"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
-              onError={handleImageError}
-              unoptimized={finalImage.startsWith("data:")}
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
-              <ImageOff size={28} className="mb-1 opacity-50" />
-              <span className="text-xs">No image</span>
-            </div>
-          )}
-
-          {/* Dots — only when hovering has more than one photo to cycle through */}
-          {isHovering && galleryImages.length > 1 && (
-            <div className="absolute bottom-2 inset-x-0 flex items-center justify-center gap-1">
-              {galleryImages.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-1 w-1 rounded-full transition-colors ${i === hoverIndex ? "bg-espresso" : "bg-white/80"}`}
-                />
-              ))}
-            </div>
-          )}
-
-          {!isInStock && (
-            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-              <span className="text-espresso text-xs uppercase tracking-widest">Sold out</span>
-            </div>
-          )}
-
-          {discount > 0 && isInStock && (
-            <span className="absolute top-2.5 left-2.5 text-[10px] uppercase tracking-wider text-espresso">
-              -{discount}%
-            </span>
-          )}
-
-          <button
-            onClick={handleWishlist}
-            className={`absolute top-2.5 right-2.5 text-espresso transition-opacity ${
-              isHovering || isMobile ? "opacity-100" : "opacity-0"
-            }`}
-            aria-label="Add to wishlist"
+        {/* 3D stage: floor shadow + tilting image, no border */}
+        <div ref={stageRef} onPointerMove={onTilt} onPointerLeave={resetTilt} className="relative w-full aspect-[4/5] [perspective:900px]">
+          <div className="absolute left-[10%] right-[10%] -bottom-1 h-4 rounded-[50%] bg-black/25 blur-md transition-all duration-300 group-hover:bg-black/40 group-hover:blur-lg group-hover:scale-95" />
+          <div
+            ref={tiltRef}
+            className="absolute inset-0 rounded-[18px] overflow-hidden bg-gradient-to-b from-stone-50 to-stone-100 shadow-[0_14px_30px_-20px_rgba(0,0,0,.45)] group-hover:shadow-[0_34px_50px_-26px_rgba(0,0,0,.55)] transition-[transform,box-shadow] duration-200 ease-out will-change-transform"
+            style={{ transformStyle: "preserve-3d" }}
           >
-            <Heart size={16} className={isWishlisted ? "fill-espresso" : ""} />
-          </button>
+            {!hasCurrentImageError ? (
+              <Image
+                key={currentImageKey}
+                src={finalImage}
+                alt={name}
+                fill
+                className="object-cover transition-all duration-500 group-hover:scale-[1.06]"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
+                onError={handleImageError}
+                unoptimized={finalImage.startsWith("data:")}
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
+                <ImageOff size={28} className="mb-1 opacity-50" />
+                <span className="text-xs">No image</span>
+              </div>
+            )}
 
-        </div>
-        {/* Compact, aligned colour selector — choosing a swatch updates the product image */}
-        {colors.length > 0 && (
-          <div className="px-3 pt-3 pb-1.5">
-            <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-              <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-stone-500">
-                Colours
+            {isHovering && galleryImages.length > 1 && (
+              <div className="absolute bottom-14 inset-x-0 flex items-center justify-center gap-1">
+                {galleryImages.map((_, i) => (
+                  <span key={i} className={`h-1 w-1 rounded-full transition-colors ${i === hoverIndex ? "bg-espresso" : "bg-white/80"}`} />
+                ))}
+              </div>
+            )}
+
+            {!isInStock && (
+              <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                <span className="text-espresso text-xs uppercase tracking-widest">Sold out</span>
+              </div>
+            )}
+
+            {discount > 0 && isInStock && (
+              <span className="absolute top-2.5 left-2.5 text-[10px] uppercase tracking-wider bg-white/85 backdrop-blur text-espresso px-2 py-0.5 rounded-full">
+                -{discount}%
               </span>
-              <span className="truncate text-[10px] capitalize tracking-wide text-stone-700">
-                {selectedColor || colors[0]}
-              </span>
-            </div>
-            <div className="flex min-h-6 flex-wrap items-center gap-x-2.5 gap-y-2">
-              {colors.map((color) => (
-                <ColorSwatch
-                  key={color}
-                  color={color}
-                  size={22}
-                  shape="round"
-                  selected={selectedColor === color}
-                  onClick={(e) => handleColorSelect(e, color)}
-                />
-              ))}
-            </div>
+            )}
+
+            <button
+              onClick={handleWishlist}
+              className={`absolute top-2.5 right-2.5 h-8 w-8 flex items-center justify-center rounded-full bg-white/85 backdrop-blur text-espresso transition-opacity ${isHovering || isMobile ? "opacity-100" : "opacity-0"}`}
+              aria-label="Add to wishlist"
+            >
+              <Heart size={15} className={isWishlisted ? "fill-espresso" : ""} />
+            </button>
+
+            {/* Actions float above the image (z-lifted): Quick view · Try on · Add */}
+            {isInStock && (
+              <div
+                className={`absolute inset-x-2 bottom-2 flex items-center gap-1.5 transition-all duration-300 ${isHovering || isMobile ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
+                style={{ transform: "translateZ(30px)" }}
+              >
+                <button type="button" onClick={openQuick} className={`${glass} flex-1 gap-1.5 whitespace-nowrap text-[9px] uppercase tracking-wider px-2`} aria-label="Quick view">
+                  <Eye size={13} /> <span className="hidden sm:inline">Quick view</span>
+                </button>
+                <TryOnButton product={{ id, name, slug, colors }} color={selectedColor} label="" variant="outline" className={`${glass} !border-0 !py-0 w-9 !rounded-full`} />
+                <button type="button" onClick={handlePrimaryAction} disabled={adding} className={`${glass} w-9 !bg-espresso !text-white hover:!bg-black disabled:opacity-60`} aria-label={canQuickAdd ? "Add to bag" : "Choose size"}>
+                  <ShoppingBag size={14} />
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Price and product name share the same consistent card gutter */}
-        <div className="px-3 pt-2 pb-3 flex flex-col gap-0.5">
+        <div className="px-1 pt-4 flex flex-col gap-1">
+          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{name}</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-md text-espresso">{formatPrice(numericPrice)}</span>
             {numericComparePrice !== null && numericComparePrice > numericPrice && (
               <span className="text-md text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
             )}
+            {rating_count > 0 && (
+              <span className="ml-auto flex items-center gap-0.5 text-[11px] text-stone-500" aria-label={`Rated ${ratingValue.toFixed(1)} out of 5`}>
+                <Star size={11} className="fill-espresso text-espresso" /> {ratingValue.toFixed(1)}
+              </span>
+            )}
           </div>
-          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{name}</h3>
-          {rating_count > 0 && (
-            <div className="flex items-center gap-1 mt-0.5" aria-label={`Rated ${ratingValue.toFixed(1)} out of 5`}>
-              <Star size={11} className="fill-espresso text-espresso" />
-              <span className="text-[11px] text-stone-600">{ratingValue.toFixed(1)}</span>
-              <span className="text-[11px] text-stone-400">({rating_count})</span>
+          {colors.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {colors.map((color) => (
+                <ColorSwatch key={color} color={color} size={16} shape="round" selected={selectedColor === color} onClick={(e) => handleColorSelect(e, color)} />
+              ))}
             </div>
           )}
         </div>
       </Link>
 
-      {/* Persistent actions: Try it on / Add to cart */}
-      {isInStock && (
-        <div className="grid grid-cols-2 gap-1.5 px-3 pb-3">
-          <TryOnButton product={{ id, name, slug, colors }} color={selectedColor} label="Try on" />
-          <button
-            type="button"
-            onClick={handlePrimaryAction}
-            disabled={adding}
-            className="py-2 bg-black text-white text-[10px] uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-60"
-          >
-            {adding ? "Adding…" : canQuickAdd ? "Add to cart" : "Select size"}
-          </button>
-        </div>
-      )}
-
-      
       {addError && (
-        <p role="alert" className="text-[10px] text-red-600 pt-1 pb-2">
-          {addError}
-        </p>
+        <p role="alert" className="text-[10px] text-red-600 pt-1 pb-2">{addError}</p>
       )}
 
       {showQuickView && (
