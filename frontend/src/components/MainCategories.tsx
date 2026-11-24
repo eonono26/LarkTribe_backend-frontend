@@ -30,7 +30,7 @@ export default function MainCategories({
   const tiles = [
     {
       key: "baby",
-      label: "Baby",
+      label: "Babies",
       sub: "0–24 Months",
       href: babyGroup ? `/shop/age/${babyGroup.slug}` : "/shop?stage=baby",
       image: babyGroup?.primary_image?.file_url || departmentTileImage("baby-024-months"),

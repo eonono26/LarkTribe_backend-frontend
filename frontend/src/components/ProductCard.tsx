@@ -253,17 +253,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         resetTilt();
       }}
     >
-      <Link
-        href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
-        className="block"
-        onClick={() => api.track("click", { product: id })}
-      >
+      <div className="block">
         {/* 3D stage: floor shadow + tilting image, no border */}
         <div ref={stageRef} onPointerMove={onTilt} onPointerLeave={resetTilt} className="relative w-full aspect-[4/5] [perspective:900px]">
           <div className="absolute left-[10%] right-[10%] -bottom-1 h-4 rounded-[50%] bg-black/25 blur-md transition-all duration-300 group-hover:bg-black/40 group-hover:blur-lg group-hover:scale-95" />
           <div
             ref={tiltRef}
-            className="absolute inset-0 rounded-[18px] overflow-hidden bg-gradient-to-b from-stone-50 to-stone-100 shadow-[0_14px_30px_-20px_rgba(0,0,0,.45)] group-hover:shadow-[0_34px_50px_-26px_rgba(0,0,0,.55)] transition-[transform,box-shadow] duration-200 ease-out will-change-transform"
+            className="absolute inset-0 overflow-hidden bg-transparent shadow-none transition-transform duration-200 ease-out will-change-transform"
             style={{ transformStyle: "preserve-3d" }}
           >
             {!hasCurrentImageError ? (
@@ -272,7 +268,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 src={finalImage}
                 alt={name}
                 fill
-                className="object-cover transition-all duration-500 group-hover:scale-[1.06]"
+                className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
                 onError={handleImageError}
                 unoptimized={finalImage.startsWith("data:")}
@@ -283,6 +279,12 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 <span className="text-xs">No image</span>
               </div>
             )}
+            <Link
+              href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
+              aria-label={`View ${name}`}
+              onClick={() => api.track("click", { product: id })}
+              className="absolute inset-0 z-0"
+            />
 
             {isHovering && galleryImages.length > 1 && (
               <div className="absolute bottom-14 inset-x-0 flex items-center justify-center gap-1">
@@ -306,7 +308,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
             <button
               onClick={handleWishlist}
-              className={`absolute top-2.5 right-2.5 h-8 w-8 flex items-center justify-center rounded-full bg-white/85 backdrop-blur text-espresso transition-opacity ${isHovering || isMobile ? "opacity-100" : "opacity-0"}`}
+              className={`absolute top-2.5 right-2.5 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-white/85 backdrop-blur text-espresso transition-opacity ${isHovering || isMobile ? "opacity-100" : "opacity-0"}`}
               aria-label="Add to wishlist"
             >
               <Heart size={15} className={isWishlisted ? "fill-espresso" : ""} />
@@ -315,7 +317,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             {/* Actions float above the image (z-lifted): Quick view · Try on · Add */}
             {isInStock && (
               <div
-                className={`absolute inset-x-2 bottom-2 flex items-center gap-1.5 transition-all duration-300 ${isHovering || isMobile ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
+                className={`absolute inset-x-2 bottom-2 z-10 flex items-center gap-1.5 transition-all duration-300 ${isHovering || isMobile ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
                 style={{ transform: "translateZ(30px)" }}
               >
                 <button type="button" onClick={openQuick} className={`${glass} flex-1 gap-1.5 whitespace-nowrap text-[9px] uppercase tracking-wider px-2`} aria-label="Quick view">
@@ -351,7 +353,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             </div>
           )}
         </div>
-      </Link>
+      </div>
 
       {addError && (
         <p role="alert" className="text-[10px] text-red-600 pt-1 pb-2">{addError}</p>

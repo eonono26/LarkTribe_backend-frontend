@@ -269,11 +269,12 @@ export default async function Home() {
     heroCampaigns = home.hero_campaigns || [];
     departments = (home.departments || []) as DepartmentWithId[];
     ageGroups = home.age_groups || [];
-    products = home.new_arrivals || [];
+    const collection = await api.products({ ordering: "-created_at", page_size: "24" }).catch(() => null);
+    products = collection?.results?.length ? collection.results : (home.new_arrivals || []);
   } catch {
     const [p, d, a, c] = await Promise.all([
       api
-        .products({ ordering: "-created_at" })
+        .products({ ordering: "-created_at", page_size: "24" })
         .catch(() => ({
           results: [] as ProductListItem[],
         })),
@@ -389,7 +390,7 @@ export default async function Home() {
         <CategoryBlock
           href="/shop?stage=baby"
           image={babyImg}
-          title="Baby"
+          title="Babies"
           // subtitle="0 – 24 Months"
         />
 

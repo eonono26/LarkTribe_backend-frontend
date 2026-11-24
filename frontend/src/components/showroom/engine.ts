@@ -19,10 +19,8 @@ const EYE = 1.6;
 const SLOT = 3.6;            // length (z) of one category bay
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
-const DISPLAY_X = HALL_W / 2 - 0.85;
-const LEVELS = [0.35, 1.45, 2.55];
-const PER_LEVEL = 4;
-const ITEM_H = 0.72;
+const DISPLAY_X = 2.8; // category markers float above freestanding island displays
+const ITEM_H = 1.1;
 const LAYERS = 6;
 const DEPTH = 0.055;
 
@@ -210,18 +208,58 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       cat.position.set(side * (DISPLAY_X - 0.04), 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
       if (bi % 2 === 0) mkHotspot(0, z, { wing: wi, bay: bi });
 
-      bay.items.slice(0, LEVELS.length * PER_LEVEL).forEach((item, k) => {
-        const lvl = Math.floor(k / PER_LEVEL), col4 = k % PER_LEVEL;
-        const lz = z + (col4 - (PER_LEVEL - 1) / 2) * 0.82;
+      // Every garment stands on its own low floor plinth in a two-row island.
+      // Products are not mounted on walls or stacked on shelves.
+      bay.items.slice(0, 12).forEach((item, k) => {
+        const row = Math.floor(k / 6);
+        const col6 = k % 6;
+        const displayX = side * (row === 0 ? 2.2 : 3.45);
+        const lz = z + (col6 - 2.5) * 0.5;
+
+        const base = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.28, 0.34, 0.32, 32),
+          new THREE.MeshStandardMaterial({ color: 0xf1ede5, roughness: 0.32, metalness: 0.06 })
+        );
+        base.position.set(displayX, 0.16, lz);
+        scene.add(base);
+        const cap = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.29, 0.29, 0.025, 32),
+          new THREE.MeshStandardMaterial({ color: 0xc7b49b, roughness: 0.28, metalness: 0.14 })
+        );
+        cap.position.set(displayX, 0.325, lz);
+        scene.add(cap);
+
         const holder = new THREE.Group();
-        holder.position.set(side * DISPLAY_X, LEVELS[lvl], lz);
+        holder.position.set(displayX, 0.34, lz);
         holder.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
-        // placeholder (grey slab) until photos arrive
-        const pick = new THREE.Mesh(new THREE.PlaneGeometry(0.5, ITEM_H), new THREE.MeshBasicMaterial({ color: 0xe4e0d8, toneMapped: false, side: THREE.DoubleSide }));
-        pick.position.y = ITEM_H / 2; pick.userData = { item: item.id }; holder.add(pick);
+
+        // Always-visible product name and price, sourced from the catalogue API.
+        const labelText = item.name.length > 22 ? item.name.slice(0, 21) + "…" : item.name;
+        const label = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.45, 0.2),
+          new THREE.MeshBasicMaterial({
+            map: signTex(`${labelText} · ${item.priceLabel}`, {
+              w: 1024, h: 144, size: 43, fg: "#29231d", bg: "#fffdf8", spacing: 1, weight: 500
+            }),
+            transparent: true
+          })
+        );
+        label.position.set(0, -0.17, 0.31);
+        holder.add(label);
+
+        // Clickable placeholder until the real API product photo is loaded.
+        const pick = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.8, ITEM_H),
+          new THREE.MeshBasicMaterial({ color: 0xe4e0d8, toneMapped: false, side: THREE.DoubleSide })
+        );
+        pick.position.y = ITEM_H / 2;
+        pick.userData = { item: item.id };
+        holder.add(pick);
         const rec: Rec = { item, wing: wi, bay: bi, holder, state: "idle", pos: new THREE.Vector3(), pick };
-        holder.getWorldPosition(rec.pos); recs.push(rec); byId.set(item.id, rec);
+        holder.getWorldPosition(rec.pos);
+        recs.push(rec);
+        byId.set(item.id, rec);
       });
     });
   });
