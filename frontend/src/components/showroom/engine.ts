@@ -25,6 +25,7 @@ const LAYERS = 6;
 const DEPTH = 0.055;
 
 const proxied = (url: string) => `/api/showroom-img?u=${encodeURIComponent(url)}`;
+const proxiedAsset = (url: string) => `/api/showroom-asset?u=${encodeURIComponent(url)}`;
 
 /* ---------------------------------------------------------- canvas helpers */
 function canvasTex(w: number, h: number, draw: (c: CanvasRenderingContext2D) => void) {
@@ -185,8 +186,10 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   };
   interface Rec { item: ShowItem; wing: number; bay: number; holder: THREE.Group; front?: THREE.Mesh; state: "idle" | "loading" | "ready" | "failed"; textures?: { front: THREE.Texture; back: THREE.Texture; aspect: number }; pos: THREE.Vector3; pick: THREE.Mesh }
   const recs: Rec[] = []; const byId = new Map<number, Rec>();
-  let total = 0, done = 0;
-  wings.forEach((w) => w.bays.forEach((b) => (total += Math.min(12, b.items.length))));
+  let productTotal = 0, done = 0;
+  wings.forEach((w) => w.bays.forEach((b) => (productTotal += Math.min(12, b.items.length))));
+  // The progress indicator represents the first visible products, not the entire lazy-loaded store.
+  const initialLoadTotal = Math.min(12, productTotal);
 
   wings.forEach((wing, wi) => {
     const info = wingInfo[wi];
@@ -213,7 +216,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       bay.items.slice(0, 12).forEach((item, k) => {
         const row = Math.floor(k / 4);
         const col4 = k % 4;
-        const displayX = side * (2.0 + row * 1.45);
+        const displayX = side * (1.55 + row * 1.05);
         const lz = z + (col4 - 1.5) * 1.08;
 
         // Open-floor presentation: soft contact shadow instead of a display plinth.
@@ -260,7 +263,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       });
     });
   });
-  cb.onProgress(0, total);
+  cb.onProgress(0, initialLoadTotal);
 
   /* ---- lazy photo loading, nearest first */
   let inflight = 0; const MAX_INFLIGHT = 4;
@@ -281,7 +284,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       const hit = new THREE.Mesh(new THREE.PlaneGeometry(group.userData.w, ITEM_H), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.y = ITEM_H / 2; hit.userData = { item: rec.item.id }; group.position.y = ITEM_H / 2;
       rec.holder.add(group); rec.holder.add(hit); rec.pick = hit; rec.front = meshes[0]; rec.state = "ready";
-    }).catch(() => { rec.state = "failed"; }).finally(() => { inflight--; cb.onProgress(++done, total); });
+    }).catch(() => { rec.state = "failed"; }).finally(() => { inflight--; done++; cb.onProgress(Math.min(done, initialLoadTotal), initialLoadTotal); });
   }
   let loadTimer = 0;
   const pump = () => {
@@ -327,14 +330,36 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
     const mine = insp;
     try {
       if (glbUrl) {
-        const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
-        const gltf = await new GLTFLoader().loadAsync(proxied(glbUrl).replace("/api/showroom-img?u=", "/api/showroom-img?u="));
-        if (insp !== mine) return;
-        const obj = gltf.scene; const box = new THREE.Box3().setFromObject(obj); const size = box.getSize(new THREE.Vector3()); const c = box.getCenter(new THREE.Vector3());
-        obj.position.sub(c); const s = 0.95 / Math.max(size.x, size.y, size.z); obj.scale.setScalar(s); obj.position.multiplyScalar(s);
-        obj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { (m.material as THREE.Material).depthTest = false; m.renderOrder = 1000; } });
-        const light = new THREE.AmbientLight(0xffffff, 2.2); turn.add(light); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(1, 2, 2); turn.add(dl); turn.add(obj);
-        return;
+        try {
+          const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+          // GLB is not an image: use the dedicated model proxy, not the image-only texture proxy.
+          const gltf = await new GLTFLoader().loadAsync(proxiedAsset(glbUrl));
+          if (insp !== mine) return;
+          const obj = gltf.scene;
+          const box = new THREE.Box3().setFromObject(obj);
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          const largest = Math.max(size.x, size.y, size.z) || 1;
+          obj.position.sub(center);
+          const scale = 0.95 / largest;
+          obj.scale.setScalar(scale);
+          obj.position.multiplyScalar(scale);
+          obj.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (mesh.isMesh) {
+              mesh.material = Array.isArray(mesh.material)
+                ? mesh.material.map((material) => material.clone())
+                : mesh.material.clone();
+            }
+          });
+          turn.add(new THREE.AmbientLight(0xffffff, 1.8));
+          const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+          keyLight.position.set(1, 2, 2);
+          turn.add(keyLight, obj);
+          return;
+        } catch {
+          // Fall through to turntable frames or the photo-based inspection fallback.
+        }
       }
       if (spinFrameUrls.length > 1) {
         const frames = await Promise.all(spinFrameUrls.map(async (url) => cutout(await loadImage(url))));
@@ -454,6 +479,15 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   return {
     goToWing: (i: number) => { const w = wingInfo[i]; if (w) goTo(0, w.z0 - 3.4, 0); },
     goToBay: (wi: number, bi: number) => { const b = wingInfo[wi]?.bays[bi]; if (b) goTo(0, b.z, 0); },
+    move: (direction: "forward" | "back" | "left" | "right") => {
+      const step = 2.2;
+      let x = camera.position.x, z = camera.position.z;
+      if (direction === "forward") { x -= Math.sin(yaw) * step; z -= Math.cos(yaw) * step; }
+      if (direction === "back") { x += Math.sin(yaw) * step; z += Math.cos(yaw) * step; }
+      if (direction === "left") { x -= Math.cos(yaw) * step; z += Math.sin(yaw) * step; }
+      if (direction === "right") { x += Math.cos(yaw) * step; z -= Math.sin(yaw) * step; }
+      clampPos(); goTo(Math.min(AISLE_HALF, Math.max(-AISLE_HALF, x)), Math.min(START_Z + 1.6, Math.max(endZ + 1.2, z)), yaw);
+    },
     inspect, closeInspect, setInspectView, zoomInspect,
     dispose: () => {
       cancelAnimationFrame(raf); clearInterval(loadTimer); ro.disconnect();
