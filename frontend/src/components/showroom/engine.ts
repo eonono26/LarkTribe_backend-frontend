@@ -399,7 +399,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   const ray = new THREE.Raycaster(); const ndc = new THREE.Vector2();
   const setNdc = (e: PointerEvent) => { const r = dom.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); };
   const pickables = () => [...recs.map((r) => r.pick), ...hotspots];
-  let down: { x: number; y: number; moved: boolean } | null = null; let hovered: number | null = null;
+  let down: { x: number; y: number; moved: boolean } | null = null;
   const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY, moved: false }; dom.setPointerCapture(e.pointerId); if (!insp) tween = null; else insp.auto = false; };
   const onMove = (e: PointerEvent) => {
     if (down) {
@@ -412,7 +412,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       setNdc(e); const hit = ray.intersectObjects(pickables(), false)[0];
       dom.style.cursor = hit ? "pointer" : "grab";
       const id = hit && hit.object.userData.item != null ? (hit.object.userData.item as number) : null;
-      hovered = id; cb.onHover(id, e.clientX, e.clientY);
+      cb.onHover(id, e.clientX, e.clientY);
     }
   };
   const onUp = (e: PointerEvent) => {
