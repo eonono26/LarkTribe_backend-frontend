@@ -51,7 +51,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
         onHover: (id, x, y) => { const p = id != null ? byId.get(id) : null; setHover(p ? { p, x, y } : null); },
         onProgress: (done, total) => setProgress({ done, total }),
       });
-    } catch { setFailed(true); }
+    } catch { void Promise.resolve().then(() => setFailed(true)); }
     return () => { engine.current?.dispose(); engine.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wings]);
