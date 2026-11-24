@@ -57,6 +57,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     rating_count = 0,
   } = product;
   const ratingValue = Number(rating_avg) || 0;
+  const displayName = name.trim().toLowerCase().replace(/^\S/, (letter) => letter.toUpperCase());
 
   const numericPrice = Number(price) || 0;
   const numericComparePrice = compare_at_price != null ? Number(compare_at_price) || 0 : null;
@@ -294,7 +295,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         </div>
 
         <div className="px-1 pt-4 flex flex-col gap-1">
-          <h3 className="text-md uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{name}</h3>
+          <h3 className="text-md normal-case tracking-normal text-espresso line-clamp-2 sm:line-clamp-1">{displayName}</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-md text-espresso">{formatPrice(numericPrice)}</span>
             {numericComparePrice !== null && numericComparePrice > numericPrice && (
