@@ -385,7 +385,7 @@ export default async function Home() {
       />
  
       {/* FAMILY GRID */}
-      <section className="grid grid-cols-2 gap-2 bg-[#f5f5f3] p-2 lg:grid-cols-4 lg:gap-3 lg:p-3">
+      <section className="grid grid-cols-2 gap-2 py-2 lg:grid-cols-4 lg:gap-3 lg:py-3">
 
         <CategoryBlock
           href="/shop?stage=baby"
