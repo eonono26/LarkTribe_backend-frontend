@@ -117,7 +117,7 @@ export default function Tilt3DShowcase({
       >
         <Link
           href={`/product/${product.slug}`}
-          className="relative block h-full w-full overflow-hidden bg-[#f7f5f0]"
+          className="relative block h-full w-full overflow-hidden bg-white"
         >
           <Image
             src={mediaUrl(image)}
@@ -163,7 +163,7 @@ export default function Tilt3DShowcase({
   };
 
   return (
-    <section className="relative w-full overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#f3f0eb_0%,#fff_68%)] py-10 sm:py-14" aria-label={title}>
+    <section className="relative w-full overflow-hidden bg-white py-10 sm:py-14" aria-label={title}>
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-8">
         <h2 className="text-center font-editorial text-3xl tracking-tight sm:text-4xl">{title}</h2>
         <p className="mb-2 mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-stone-500">
