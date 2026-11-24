@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, Heart, ImageOff, ShoppingBag, Sparkles, Star } from "lucide-react";
@@ -26,15 +26,11 @@ interface CardImage {
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f8f0f0'/%3E%3Ctext x='200' y='200' font-family='Arial' font-size='16' fill='%23999' text-anchor='middle' dominant-baseline='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
 
-// Cycle interval for the "hover to see the rest of the photos" slideshow.
-const HOVER_CYCLE_MS = 1100;
-
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
   const [isHovering, setIsHovering] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const [hoverIndex, setHoverIndex] = useState(0);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const { formatPrice } = useLocalization();
@@ -157,25 +153,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     return allImages;
   }, [allImages, selectedColor, color_images]);
 
-  // While hovering, if this product has more than one photo for the
-  // selected color, cycle through the rest of them; revert to the first on
-  // mouse-leave.
-  useEffect(() => {
-    if (!isHovering || galleryImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setHoverIndex((i) => (i + 1) % galleryImages.length);
-    }, HOVER_CYCLE_MS);
-    return () => clearInterval(interval);
-  }, [isHovering, galleryImages.length]);
-
-  // Reset the slideshow on mouse-leave in the event handler, rather than in
-  // an effect, to avoid synchronously updating state from an effect.
-
-  // A color change starts at its first photo without synchronously updating
-  // state in an effect.
-  const activeImageIndex = Math.min(hoverIndex, galleryImages.length - 1);
-  const activeImage = galleryImages[activeImageIndex] || galleryImages[0];
-  const currentImageKey = `${selectedColor || "default"}-${activeImageIndex}`;
+  // Keep the product image stable; hover is reserved for the action controls.
+  const activeImage = galleryImages[0];
+  const currentImageKey = `${selectedColor || "default"}-0`;
   const hasCurrentImageError = imageErrors[currentImageKey] || false;
   const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : activeImage?.url || PLACEHOLDER_IMAGE;
 
@@ -188,18 +168,6 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   }, [colors.length, selectedColor, color_variant_ids]);
 
   const canQuickAdd = isInStock && !needs_size && (colors.length === 0 || resolvedVariantId != null);
-
-  // 3D tilt: the image stage follows the pointer (desktop only) like a card floating in space.
-  const stageRef = useRef<HTMLDivElement>(null);
-  const tiltRef = useRef<HTMLDivElement>(null);
-  const onTilt = (e: React.PointerEvent) => {
-    if (e.pointerType !== "mouse" || !stageRef.current || !tiltRef.current) return;
-    const r = stageRef.current.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    tiltRef.current.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 12}deg) translateZ(18px)`;
-  };
-  const resetTilt = () => { if (tiltRef.current) tiltRef.current.style.transform = ""; };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -249,18 +217,14 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => {
         setIsHovering(false);
-        setHoverIndex(0);
-        resetTilt();
       }}
     >
       <div className="block">
         {/* 3D stage: floor shadow + tilting image, no border */}
-        <div ref={stageRef} onPointerMove={onTilt} onPointerLeave={resetTilt} className="relative w-full aspect-[4/5] [perspective:900px]">
-          <div className="absolute left-[10%] right-[10%] -bottom-1 h-4 rounded-[50%] bg-black/25 blur-md transition-all duration-300 group-hover:bg-black/40 group-hover:blur-lg group-hover:scale-95" />
+        <div className="relative w-full aspect-[4/5]">
+          <div className="absolute left-[12%] right-[12%] -bottom-1 h-3 rounded-[50%] bg-black/10 blur-md pointer-events-none" />
           <div
-            ref={tiltRef}
-            className="absolute inset-0 overflow-hidden bg-transparent shadow-none transition-transform duration-200 ease-out will-change-transform"
-            style={{ transformStyle: "preserve-3d" }}
+            className="absolute inset-0 overflow-hidden bg-transparent shadow-none"
           >
             {!hasCurrentImageError ? (
               <Image
@@ -268,7 +232,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 src={finalImage}
                 alt={name}
                 fill
-                className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"
+                className="object-contain"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
                 onError={handleImageError}
                 unoptimized={finalImage.startsWith("data:")}
