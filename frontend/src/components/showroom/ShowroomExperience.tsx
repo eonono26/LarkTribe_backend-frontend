@@ -112,7 +112,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
 
       {/* departments, in shopping order */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 max-w-[96vw]">
-        <div className="flex bg-white/90 backdrop-blur p-1 shadow-sm overflow-x-auto max-w-full">
+        <div className="flex max-w-full items-center gap-1 bg-white/95 p-1.5 shadow-md backdrop-blur overflow-x-auto">
           {wings.map((w, i) => (
             <button key={w.slug} onClick={() => { close(); engine.current?.goToWing(i); }} className={`${chip} ${loc.w === i ? "text-white" : "hover:bg-stone-100"}`} style={loc.w === i ? { background: "#" + w.accent.toString(16).padStart(6, "0") } : undefined}>
               {w.title}
@@ -120,9 +120,9 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
           ))}
         </div>
         {wing && (
-          <div className="flex gap-1 bg-white/80 backdrop-blur p-1 shadow-sm overflow-x-auto max-w-full">
+          <div className="flex max-w-full items-center gap-1 bg-white/90 p-1.5 shadow-md backdrop-blur overflow-x-auto">
             {wing.bays.map((b, i) => (
-              <button key={b.title} onClick={() => { close(); engine.current?.goToBay(loc.w, i); }} className={`${chip} !py-1.5 ${loc.b === i || loc.b + 1 === i && i % 2 === 1 ? "bg-black text-white" : "hover:bg-stone-100"}`}>{b.title}</button>
+              <button key={b.title} onClick={() => { close(); engine.current?.goToBay(loc.w, i); }} className={`${chip} !py-1.5 ${loc.b === i ? "bg-black text-white" : "hover:bg-stone-100"}`}>{b.title}</button>
             ))}
           </div>
         )}
