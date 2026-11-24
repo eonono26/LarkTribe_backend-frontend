@@ -229,7 +229,7 @@ function CategoryBlock({
   return (
     <Link
       href={href}
-      className="group relative block aspect-[4/5] overflow-hidden lg:aspect-[3/4]"
+      className="group relative block aspect-[4/5] overflow-hidden bg-[#f5f5f3] ring-1 ring-inset ring-stone-200/70 lg:aspect-[3/4]"
     >
       <img
         src={image}
@@ -385,7 +385,7 @@ export default async function Home() {
       />
  
       {/* FAMILY GRID */}
-      <section className=" grid grid-cols-2 gap-2 py-2 lg:py-4 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 bg-[#f5f5f3] p-2 lg:grid-cols-4 lg:gap-3 lg:p-3">
 
         <CategoryBlock
           href="/shop?stage=baby"
