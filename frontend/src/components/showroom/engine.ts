@@ -245,7 +245,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
             transparent: true
           })
         );
-        label.position.set(0, -0.17, 0.31);
+        label.position.set(0, ITEM_H + 0.24, 0.31);
         holder.add(label);
 
         // Clickable placeholder until the real API product photo is loaded.
