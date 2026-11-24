@@ -128,7 +128,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
 
       <Link href="/shop" className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur px-4 py-3 text-[10px] uppercase tracking-widest hover:bg-white shadow-sm hidden sm:block">Grid view</Link>
 
-      {loading && <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white/90 px-4 py-2 text-[11px] tracking-wide shadow-sm">Stocking the shelves… {Math.round((progress.done / progress.total) * 100)}%</div>}
+      {loading && <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white/90 px-4 py-2 text-[11px] tracking-wide shadow-sm">Preparing the collection… {Math.round((progress.done / progress.total) * 100)}%</div>}
 
       {hint && !loading && !selected && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-black/75 text-white px-5 py-3 text-xs text-center max-w-[90vw]" onClick={() => setHint(false)}>
@@ -136,7 +136,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
         </div>
       )}
 
-      {/* hover label: name + price, like a shelf tag */}
+      {/* Floating product label: live catalogue name + price */}
       {hover && !selected && (
         <div className="pointer-events-none fixed z-30 -translate-x-1/2 -translate-y-full bg-white px-3 py-2 shadow-lg text-center" style={{ left: hover.x, top: hover.y - 14 }}>
           <p className="text-[11px] uppercase tracking-wider">{hover.p.name}</p>

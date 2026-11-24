@@ -458,7 +458,7 @@ export default async function Home() {
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-white/60 mb-3">New · 3D Store</p>
               <h2 className="font-editorial text-3xl sm:text-5xl leading-tight max-w-xl">Step inside the LarkTribe store</h2>
-              <p className="mt-3 text-sm text-white/70 max-w-md">Walk the aisles, pick pieces off the display, try them on and add to your bag — without leaving your seat.</p>
+              <p className="mt-3 text-sm text-white/70 max-w-md">Explore each department, inspect catalogue pieces in 3D, rotate supported products through 360° and try on selected looks.</p>
             </div>
             <span className="inline-flex items-center gap-2 self-start sm:self-auto px-8 py-4 bg-white text-black text-[11px] uppercase tracking-widest group-hover:bg-stone-200 transition">Enter the store →</span>
           </div>

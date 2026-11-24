@@ -208,8 +208,8 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
       cat.position.set(side * (DISPLAY_X - 0.04), 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
       if (bi % 2 === 0) mkHotspot(0, z, { wing: wi, bay: bi });
 
-      // Every garment stands on its own low floor plinth in a two-row island.
-      // Products are not mounted on walls or stacked on shelves.
+      // Each garment is an individually selectable open-floor display in a two-row island.
+      // No wall-mounted product grids or shelf stacks.
       bay.items.slice(0, 12).forEach((item, k) => {
         const row = Math.floor(k / 6);
         const col6 = k % 6;
