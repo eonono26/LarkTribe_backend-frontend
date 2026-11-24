@@ -29,7 +29,7 @@ const subscribeRingEnabled = (notify: () => void) => {
  * Honours prefers-reduced-motion and falls back to a plain scroll row on small screens.
  */
 export default function Tilt3DShowcase({ products, title = "The Collection, in the Round" }: { products: ProductListItem[]; title?: string }) {
-  const items = products.filter((p) => p.image || p.image_url).slice(0, 20);
+  const items = products.filter((p) => p.image || p.image_url).slice(0, 12);
   const [angle, setAngle] = useState(0);
   const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
   const drag = useRef<{ x: number; a: number } | null>(null);
@@ -47,32 +47,32 @@ export default function Tilt3DShowcase({ products, title = "The Collection, in t
 
   if (items.length < 4) return null;
   const step = 360 / items.length;
-  const radius = 700;
+  const radius = 620;
   const card = (p: ProductListItem, i: number, ring: boolean) => {
     const image = p.image || p.image_url;
     if (!image) return null;
     return (
       <article
         key={p.id}
-        className={`group relative ${ring ? "absolute left-1/2 top-1/2 -ml-[130px] -mt-[200px] h-[400px] w-[260px]" : "w-44 shrink-0 snap-start"}`}
+        className={`group relative ${ring ? "absolute left-1/2 top-1/2 -ml-[150px] -mt-[210px] h-[420px] w-[300px]" : "w-44 shrink-0 snap-start"}`}
         style={ring ? { transform: `rotateY(${i * step}deg) translateZ(${radius}px)`, backfaceVisibility: "hidden" } : undefined}
       >
-        <Link href={`/product/${p.slug}`} className={`relative block overflow-hidden ${ring ? "h-full w-full" : "aspect-[3/4] w-full"}`}>
+        <Link href={`/product/${p.slug}`} className={`relative block overflow-hidden bg-[#f7f5f0] ${ring ? "h-full w-full" : "aspect-[3/4] w-full"}`}>
           <Image
             src={mediaUrl(image)}
             alt={p.name}
             fill
             sizes={ring ? "260px" : "176px"}
-            className="object-contain"
+            className="object-contain p-3"
             draggable={false}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent opacity-100" />
           <div className="absolute inset-x-0 bottom-0 p-3 text-white">
             <p className="truncate text-[10px] uppercase tracking-[0.16em]">{p.name}</p>
             <p className="mt-1 text-xs">{formatPrice(Number(p.price) || 0)}</p>
           </div>
         </Link>
-        <div className="absolute inset-x-2 bottom-14 z-10 flex items-center justify-center gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+        <div className="absolute inset-x-2 bottom-14 z-10 flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickViewSlug(p.slug); }}
@@ -97,7 +97,7 @@ export default function Tilt3DShowcase({ products, title = "The Collection, in t
 
       {enabled ? (
         <div
-          className="relative mx-auto h-[720px] w-full cursor-grab select-none active:cursor-grabbing touch-pan-y"
+          className="relative mx-auto h-[640px] w-full cursor-grab select-none active:cursor-grabbing touch-pan-y"
           style={{ perspective: "1600px" }}
           onPointerDown={(e) => { drag.current = { x: e.clientX, a: angle }; paused.current = true; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
           onPointerMove={(e) => { if (drag.current) setAngle(drag.current.a + (e.clientX - drag.current.x) * 0.3); }}
