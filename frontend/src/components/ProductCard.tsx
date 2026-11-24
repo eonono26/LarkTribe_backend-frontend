@@ -245,7 +245,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
   return (
     <div
-      className={`group relative ${className}`}
+      className={`lark-product-card group relative ${className}`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => {
         setIsHovering(false);

@@ -216,21 +216,18 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         const displayX = side * (row === 0 ? 2.2 : 3.45);
         const lz = z + (col6 - 2.5) * 0.5;
 
-        const base = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.28, 0.34, 0.32, 32),
-          new THREE.MeshStandardMaterial({ color: 0xf1ede5, roughness: 0.32, metalness: 0.06 })
+        // Open-floor presentation: soft contact shadow instead of a display plinth.
+        const shadow = new THREE.Mesh(
+          new THREE.CircleGeometry(0.48, 40),
+          new THREE.MeshBasicMaterial({ color: 0x51483d, transparent: true, opacity: 0.13, depthWrite: false })
         );
-        base.position.set(displayX, 0.16, lz);
-        scene.add(base);
-        const cap = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.29, 0.29, 0.025, 32),
-          new THREE.MeshStandardMaterial({ color: 0xc7b49b, roughness: 0.28, metalness: 0.14 })
-        );
-        cap.position.set(displayX, 0.325, lz);
-        scene.add(cap);
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.set(displayX, 0.012, lz);
+        shadow.scale.set(1, 0.58, 1);
+        scene.add(shadow);
 
         const holder = new THREE.Group();
-        holder.position.set(displayX, 0.34, lz);
+        holder.position.set(displayX, 0.22, lz);
         holder.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
 
