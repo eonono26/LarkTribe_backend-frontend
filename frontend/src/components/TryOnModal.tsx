@@ -146,8 +146,8 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
     setExtra((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 2 ? cur : [...cur, id]));
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50" onClick={onClose} role="dialog" aria-modal="true" aria-label="Virtual try-on">
-      <div className="bg-white w-full sm:max-w-3xl max-h-[94vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={onClose} role="dialog" aria-modal="true" aria-label="Virtual try-on">
+      <div className="bg-white w-full max-w-5xl max-h-[94vh] overflow-y-auto relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white"><X size={18} /></button>
 
         <div className="p-5 sm:p-8">
