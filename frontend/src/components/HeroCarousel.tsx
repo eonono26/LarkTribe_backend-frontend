@@ -78,7 +78,6 @@ export default function HeroCarousel({
         w-full
         overflow-hidden
         bg-white
-        container-shell
       "
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
