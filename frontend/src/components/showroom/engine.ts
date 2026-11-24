@@ -186,7 +186,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   interface Rec { item: ShowItem; wing: number; bay: number; holder: THREE.Group; front?: THREE.Mesh; state: "idle" | "loading" | "ready" | "failed"; textures?: { front: THREE.Texture; back: THREE.Texture; aspect: number }; pos: THREE.Vector3; pick: THREE.Mesh }
   const recs: Rec[] = []; const byId = new Map<number, Rec>();
   let total = 0, done = 0;
-  wings.forEach((w) => w.bays.forEach((b) => (total += b.items.length)));
+  wings.forEach((w) => w.bays.forEach((b) => (total += Math.min(12, b.items.length))));
 
   wings.forEach((wing, wi) => {
     const info = wingInfo[wi];
