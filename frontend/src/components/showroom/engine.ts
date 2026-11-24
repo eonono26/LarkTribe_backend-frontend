@@ -20,7 +20,7 @@ const SLOT = 3.6;            // length (z) of one category bay
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
 const DISPLAY_X = 2.8; // category markers float above freestanding island displays
-const ITEM_H = 1.65;
+const ITEM_H = 2.1;
 const LAYERS = 6;
 const DEPTH = 0.055;
 
@@ -99,12 +99,12 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 /** A product as a thin 3D slab: front photo, back photo (or mirrored front) and shaded layers between,
  *  so it has real thickness and can be seen from every side. */
 function buildSlab(front: THREE.Texture, back: THREE.Texture, aspect: number, height: number, ontop = false) {
-  const g = new THREE.Group(); const w = height * Math.min(1.6, Math.max(0.45, aspect));
+  const g = new THREE.Group(); const w = height * Math.min(0.72, Math.max(0.48, aspect));
   const geo = new THREE.PlaneGeometry(w, height);
   const meshes: THREE.Mesh[] = [];
   for (let i = 0; i < LAYERS; i++) {
     const t = i / (LAYERS - 1), isFront = i < LAYERS / 2;
-    const shade = 1 - 0.38 * Math.sin(Math.PI * Math.min(t, 1 - t) * 0) - 0.3 * (1 - Math.abs(t - 0.5) * 2) ;
+    const shade = 1;
     const shadeV = i === 0 || i === LAYERS - 1 ? 1 : Math.max(0.55, 0.78 - 0.04 * Math.abs(i - (LAYERS - 1) / 2));
     const m = new THREE.MeshBasicMaterial({ map: isFront ? front : back, alphaTest: 0.5, side: THREE.FrontSide, toneMapped: false, color: new THREE.Color(shadeV, shadeV, shadeV) });
     void shade;
@@ -210,15 +210,15 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
       // Each garment is an individually selectable open-floor display across the island rows.
       // No wall-mounted product grids or shelf stacks.
-      bay.items.slice(0, 24).forEach((item, k) => {
-        const row = Math.floor(k / 6);
-        const col6 = k % 6;
-        const displayX = side * (1.85 + row * 1.2);
-        const lz = z + (col6 - 2.5) * 0.5;
+      bay.items.slice(0, 12).forEach((item, k) => {
+        const row = Math.floor(k / 4);
+        const col4 = k % 4;
+        const displayX = side * (2.0 + row * 1.45);
+        const lz = z + (col4 - 1.5) * 1.08;
 
         // Open-floor presentation: soft contact shadow instead of a display plinth.
         const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.62, 40),
+          new THREE.CircleGeometry(0.72, 40),
           new THREE.MeshBasicMaterial({ color: 0x51483d, transparent: true, opacity: 0.13, depthWrite: false })
         );
         shadow.rotation.x = -Math.PI / 2;
@@ -247,7 +247,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
         // Clickable placeholder until the real API product photo is loaded.
         const pick = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.15, ITEM_H),
+          new THREE.PlaneGeometry(1.5, ITEM_H),
           new THREE.MeshBasicMaterial({ color: 0xe4e0d8, toneMapped: false, side: THREE.DoubleSide })
         );
         pick.position.y = ITEM_H / 2;
