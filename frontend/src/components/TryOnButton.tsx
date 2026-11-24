@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Sparkles } from "lucide-react";
 import TryOnModal, { type TryOnProduct } from "@/components/TryOnModal";
 import type { ProductListItem } from "@/lib/types";
@@ -26,10 +27,14 @@ export default function TryOnButton({
         type="button"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
         className={`inline-flex items-center justify-center gap-1.5 transition ${base} ${className}`}
+        aria-label={label || "Try on"}
       >
         <Sparkles size={variant === "solid" ? 14 : 12} strokeWidth={1.6} /> {label}
       </button>
-      {open && <TryOnModal product={product} initialColor={color} companions={companions} onClose={() => setOpen(false)} />}
+      {open && typeof document !== "undefined" && createPortal(
+        <TryOnModal product={product} initialColor={color} companions={companions} onClose={() => setOpen(false)} />,
+        document.body,
+      )}
     </>
   );
 }

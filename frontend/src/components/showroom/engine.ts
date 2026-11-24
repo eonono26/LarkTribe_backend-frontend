@@ -19,10 +19,10 @@ const EYE = 1.6;
 const SLOT = 3.6;            // length (z) of one category bay
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
-const SHELF_X = 5.1;         // gondola front face
-const LEVELS = [0.22, 0.98, 1.74];
+const DISPLAY_X = HALL_W / 2 - 0.85;
+const LEVELS = [0.35, 1.45, 2.55];
 const PER_LEVEL = 4;
-const ITEM_H = 0.56;
+const ITEM_H = 0.72;
 const LAYERS = 6;
 const DEPTH = 0.055;
 
@@ -55,18 +55,6 @@ function signTex(text: string, o: { w?: number; h?: number; size?: number; fg?: 
     g.fillText(text, w / 2 + spacing / 2, h / 2);
   });
 }
-function labelTex(name: string, price: string) {
-  return canvasTex(640, 160, (g) => {
-    g.fillStyle = "#fcfbf9"; g.fillRect(0, 0, 640, 160);
-    g.fillStyle = "#171717"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "600 38px Arial, sans-serif";
-    let n = name.toUpperCase(); while (g.measureText(n).width > 600 && n.length > 4) n = n.slice(0, -2);
-    if (n.length < name.length) n = n.trimEnd() + "…";
-    g.fillText(n, 320, 52);
-    g.font = "700 50px Arial, sans-serif"; g.fillStyle = "#8a1f1f"; g.fillText(price, 320, 116);
-  });
-}
-
 /** Cut the studio background out of a product photo: flood-fill from the borders over
  *  pixels close to the corner colour, so white garments on white stay solid inside. */
 function cutout(img: HTMLImageElement) {
@@ -197,9 +185,6 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.42, 40), new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.02, z); ring.userData = data; scene.add(ring); hotspots.push(ring);
   };
-  const boardMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 });
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0xc9c2b6, roughness: 0.5, metalness: 0.2 });
-
   interface Rec { item: ShowItem; wing: number; bay: number; holder: THREE.Group; front?: THREE.Mesh; state: "idle" | "loading" | "ready" | "failed"; textures?: { front: THREE.Texture; back: THREE.Texture; aspect: number }; pos: THREE.Vector3; pick: THREE.Mesh }
   const recs: Rec[] = []; const byId = new Map<number, Rec>();
   let total = 0, done = 0;
@@ -221,32 +206,20 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
     mkHotspot(0, info.z0 - 3.2, { wing: wi, bay: 0 });
 
     info.bays.forEach(({ z, side, bay }, bi) => {
-      // gondola
-      const gx = side * (SHELF_X + 0.35);
-      const unit = new THREE.Group(); unit.position.set(gx, 0, z); scene.add(unit);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.5, SLOT - 0.3), frameMat); back.position.set(side * 0.3, 1.25, 0); unit.add(back);
-      const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.1, SLOT - 0.2), frameMat); plinth.position.set(0, 0.05, 0); unit.add(plinth);
-      LEVELS.forEach((y) => { const sh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, SLOT - 0.3), boardMat); sh.position.set(0, y - 0.035, 0); unit.add(sh); });
-      const cat = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.65), new THREE.MeshBasicMaterial({ map: signTex(bay.title.toUpperCase(), { w: 1024, h: 256, size: 112, spacing: 12, fg: "#ffffff", bg: "#" + col.getHexString(), weight: 500 }) }));
-      cat.position.set(-side * 0.36, 3.15, 0); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; unit.add(cat);
-      [-1.1, 1.1].forEach((dz) => { const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, HALL_H - 3.45, 6), frameMat); cord.position.set(-side * 0.36, 3.45 + (HALL_H - 3.45) / 2, dz); unit.add(cord); });
+      const cat = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.55), new THREE.MeshBasicMaterial({ map: signTex(bay.title.toUpperCase(), { w: 1024, h: 256, size: 100, spacing: 12, fg: "#" + col.getHexString(), weight: 500 }), transparent: true }));
+      cat.position.set(side * (DISPLAY_X - 0.04), 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
       if (bi % 2 === 0) mkHotspot(0, z, { wing: wi, bay: bi });
 
       bay.items.slice(0, LEVELS.length * PER_LEVEL).forEach((item, k) => {
         const lvl = Math.floor(k / PER_LEVEL), col4 = k % PER_LEVEL;
         const lz = z + (col4 - (PER_LEVEL - 1) / 2) * 0.82;
         const holder = new THREE.Group();
-        holder.position.set(gx - side * 0.12, LEVELS[lvl], lz);
+        holder.position.set(side * DISPLAY_X, LEVELS[lvl], lz);
         holder.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
         // placeholder (grey slab) until photos arrive
         const pick = new THREE.Mesh(new THREE.PlaneGeometry(0.5, ITEM_H), new THREE.MeshBasicMaterial({ color: 0xe4e0d8, toneMapped: false, side: THREE.DoubleSide }));
         pick.position.y = ITEM_H / 2; pick.userData = { item: item.id }; holder.add(pick);
-        const label = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.195), new THREE.MeshBasicMaterial({ map: labelTex(item.name, item.priceLabel), toneMapped: false }));
-        label.position.set(0, -0.0, 0.0); label.rotation.x = 0;
-        // label sits on the shelf edge, facing the aisle
-        const edge = new THREE.Group(); edge.position.set(0, -0.06, 0.34); edge.add(label); holder.add(edge);
-        label.position.y = 0.0;
         const rec: Rec = { item, wing: wi, bay: bi, holder, state: "idle", pos: new THREE.Vector3(), pick };
         holder.getWorldPosition(rec.pos); recs.push(rec); byId.set(item.id, rec);
       });
