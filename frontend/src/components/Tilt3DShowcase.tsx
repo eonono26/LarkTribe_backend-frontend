@@ -4,12 +4,13 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { api, apiErrorMessage, mediaUrl } from "@/lib/api";
+import { mediaUrl } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
+import { useWishlist } from "@/lib/wishlist-context";
 import { useLocalization } from "@/lib/localization-context";
 import QuickViewModal from "@/components/QuickViewModal";
 import TryOnButton from "@/components/TryOnButton";
-import type { ProductListItem, Wishlist } from "@/lib/types";
+import type { ProductListItem } from "@/lib/types";
 
 const ringEnabled = () =>
   window.matchMedia("(min-width: 768px)").matches &&
@@ -36,7 +37,7 @@ export default function Tilt3DShowcase({
 }) {
   const items = products.filter((product) => product.image || product.image_url).slice(0, 12);
   const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
-  const [wishlistIds, setWishlistIds] = useState<Record<number, number>>({});
+  const { isSaved, toggle: toggleWishlistItem } = useWishlist();
   const [wishlistBusy, setWishlistBusy] = useState<number | null>(null);
   const [wishlistError, setWishlistError] = useState("");
   const [radius, setRadius] = useState(520);
@@ -53,22 +54,6 @@ export default function Tilt3DShowcase({
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn()) return;
-    let active = true;
-    api.wishlist().then((response) => {
-      if (!active) return;
-      const saved: Wishlist[] = Array.isArray(response) ? response : response.results;
-      const next: Record<number, number> = {};
-      saved.forEach((item) => {
-        const productId = Number(item.product?.id);
-        if (productId) next[productId] = item.id;
-      });
-      setWishlistIds(next);
-    }).catch(() => {});
-    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -94,20 +79,9 @@ export default function Tilt3DShowcase({
     setWishlistBusy(productId);
     setWishlistError("");
     try {
-      const existing = wishlistIds[productId];
-      if (existing != null) {
-        await api.removeFromWishlist(existing);
-        setWishlistIds((current) => {
-          const next = { ...current };
-          delete next[productId];
-          return next;
-        });
-      } else {
-        const saved = await api.addToWishlist(productId);
-        setWishlistIds((current) => ({ ...current, [productId]: saved.id }));
-      }
+      await toggleWishlistItem(productId);
     } catch (error) {
-      setWishlistError(apiErrorMessage(error, "Couldn't update your wishlist."));
+      setWishlistError(error instanceof Error ? error.message : "Couldn't update your wishlist.");
     } finally {
       setWishlistBusy(null);
     }
@@ -120,7 +94,7 @@ export default function Tilt3DShowcase({
     const image = product.image || product.image_url;
     if (!image) return null;
     const productId = Number(product.id);
-    const saved = wishlistIds[productId] != null;
+    const saved = isSaved(productId);
     return (
       <article
         key={product.id}
