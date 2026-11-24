@@ -422,7 +422,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
     }
     camera.rotation.set(pitch, yaw, 0);
     hotspots.forEach((h, i) => { const s = 1 + Math.sin(elapsed * 2.2 + i) * 0.08; h.scale.set(s, s, s); });
-    recs.forEach((r) => { const target = hovered === r.item.id && !insp ? 1.07 : 1; r.holder.scale.x += (target - r.holder.scale.x) * 0.2; r.holder.scale.y = r.holder.scale.x; r.holder.scale.z = r.holder.scale.x; });
+    recs.forEach((r) => { r.holder.scale.set(1, 1, 1); });
     if (insp) {
       const mat = dim.material as THREE.MeshBasicMaterial; mat.opacity += (0.5 - mat.opacity) * 0.15;
       if (insp.auto) insp.ry += dt * 0.7;
