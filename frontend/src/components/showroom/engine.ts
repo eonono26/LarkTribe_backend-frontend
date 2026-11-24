@@ -36,10 +36,25 @@ function canvasTex(w: number, h: number, draw: (c: CanvasRenderingContext2D) => 
 }
 function floorTexture() {
   const t = canvasTex(1024, 1024, (g) => {
-    g.fillStyle = "#d9d4cb"; g.fillRect(0, 0, 1024, 1024);
-    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
-      const v = 214 + Math.random() * 14;
-      g.fillStyle = `rgb(${v},${v - 4},${v - 10})`; g.fillRect(i * 256 + 2, j * 256 + 2, 252, 252);
+    g.fillStyle = "#8b6244"; g.fillRect(0, 0, 1024, 1024);
+    const tones = ["#9b704f", "#a77a55", "#8f6548", "#ad805b", "#986c4c"];
+    const boardH = 128;
+    for (let row = 0; row < 8; row++) {
+      let x = row % 2 ? -128 : 0;
+      while (x < 1024) {
+        const width = 210 + Math.random() * 110;
+        g.fillStyle = tones[Math.floor(Math.random() * tones.length)];
+        g.fillRect(x + 2, row * boardH + 2, width - 4, boardH - 4);
+        g.strokeStyle = "rgba(54,31,18,.22)"; g.lineWidth = 2;
+        g.strokeRect(x + 2, row * boardH + 2, width - 4, boardH - 4);
+        for (let grain = 0; grain < 7; grain++) {
+          const gy = row * boardH + 12 + Math.random() * (boardH - 24);
+          g.strokeStyle = "rgba(58,34,20,.10)"; g.lineWidth = 1;
+          g.beginPath(); g.moveTo(x + 10, gy);
+          g.bezierCurveTo(x + width * .3, gy - 5, x + width * .65, gy + 5, x + width - 10, gy); g.stroke();
+        }
+        x += width;
+      }
     }
   });
   t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
@@ -125,21 +140,21 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.18;
   container.appendChild(renderer.domElement);
   const dom = renderer.domElement; dom.style.display = "block"; dom.style.touchAction = "none";
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xeeeae3);
-  scene.fog = new THREE.Fog(0xeeeae3, 16, 58);
+  scene.background = new THREE.Color(0xc9b9aa);
+  scene.fog = new THREE.Fog(0xc9b9aa, 22, 78);
   const camera = new THREE.PerspectiveCamera(68, 1, 0.05, 140);
   camera.rotation.order = "YXZ"; scene.add(camera);
   const START_Z = 5.5;
   camera.position.set(0, EYE, START_Z);
   let yaw = 0, pitch = 0;
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8aea0, 1.55));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(2, 8, 4); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xfff4e7, 0x6f5543, 1.8));
+  const sun = new THREE.DirectionalLight(0xffe7cb, 1.05); sun.position.set(2, 8, 4); scene.add(sun);
 
   /* ---- layout pass: where does each wing / bay sit along z? */
   interface BayPos { z: number; side: -1 | 1; bay: ShowBay }
@@ -163,15 +178,15 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   const ft = floorTexture(); ft.repeat.set(HALL_W / 4, hallLen / 4);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALL_W, hallLen), new THREE.MeshStandardMaterial({ map: ft, roughness: 0.35, metalness: 0.08 }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, midZ); scene.add(floor);
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf1ede6, roughness: 0.95 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xcbbcaf, roughness: 0.96 });
   const wallGeo = new THREE.PlaneGeometry(hallLen, HALL_H);
   const lw = new THREE.Mesh(wallGeo, wallMat); lw.position.set(-HALL_W / 2, HALL_H / 2, midZ); lw.rotation.y = Math.PI / 2; scene.add(lw);
   const rw = new THREE.Mesh(wallGeo, wallMat); rw.position.set(HALL_W / 2, HALL_H / 2, midZ); rw.rotation.y = -Math.PI / 2; scene.add(rw);
   const bw = new THREE.Mesh(new THREE.PlaneGeometry(HALL_W, HALL_H), wallMat); bw.position.set(0, HALL_H / 2, endZ); scene.add(bw);
   const fw = new THREE.Mesh(new THREE.PlaneGeometry(HALL_W, HALL_H), wallMat); fw.position.set(0, HALL_H / 2, START_Z + 2.5); fw.rotation.y = Math.PI; scene.add(fw);
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HALL_W, hallLen), new THREE.MeshStandardMaterial({ color: 0xfaf8f4, roughness: 1 }));
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HALL_W, hallLen), new THREE.MeshStandardMaterial({ color: 0xb8a99d, roughness: 1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(0, HALL_H, midZ); scene.add(ceil);
-  const strip = new THREE.MeshBasicMaterial({ color: 0xfffaf0 });
+  const strip = new THREE.MeshBasicMaterial({ color: 0xffe7c8 });
   [-2.2, 2.2].forEach((x) => { const s = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, hallLen), strip); s.position.set(x, HALL_H - 0.03, midZ); scene.add(s); });
   const brand = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshBasicMaterial({ map: signTex("LARKTRIBE", { size: 130, spacing: 26, fg: "#222" }), transparent: true }));
   brand.position.set(0, 2.9, endZ + 0.03); scene.add(brand);
@@ -219,20 +234,37 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         const displayX = side * (1.55 + row * 1.05);
         const lz = z + (col4 - 1.5) * 1.08;
 
-        // Open-floor presentation: soft contact shadow instead of a display plinth.
-        const shadow = new THREE.Mesh(
-          new THREE.CircleGeometry(0.72, 40),
-          new THREE.MeshBasicMaterial({ color: 0x51483d, transparent: true, opacity: 0.13, depthWrite: false })
-        );
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.position.set(displayX, 0.012, lz);
-        shadow.scale.set(1, 0.58, 1);
-        scene.add(shadow);
+        // White gallery plinth and a soft contact shadow for every selected garment.
+        const plinth = new THREE.Group();
+        plinth.position.set(displayX, 0, lz);
+        const plinthBase = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.14, 0.92), new THREE.MeshStandardMaterial({ color: 0xaaa39b, roughness: 0.78 }));
+        plinthBase.position.y = 0.08;
+        const plinthTop = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.055, 0.88), new THREE.MeshStandardMaterial({ color: 0xf5f2ed, roughness: 0.48 }));
+        plinthTop.position.y = 0.17;
+        plinth.add(plinthBase, plinthTop); scene.add(plinth);
+
+        const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.82, 40), new THREE.MeshBasicMaterial({ color: 0x342317, transparent: true, opacity: 0.18, depthWrite: false }));
+        shadow.rotation.x = -Math.PI / 2; shadow.position.set(displayX, 0.012, lz); shadow.scale.set(1, 0.58, 1); scene.add(shadow);
 
         const holder = new THREE.Group();
-        holder.position.set(displayX, 0.16, lz);
+        holder.position.set(displayX, 0.2, lz);
         holder.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
         scene.add(holder);
+
+        // Neutral mannequin silhouette sits behind the transparent garment cut-out.
+        const mannequin = new THREE.Group();
+        const mannequinMat = new THREE.MeshStandardMaterial({ color: 0xd8cbb9, roughness: 0.62 });
+        const torso = new THREE.Mesh(new THREE.SphereGeometry(0.31, 18, 14), mannequinMat);
+        torso.scale.set(1, 1.42, 0.48); torso.position.y = 1.12;
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.22, 12), mannequinMat); neck.position.y = 1.57;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 12), mannequinMat);
+        head.position.y = 1.78; head.scale.set(0.82, 1.12, 0.78);
+        const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.075, 0.72, 10), mannequinMat);
+        leftArm.position.set(-0.31, 1.12, 0); leftArm.rotation.z = -0.18;
+        const rightArm = leftArm.clone(); rightArm.position.x = 0.31; rightArm.rotation.z = 0.18;
+        const standPole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x252321, metalness: 0.65, roughness: 0.38 }));
+        standPole.position.set(0, 0.53, -0.1);
+        mannequin.add(torso, neck, head, leftArm, rightArm, standPole); holder.add(mannequin);
 
         // Always-visible product name and price, sourced from the catalogue API.
         const labelText = item.name.length > 22 ? item.name.slice(0, 21) + "…" : item.name;
