@@ -98,17 +98,6 @@ function extractDepartmentMediaUrl(
   );
 }
 
-/**
- * Gets the real image attached to a department.
- *
- * Priority:
- *
- * 1. Department primary_image
- * 2. Department media endpoint
- * 3. Exact known backend media files for Baby/Kids
- * 4. AgeGroup image
- * 5. Unsplash fallback
- */
 async function getDepartmentImage(
   department: DepartmentWithId | undefined,
   ageGroupFallback?: AgeGroup[]
@@ -119,9 +108,6 @@ async function getDepartmentImage(
 
   const slug = department.slug.toLowerCase();
 
-  // ------------------------------------------------------------
-  // 1. Department primary image
-  // ------------------------------------------------------------
   if (department.primary_image?.file_url) {
     const url = resolveMediaUrl(
       department.primary_image.file_url
@@ -132,9 +118,6 @@ async function getDepartmentImage(
     }
   }
 
-  // ------------------------------------------------------------
-  // 2. Department media endpoint
-  // ------------------------------------------------------------
   if (department.id) {
     try {
       const response = await api.departmentMedia(
@@ -180,9 +163,6 @@ async function getDepartmentImage(
     }
   }
 
-  // ------------------------------------------------------------
-  // 3. Exact backend media confirmed from Django admin
-  // ------------------------------------------------------------
   if (slug === "baby") {
     return resolveMediaUrl(
       "/media/departments/media/image_72c3f6b1.jpg"
@@ -195,9 +175,6 @@ async function getDepartmentImage(
     );
   }
 
-  // ------------------------------------------------------------
-  // 4. AgeGroup image fallback
-  // ------------------------------------------------------------
   if (ageGroupFallback && ageGroupFallback.length > 0) {
     const ageImage = ageGroupFallback.find(
       (ageGroup) => ageGroup.primary_image?.file_url
@@ -208,9 +185,6 @@ async function getDepartmentImage(
     }
   }
 
-  // ------------------------------------------------------------
-  // 5. Final fallback
-  // ------------------------------------------------------------
   return FALLBACK_IMG[slug as keyof typeof FALLBACK_IMG] ||
     FALLBACK_IMG.kids;
 }
@@ -229,7 +203,7 @@ function CategoryBlock({
   return (
     <Link
       href={href}
-      className="group relative block aspect-[4/5] overflow-hidden bg-[#f5f5f3] ring-1 ring-inset ring-stone-200/70 lg:aspect-[3/4]"
+      className="group relative block aspect-[4/5] overflow-hidden bg-transparent ring-0 lg:aspect-[3/4]"
     >
       <img
         src={image}
@@ -260,9 +234,6 @@ export default async function Home() {
   let ageGroups: AgeGroup[] = [];
   let products: ProductListItem[] = [];
 
-  // --------------------------------------------------------------
-  // HOME DATA
-  // --------------------------------------------------------------
   try {
     const home = await api.home();
 
@@ -306,18 +277,12 @@ export default async function Home() {
     );
   }
 
-  // --------------------------------------------------------------
-  // WATCH & SHOP VIDEOS
-  // --------------------------------------------------------------
   const showcaseVideos: ShowcaseVideoItem[] =
     await api
       .showcaseVideos()
       .then((r) => r.results || [])
       .catch(() => []);
 
-  // --------------------------------------------------------------
-  // DEPARTMENTS
-  // --------------------------------------------------------------
   const women = departments.find(
     (department) => department.slug === "women"
   );
@@ -334,9 +299,6 @@ export default async function Home() {
     (department) => department.slug === "kids"
   );
 
-  // --------------------------------------------------------------
-  // AGE GROUPS
-  // --------------------------------------------------------------
   const babyGroups = ageGroups.filter(
     (ageGroup) => ageGroup.stage === "baby"
   );
@@ -347,29 +309,14 @@ export default async function Home() {
       ageGroup.stage === "teens"
   );
 
-  // --------------------------------------------------------------
-  // GET REAL DEPARTMENT IMAGES
-  // --------------------------------------------------------------
   const [babyImg, kidsImg, womenImg, menImg] =
     await Promise.all([
       getDepartmentImage(baby, babyGroups),
-
       getDepartmentImage(kids, kidsGroups),
-
-      getDepartmentImage(
-        women,
-        []
-      ),
-
-      getDepartmentImage(
-        men,
-        []
-      ),
+      getDepartmentImage(women, []),
+      getDepartmentImage(men, []),
     ]);
 
-  // --------------------------------------------------------------
-  // HERO
-  // --------------------------------------------------------------
   const slides =
     heroCampaigns.length > 0
       ? heroCampaigns
@@ -377,65 +324,48 @@ export default async function Home() {
 
   return (
     <main className="bg-white container-shell font-sans text-black">
-
-      {/* HERO CAROUSEL */}
       <HeroCarousel
         campaigns={slides}
         slideInterval={7000}
       />
- 
-      {/* FAMILY GRID */}
-      <section className="grid grid-cols-2 gap-2 py-2 lg:grid-cols-4 lg:gap-3 lg:py-3">
 
+      <section className="grid grid-cols-2 gap-2 py-2 lg:grid-cols-4 lg:gap-3 lg:py-3">
         <CategoryBlock
           href="/shop?stage=baby"
           image={babyImg}
           title="Babies"
-          // subtitle="0 – 24 Months"
         />
-
         <CategoryBlock
           href="/shop?stage=kids"
           image={kidsImg}
           title="Kids"
-          // subtitle="2 – 14 Years"
         />
-
         <CategoryBlock
           href="/shop?department=women"
           image={womenImg}
           title="Women"
         />
-
         <CategoryBlock
           href="/shop?department=men"
           image={menImg}
           title="Men"
         />
-
       </section>
 
-      {/* NEW ARRIVALS */}
       {products.length > 0 && (
         <section className="py-2 lg:py-4">
-
           <div className="mb-4 flex items-end justify-between lg:mb-4">
-
             <h2 className="font-editorial text-3xl tracking-tight lg:text-5xl">
               New In
             </h2>
-
             <Link
               href="/shop"
               className="border-b border-transparent pb-0.5 text-[11px] uppercase tracking-[0.15em] text-stone-500 transition hover:border-black hover:text-black"
             >
               View All
             </Link>
-
           </div>
-
           <div className={PRODUCT_GRID}>
-
             {products
               .slice(0, 12)
               .map((product) => (
@@ -444,20 +374,16 @@ export default async function Home() {
                   product={product}
                 />
               ))}
-
           </div>
-
         </section>
       )}
 
-      {/* THE COLLECTION, IN THE ROUND */}
       {products.length >= 4 && (
         <section className="py-7 sm:py-10">
           <Tilt3DShowcase products={products} />
         </section>
       )}
 
-      {/* WALK-IN 3D SHOWROOM */}
       <section className="py-7 sm:py-10">
         <Link href="/showroom" className="group relative block min-h-[340px] overflow-hidden bg-[#b9a99a] text-white sm:min-h-[460px]">
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(20,15,12,.78)_0%,rgba(20,15,12,.42)_48%,rgba(20,15,12,.08)_100%),url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=85&w=2000&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-[1.025]" />
@@ -473,15 +399,12 @@ export default async function Home() {
         </Link>
       </section>
 
-      {/* POPULAR NEAR YOU */}
       <PopularNearYou />
 
-      {/* WATCH & SHOP */}
       <section className="py-2 lg:py-4">
         <VideoShowcase videos={showcaseVideos} />
       </section>
 
-      {/* RECOMMENDED */}
       <section className="py-2 lg:py-4">
         <RecommendedRow
           title="Just For You"
@@ -489,23 +412,18 @@ export default async function Home() {
         />
       </section>
 
-      {/* EDITORIAL STATEMENT */}
       <section className="border-stone-200 py-12 text-center sm:py-16">
-
         <h2 className="mx-auto max-w-2xl font-editorial text-2xl leading-snug tracking-tight lg:text-4xl">
           Designed for modern Larktribe. Made in Kenya,
           worn everywhere.
         </h2>
-
         <Link
           href="/about"
           className="mt-6 inline-block border-b border-transparent pb-0.5 text-[11px] uppercase tracking-[0.15em] text-stone-500 transition hover:border-black hover:text-black"
         >
           Read Our Story
         </Link>
-
       </section>
-
     </main>
   );
 }
