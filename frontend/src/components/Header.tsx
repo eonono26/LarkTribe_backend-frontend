@@ -36,6 +36,7 @@ const NAV_LINKS = [
     label: "Men",
     source: { department: "men" },
   },
+  { href: "/showroom", label: "3D Store", source: null },
 ] as const;
 
 const GENDER_QUICK = (stage: string) => [
