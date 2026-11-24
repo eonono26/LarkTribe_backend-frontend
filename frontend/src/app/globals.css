@@ -219,7 +219,39 @@ h1, h2, h3, h4, h5, h6, .font-display {
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* Product cards remain visually still; only their action controls animate. */
-.lark-product-card button { transition: transform .2s ease, background-color .2s ease, box-shadow .2s ease; }
-.lark-product-card button:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -14px rgba(0,0,0,.45); }
-@media (prefers-reduced-motion: reduce) { .lark-product-card button { transition: none !important; } }
+/* Product cards stay still. Action controls reveal on hover for mouse users and remain visible on touch. */
+.lark-product-card .lark-card-actions,
+.lark-product-card .lark-card-wishlist {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+.lark-product-card .lark-card-actions button,
+.lark-product-card .lark-card-wishlist {
+  transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease, opacity .18s ease;
+}
+.lark-product-card .lark-card-actions button:hover,
+.lark-product-card .lark-card-wishlist:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -14px rgba(0,0,0,.45);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lark-product-card .lark-card-actions,
+  .lark-product-card .lark-card-wishlist {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+  }
+  .lark-product-card:hover .lark-card-actions,
+  .lark-product-card:focus-within .lark-card-actions,
+  .lark-product-card:hover .lark-card-wishlist,
+  .lark-product-card:focus-within .lark-card-wishlist {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lark-product-card .lark-card-actions button,
+  .lark-product-card .lark-card-wishlist { transition: none !important; }
+}
