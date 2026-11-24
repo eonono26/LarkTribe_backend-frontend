@@ -8,8 +8,8 @@ import { mediaUrl } from "@/lib/api";
 import { useLocalization } from "@/lib/localization-context";
 import type { ProductListItem } from "@/lib/types";
 
-const CARD_W = 168;
-const CARD_H = 224;
+const CARD_W = 220;
+const CARD_H = 292;
 const MAX_ITEMS = 8;
 
 /**
@@ -73,10 +73,10 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
       {static3d ? (
         <ul className="mx-auto mt-8 flex max-w-5xl snap-x gap-3 overflow-x-auto pb-2">
           {items.map((p) => (
-            <li key={p.id} className="w-40 shrink-0 snap-start">
+            <li key={p.id} className="w-52 shrink-0 snap-start">
               <Link href={`/product/${p.slug}`} className="block">
-                <div className="relative aspect-[3/4] bg-stone-800">
-                  <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="160px" className="object-cover" />
+                <div className="relative aspect-[3/4] bg-[#f7f5f0]">
+                  <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="160px" className="object-contain p-3" />
                 </div>
                 <p className="mt-2 line-clamp-1 text-xs">{p.name}</p>
                 <p className="text-xs text-stone-400">{formatPrice(Number(p.price) || 0)}</p>
@@ -132,11 +132,9 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
                       transition: "opacity 500ms",
                     }}
                   >
-                    <div className="relative h-full w-full overflow-hidden bg-stone-800 shadow-2xl">
+                    <div className="relative h-full w-full overflow-hidden bg-[#f7f5f0]">
                       <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="170px" className="object-cover" draggable={false} />
                     </div>
-                    {/* pedestal */}
-                    <div className="mx-auto mt-0 h-3 w-[110%] -translate-x-[5%] bg-gradient-to-b from-stone-200 to-stone-500 shadow-[0_18px_30px_rgba(0,0,0,0.6)]" />
                   </div>
                 );
               })}
