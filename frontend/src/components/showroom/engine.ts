@@ -16,7 +16,7 @@ export type InspectView = "front" | "right" | "back" | "left" | "top";
 const HALL_W = 16;
 const HALL_H = 5.2;
 const EYE = 1.6;
-const SLOT = 3.6;            // length (z) of one category bay
+const SLOT = 9.4;            // dedicated aisle length for one category
 const GATE = 6;              // lead-in before the first bay of a wing
 const AISLE_HALF = 4.2;      // walkable half-width
 const DISPLAY_X = 2.8; // category markers float above freestanding island displays
@@ -163,11 +163,13 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
   wings.forEach((wing) => {
     const z0 = cursor; const bays: BayPos[] = []; const slots: { z: number; ws: number; bs: number }[] = [];
     wing.bays.forEach((bay, i) => {
-      const slot = Math.floor(i / 2); const z = z0 - GATE - slot * SLOT - SLOT / 2;
-      bays.push({ z, side: i % 2 === 0 ? -1 : 1, bay });
-      if (i % 2 === 0) slots.push({ z, ws: wingInfo.length, bs: i });
+      // Each category gets its own full-length zone; alternate sides, never share a bay.
+      const z = z0 - GATE - i * SLOT - SLOT / 2;
+      const side: -1 | 1 = i % 2 === 0 ? -1 : 1;
+      bays.push({ z, side, bay });
+      slots.push({ z, ws: wingInfo.length, bs: i });
     });
-    const nSlots = Math.max(1, Math.ceil(wing.bays.length / 2));
+    const nSlots = Math.max(1, wing.bays.length);
     const z1 = z0 - GATE - nSlots * SLOT - 2;
     wingInfo.push({ z0, z1, bays, slots }); cursor = z1;
   });
@@ -223,28 +225,30 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
 
     info.bays.forEach(({ z, side, bay }, bi) => {
       const cat = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.55), new THREE.MeshBasicMaterial({ map: signTex(bay.title.toUpperCase(), { w: 1024, h: 256, size: 100, spacing: 12, fg: "#" + col.getHexString(), weight: 500 }), transparent: true }));
-      cat.position.set(side * (DISPLAY_X - 0.04), 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
+      cat.position.set(side * 6.1, 4.35, z); cat.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(cat);
       if (bi % 2 === 0) mkHotspot(0, z, { wing: wi, bay: bi });
 
       // Each garment is an individually selectable open-floor display across the island rows.
       // No wall-mounted product grids or shelf stacks.
       bay.items.slice(0, 12).forEach((item, k) => {
-        const row = Math.floor(k / 4);
-        const col4 = k % 4;
-        const displayX = side * (1.55 + row * 1.05);
-        const lz = z + (col4 - 1.5) * 1.08;
+        // Two clean columns by up to six rows, all inside this category's own display bay.
+        // The centre aisle remains clear and every product has breathing room.
+        const row = Math.floor(k / 2);
+        const column = k % 2;
+        const displayX = side * (4.65 + column * 1.48);
+        const lz = z + (row - 2.5) * 1.42;
 
-        // White gallery plinth and a soft contact shadow for every selected garment.
+        // Individual compact gallery plinths with clear gaps between neighbouring pieces.
         const plinth = new THREE.Group();
         plinth.position.set(displayX, 0, lz);
-        const plinthBase = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.14, 0.92), new THREE.MeshStandardMaterial({ color: 0xaaa39b, roughness: 0.78 }));
+        const plinthBase = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.14, 1.02), new THREE.MeshStandardMaterial({ color: 0xaaa39b, roughness: 0.78 }));
         plinthBase.position.y = 0.08;
-        const plinthTop = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.055, 0.88), new THREE.MeshStandardMaterial({ color: 0xf5f2ed, roughness: 0.48 }));
+        const plinthTop = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.055, 0.98), new THREE.MeshStandardMaterial({ color: 0xf5f2ed, roughness: 0.48 }));
         plinthTop.position.y = 0.17;
         plinth.add(plinthBase, plinthTop); scene.add(plinth);
 
-        const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.82, 40), new THREE.MeshBasicMaterial({ color: 0x342317, transparent: true, opacity: 0.18, depthWrite: false }));
-        shadow.rotation.x = -Math.PI / 2; shadow.position.set(displayX, 0.012, lz); shadow.scale.set(1, 0.58, 1); scene.add(shadow);
+        const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.58, 40), new THREE.MeshBasicMaterial({ color: 0x342317, transparent: true, opacity: 0.18, depthWrite: false }));
+        shadow.rotation.x = -Math.PI / 2; shadow.position.set(displayX, 0.012, lz); shadow.scale.set(0.82, 0.52, 1); scene.add(shadow);
 
         const holder = new THREE.Group();
         holder.position.set(displayX, 0.2, lz);
@@ -269,7 +273,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
         // Always-visible product name and price, sourced from the catalogue API.
         const labelText = item.name.length > 22 ? item.name.slice(0, 21) + "…" : item.name;
         const label = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.45, 0.2),
+          new THREE.PlaneGeometry(1.16, 0.18),
           new THREE.MeshBasicMaterial({
             map: signTex(`${labelText} · ${item.priceLabel}`, {
               w: 1024, h: 144, size: 43, fg: "#29231d", bg: "#fffdf8", spacing: 1, weight: 500
@@ -277,7 +281,7 @@ export function createShowroom(container: HTMLElement, wings: ShowWing[], cb: En
             transparent: true
           })
         );
-        label.position.set(0, ITEM_H + 0.24, 0.31);
+        label.position.set(0, ITEM_H + 0.22, 0.31);
         holder.add(label);
 
         // Clickable placeholder until the real API product photo is loaded.
