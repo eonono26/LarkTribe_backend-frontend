@@ -69,20 +69,31 @@ def _source_images(product):
     data_uris = []
     for item in group[:4]:
         try:
+            # FieldFile.open delegates to Django's configured storage backend.
+            # This is important on Render, where the local media directory is ephemeral.
             item.image.open("rb")
             try:
                 image_bytes = item.image.read()
             finally:
                 item.image.close()
-        except (OSError, ValueError) as exc:
+        except Exception as exc:
+            logger.exception("Unable to read Meshy source image %s for product %s", item.image.name, product.pk)
             raise ValueError(
-                f"Could not read product image '{item.image.name}'. Re-upload this image and try again."
+                f"Cannot access product photo '{item.image.name}' in configured media storage. "
+                "Re-upload the photo through the product editor and try again."
             ) from exc
 
         if not image_bytes:
-            raise ValueError(f"Product image '{item.image.name}' is empty. Re-upload it and try again.")
+            raise ValueError(f"Product photo '{item.image.name}' is empty. Re-upload it and try again.")
+        if len(image_bytes) > 20 * 1024 * 1024:
+            raise ValueError(f"Product photo '{item.image.name}' exceeds Meshy's 20 MB per-image limit.")
 
         mime_type = mimetypes.guess_type(item.image.name)[0] or "image/jpeg"
+        if mime_type not in ("image/jpeg", "image/png", "image/webp"):
+            raise ValueError(
+                f"Product photo '{item.image.name}' must be JPG, PNG or WebP for Meshy; "
+                f"detected {mime_type}."
+            )
         encoded = base64.b64encode(image_bytes).decode("ascii")
         data_uris.append(f"data:{mime_type};base64,{encoded}")
     return data_uris
