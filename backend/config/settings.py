@@ -148,7 +148,7 @@ if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
                 "access_key": os.environ.get("AWS_ACCESS_KEY_ID", ""),
                 "secret_key": os.environ.get("AWS_SECRET_ACCESS_KEY", ""),
                 "endpoint_url": os.environ.get("AWS_S3_ENDPOINT_URL") or None,
-                "region_name": os.environ.get("AWS_S3_REGION_NAME", "auto"),
+                "region_name": os.environ.get("AWS_S3_REGION_NAME", "us-east-1"),
                 "default_acl": None,
                 "querystring_auth": False,
                 "file_overwrite": False,
@@ -236,6 +236,7 @@ MPESA_ORDER_EXPIRY_MINUTES = int(os.environ.get("MPESA_ORDER_EXPIRY_MINUTES", "3
 # Public storefront URL (used for payment return URLs and share links)
 # ---------------------------------------------------------------------------
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+PUBLIC_BACKEND_URL = os.environ.get("PUBLIC_BACKEND_URL", "").rstrip("/")
 
 # ---------------------------------------------------------------------------
 # AI Virtual Try-On (Proposal item 1)
