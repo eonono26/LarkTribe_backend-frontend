@@ -36,10 +36,16 @@ async function authedRequest<T>(path: string, options: RequestInit = {}): Promis
   return res.json();
 }
 
+export type VendorProductImageView = "front" | "back" | "side" | "detail" | "other";
+
 export interface VendorProductImage {
   id: number;
   image: string;
   alt_text: string;
+  color: string;
+  view: VendorProductImageView;
+  view_display?: string;
+  is_primary: boolean;
   order: number;
 }
 
@@ -111,10 +117,17 @@ export const vendorApi = {
   updateProduct: (id: number, payload: Partial<VendorProduct>) =>
     authedRequest<VendorProduct>(`/catalog/my-products/${id}/`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteProduct: (id: number) => authedRequest<void>(`/catalog/my-products/${id}/`, { method: "DELETE" }),
-  uploadProductImage: (productId: number, file: File, isPrimary = false) => {
+  uploadProductImage: (
+    productId: number,
+    file: File,
+    isPrimary = false,
+    options: { color?: string; view?: VendorProductImageView } = {}
+  ) => {
     const fd = new FormData();
     fd.append("image", file);
     if (isPrimary) fd.append("is_primary", "true");
+    if (options.color?.trim()) fd.append("color", options.color.trim());
+    if (options.view) fd.append("view", options.view);
     return authedRequest<VendorProductImage>(`/catalog/my-products/${productId}/images/`, { method: "POST", body: fd });
   },
   generateProduct3D: (productId: number) =>
