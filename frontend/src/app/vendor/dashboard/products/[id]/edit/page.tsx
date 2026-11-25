@@ -81,6 +81,10 @@ export default function EditProductPage() {
       for (let i = 0; i < newImages.length; i++) {
         await vendorApi.uploadProductImage(productId, newImages[i], images.length === 0 && i === 0);
       }
+      if (newImages.length > 0) {
+        // Only new photos can change the generated geometry; queue after upload completes.
+        try { await vendorApi.generateProduct3D(productId); } catch { /* Product remains saved; generation can be retried. */ }
+      }
       router.push("/vendor/dashboard/products");
     } catch {
       setError("Couldn't save changes — check the fields (SKU must be unique) and try again.");
