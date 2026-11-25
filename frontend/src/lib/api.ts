@@ -202,6 +202,8 @@ export const api = {
     return request<Paginated<ProductListItem>>(`/catalog/products/baby/${qs ? `?${qs}` : ""}`);
   },
   product: (slug: string) => request<ProductDetail>(`/catalog/products/${slug}/`),
+  product3DStatus: (slug: string) =>
+    request<{ status: string; progress?: number; detail?: string }>(`/catalog/products/${slug}/3d-status/`),
 
   // Brands
   brands: (params: Record<string, string> = {}) => {
