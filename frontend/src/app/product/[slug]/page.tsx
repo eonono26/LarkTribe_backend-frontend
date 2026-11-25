@@ -78,6 +78,27 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  useEffect(() => {
+    if (!product || !["queued", "processing"].includes(product.ar_generation_status || "")) return;
+    let active = true;
+    let busy = false;
+    const poll = async () => {
+      if (busy || !active) return;
+      busy = true;
+      try {
+        await api.product3DStatus(slug);
+        const refreshed = await api.product(slug);
+        if (active) setProduct(refreshed);
+      } catch {
+        // Keep the normal photo gallery usable if the generation service is temporarily unavailable.
+      } finally {
+        busy = false;
+      }
+    };
+    const timer = window.setInterval(() => { void poll(); }, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [product?.ar_generation_status, slug]);
+
   if (missing) notFound();
   if (loading || !product) {
     return <main className="bg-white py-32 text-center text-stone-400 text-sm">Loading…</main>;
