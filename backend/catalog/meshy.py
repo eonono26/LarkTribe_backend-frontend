@@ -192,6 +192,17 @@ def _queue_submission(product_id):
 
 def start_product_generation(product, request=None):
     """Persist a submission state and return without waiting for Meshy."""
+    # Fail before spending Meshy credits if GitHub is the configured output
+    # store but the backend cannot write the resulting GLB/USDZ files.
+    if (
+        os.environ.get("GITHUB_MEDIA_REPO")
+        and not os.environ.get("AWS_STORAGE_BUCKET_NAME")
+        and not os.environ.get("GITHUB_MEDIA_TOKEN", "").strip()
+    ):
+        raise RuntimeError(
+            "GITHUB_MEDIA_TOKEN is missing. Add a token with Contents read/write access "
+            "to the ml_dataset repository before generating 3D models."
+        )
     if product.model_3d and product.ar_generation_status == Product.ARGenerationStatus.SUCCEEDED:
         return {"status": product.ar_generation_status, "detail": "A 3D model is already available."}
     if not product.images.filter(image__isnull=False).exclude(image="").exists():
