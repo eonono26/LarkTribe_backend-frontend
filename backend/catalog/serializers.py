@@ -581,6 +581,10 @@ class ProductListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    model_3d_url = serializers.SerializerMethodField()
+    model_3d_ios_url = serializers.SerializerMethodField()
+    model_3d_poster_url = serializers.SerializerMethodField()
+    ar_generation_status = serializers.CharField(read_only=True)
 
     colors = serializers.SerializerMethodField()
     color_images = serializers.SerializerMethodField()
@@ -647,6 +651,10 @@ class ProductListSerializer(serializers.ModelSerializer):
             "image",
             "image_url",
             "images",
+            "model_3d_url",
+            "model_3d_ios_url",
+            "model_3d_poster_url",
+            "ar_generation_status",
 
             "colors",
             "color_images",
@@ -696,6 +704,22 @@ class ProductListSerializer(serializers.ModelSerializer):
             return first.image.url
 
         return None
+
+    def _media_abs(self, field):
+        if not field:
+            return None
+        url = field.url
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
+
+    def get_model_3d_url(self, obj):
+        return self._media_abs(obj.model_3d)
+
+    def get_model_3d_ios_url(self, obj):
+        return self._media_abs(obj.model_3d_ios)
+
+    def get_model_3d_poster_url(self, obj):
+        return self._media_abs(obj.model_3d_poster)
 
     def get_images(self, obj):
         return product_images_payload(obj, self.context.get("request"))
