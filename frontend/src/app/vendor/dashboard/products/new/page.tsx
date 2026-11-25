@@ -2,12 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { vendorApi, VendorAgeGroup } from "@/lib/vendor-api";
+import { vendorApi, VendorAgeGroup, VendorProductImageView } from "@/lib/vendor-api";
 
 interface CategoryOption {
   id: number;
   name: string;
   department: { name: string };
+}
+
+type PendingPhoto = { file: File; color: string; view: VendorProductImageView };
+
+const VIEW_OPTIONS: { value: VendorProductImageView; label: string }[] = [
+  { value: "front", label: "Front" },
+  { value: "back", label: "Back" },
+  { value: "side", label: "Side" },
+  { value: "detail", label: "Detail" },
+  { value: "other", label: "Other" },
+];
+
+function hasFrontBackPhotos(photos: PendingPhoto[]): boolean {
+  const groups = new Map<string, Set<string>>();
+  photos.forEach((photo) => {
+    const key = photo.color.trim().toLowerCase();
+    const views = groups.get(key) ?? new Set<string>();
+    views.add(photo.view);
+    groups.set(key, views);
+  });
+  return [...groups.values()].some((views) => views.has("front") && views.has("back"));
 }
 
 const GENDER_OPTIONS = [
@@ -31,7 +52,9 @@ export default function NewProductPage() {
     gender: "unisex" as "unisex" | "girls" | "boys",
   });
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<number[]>([]);
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<PendingPhoto[]>([]);
+  const [photoColor, setPhotoColor] = useState("");
+  const [photoView, setPhotoView] = useState<VendorProductImageView>("front");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -63,10 +86,14 @@ export default function NewProductPage() {
         age_groups: selectedAgeGroups,
       });
       for (let i = 0; i < images.length; i++) {
-        await vendorApi.uploadProductImage(product.id, images[i], i === 0);
+        const photo = images[i];
+        await vendorApi.uploadProductImage(product.id, photo.file, i === 0, {
+          color: photo.color,
+          view: photo.view,
+        });
       }
-      if (images.length > 0) {
-        // Queue generation after every source photo has been uploaded.
+      if (hasFrontBackPhotos(images)) {
+        // Submit the two matching angles to Meshy in the background.
         try { await vendorApi.generateProduct3D(product.id); } catch { /* Product remains saved; generation can be retried. */ }
       }
       router.push("/vendor/dashboard/products");
@@ -185,16 +212,55 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div>
-          <label className="text-sm font-semibold block mb-1">Product photos</label>
+        <div className="space-y-2 rounded-xl border border-[var(--color-line)] p-3">
+          <label className="text-sm font-semibold block">Product photos for 3D &amp; AR</label>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={photoColor}
+              onChange={(e) => setPhotoColor(e.target.value)}
+              placeholder="Colour (e.g. Brown)"
+              className="w-full min-w-0 bg-[var(--color-mist)] rounded-lg px-3 py-2.5 outline-none"
+            />
+            <select
+              value={photoView}
+              onChange={(e) => setPhotoView(e.target.value as VendorProductImageView)}
+              className="w-full min-w-0 bg-[var(--color-mist)] rounded-lg px-3 py-2.5 outline-none"
+            >
+              {VIEW_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
-            onChange={(e) => setImages(Array.from(e.target.files ?? []))}
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              const tooLarge = files.find((file) => file.size > 5 * 1024 * 1024);
+              if (tooLarge) {
+                setError(`\u201c${tooLarge.name}\u201d is larger than 5 MB.`);
+              } else {
+                setImages((current) => [...current, ...files.map((file) => ({
+                  file, color: photoColor.trim(), view: photoView,
+                }))]);
+                setError("");
+              }
+              e.currentTarget.value = "";
+            }}
             className="text-sm"
           />
-          <p className="text-xs text-neutral-400 mt-1">The first photo becomes the primary listing image.</p>
+          {images.length > 0 && (
+            <ul className="space-y-1 text-xs text-neutral-500">
+              {images.map((photo, index) => (
+                <li key={`${photo.file.name}-${index}`} className="flex justify-between gap-2">
+                  <span className="truncate">{photo.file.name} · {photo.color || "General"} · {photo.view}</span>
+                  <button type="button" onClick={() => setImages((current) => current.filter((_, i) => i !== index))} className="font-semibold">Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-neutral-400">
+            Upload the Front and Back views using the same colour. Once both are saved, Meshy starts creating the 3D model in the background. JPG/PNG/WebP, up to 5 MB each.
+          </p>
         </div>
 
         {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
