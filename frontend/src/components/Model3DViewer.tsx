@@ -53,7 +53,7 @@ export default function Model3DViewer({ src, iosSrc, poster, alt, compact = fals
     <div className={`relative ${compact ? "h-full w-full bg-transparent" : "aspect-[3/4] bg-stone-50"}`} onPointerEnter={() => compact && setHovered(true)} onPointerLeave={() => compact && setHovered(false)}>
       {createElement("model-viewer", {
         src, "ios-src": iosSrc || undefined, poster: poster || undefined, alt, "camera-controls": "", "auto-rotate": compact ? (hovered ? "" : undefined) : "", "auto-rotate-delay": "0", "rotation-per-second": "24deg", "shadow-intensity": "1",
-        ar: "", "ar-modes": "webxr scene-viewer quick-look", "touch-action": "pan-y", loading: "lazy", reveal: "interaction",
+        ar: "", "ar-modes": "webxr scene-viewer quick-look", "touch-action": "pan-y", loading: compact ? "eager" : "lazy", reveal: "auto",
         style: { width: "100%", height: "100%", background: "transparent" },
       } as Record<string, unknown>, createElement("button", {
         slot: "ar-button", type: "button",
