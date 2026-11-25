@@ -237,11 +237,10 @@ export function ProductFormView({ productId }: { productId?: number }) {
               </Box>
             </Card>
 
-            {!isNew && current && images.length > 0 && (
+            {!isNew && current && (
               <Card>
-                <CardHeader title="3D & AR product preview" />
-                <Box sx={{ p: 3, pt: 1 }}>
-                  {!current.model_3d && (
+                <CardHeader title="Import an existing 3D model" subheader="Attach a completed Meshy task without generating again or using more credits." />
+                <Box sx={{ p: 3, pt: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                       <Typography variant="subtitle2">Already generated a model in Meshy?</Typography>
                       <TextField
@@ -275,8 +274,14 @@ export function ProductFormView({ productId }: { productId?: number }) {
                         {importingMeshyTask ? 'Importing model…' : 'Import completed Meshy model'}
                       </Button>
                     </Box>
-                  )}
+                </Box>
+              </Card>
+            )}
 
+            {!isNew && current && images.length > 0 && (
+              <Card>
+                <CardHeader title="3D & AR product preview" />
+                <Box sx={{ p: 3, pt: 1 }}>
                   {current.model_3d ? (
                     <Model3DViewer
                       src={mediaUrl(current.model_3d)}
