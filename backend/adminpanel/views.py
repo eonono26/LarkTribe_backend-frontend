@@ -353,7 +353,16 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except RuntimeError as exc:
+            logger.exception("Meshy task import failed for product %s", product.pk)
             return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        except Exception:
+            # Storage SDK, malformed provider responses, and unexpected file
+            # handling errors must not escape as opaque Django 500 pages.
+            logger.exception("Unexpected Meshy task import error for product %s", product.pk)
+            return Response(
+                {"detail": "The Meshy task was found, but its model files could not be attached. Check backend logs for the storage error."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"], url_path="3d-status")
@@ -362,7 +371,14 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         try:
             result = refresh_product_generation(product)
         except RuntimeError as exc:
+            logger.exception("Meshy status check failed for product %s", product.pk)
             return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        except Exception:
+            logger.exception("Unexpected Meshy status error for product %s", product.pk)
+            return Response(
+                {"detail": "Could not retrieve the 3D model status. Check backend logs for the underlying error."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response(result)
 
     # --- images ---
