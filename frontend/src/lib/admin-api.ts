@@ -96,6 +96,8 @@ export const adminApi = {
     reject: (id: number, reason: string) => call<T.AdminProduct>(`${AP}/products/${id}/reject/`, json('POST', { reason })),
     requestChanges: (id: number, feedback: string) => call<T.AdminProduct>(`${AP}/products/${id}/request-changes/`, json('POST', { feedback })),
     bulkStatus: (ids: number[], status: string, reason?: string) => call<{ updated: number }>(`${AP}/products/bulk-status/`, json('POST', { product_ids: ids, status, reason })),
+    importImage: (id: number, path: string, opts: { color?: string; view?: string } = {}) =>
+      call<T.ProductImage[]>(`${AP}/products/${id}/images/import/`, json('POST', { path, ...opts })),
     uploadImages: (id: number, files: File[], opts: { color?: string; view?: string; primary?: boolean } = {}) => {
       const fd = new FormData();
       files.forEach((f) => fd.append('image', f));
