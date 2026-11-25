@@ -72,9 +72,43 @@ function StatCard({ title, value, change, icon, color }: {
 export function DashboardView() {
   const theme = useTheme();
   const [days, setDays] = useState(30);
+  const [migrationRunning, setMigrationRunning] = useState(false);
+  const [migrationMessage, setMigrationMessage] = useState('');
+  const [migrationProgress, setMigrationProgress] = useState({ copied: 0, skipped: 0, total: 0 });
   const { data, loading, error, reload } = useAsync(() => adminApi.overview(days), [days]);
 
   const labels = (data?.sales_by_day ?? []).map((d) => new Date(d.date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }));
+  const migrateMedia = async () => {
+    setMigrationRunning(true);
+    setMigrationMessage('Preparing media migration…');
+    setMigrationProgress({ copied: 0, skipped: 0, total: 0 });
+    let offset = 0;
+    let copied = 0;
+    let skipped = 0;
+    let total = 0;
+    try {
+      while (true) {
+        const result = await adminApi.migrateMediaBatch(offset, 5);
+        copied += result.copied;
+        skipped += result.already_in_r2;
+        total = result.total;
+        offset = result.offset;
+        setMigrationProgress({ copied, skipped, total });
+        setMigrationMessage(`Processed ${offset} of ${total} media files…`);
+        if (result.failed > 0) {
+          const first = result.errors[0];
+          throw new Error(`Migration stopped: ${result.failed} file(s) failed. ${first ? first.file + ': ' + first.error : ''} Run it again to retry files not yet copied.`);
+        }
+        if (!result.has_more) break;
+      }
+      setMigrationMessage(`Migration complete. ${copied} copied to R2; ${skipped} were already there.`);
+    } catch (e) {
+      setMigrationMessage(e instanceof Error ? e.message : 'Media migration failed. Please retry.');
+    } finally {
+      setMigrationRunning(false);
+    }
+  };
+
 
   const salesOptions = useChart({
     colors: [theme.palette.primary.main],
@@ -126,6 +160,30 @@ export function DashboardView() {
         <Alert severity="error" sx={{ mb: 3 }} action={<Button color="inherit" size="small" onClick={reload}>Retry</Button>}>{error}</Alert>
       )}
 
+
+      <Card sx={{ mb: 3, p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="h6">Media storage · Cloudflare R2</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Move existing product and catalog images and media from the legacy GitHub store into your configured R2 bucket. New uploads already use R2.
+            </Typography>
+            {(migrationMessage || migrationRunning) && (
+              <Alert severity={migrationMessage.startsWith('Migration complete') ? 'success' : migrationMessage.startsWith('Migration stopped') || migrationMessage.includes('failed') ? 'error' : 'info'} sx={{ mt: 2 }}>
+                {migrationMessage || 'Migration running…'}
+                {migrationProgress.total > 0 && (
+                  <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                    {migrationProgress.copied} copied · {migrationProgress.skipped} already in R2 · {migrationProgress.total} total
+                  </Typography>
+                )}
+              </Alert>
+            )}
+          </Box>
+          <Button variant="contained" onClick={migrateMedia} disabled={migrationRunning}>
+            {migrationRunning ? 'Migrating media…' : 'Migrate existing media to R2'}
+          </Button>
+        </Box>
+      </Card>
       <Grid container spacing={3}>
         {[
           { title: 'Revenue', value: kes(data?.revenue), change: data?.revenue_change, icon: 'solar:wallet-money-bold-duotone' as const, color: 'primary' as const },
