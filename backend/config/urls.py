@@ -3,9 +3,11 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
+from catalog.github_storage import github_media
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    re_path(r"^api/catalog/github-media/(?P<path>.*)$", github_media, name="github-test-media"),
     path("api/auth/", include("accounts.urls")),
     path("api/vendors/", include("vendors.urls")),
     path("api/catalog/", include("catalog.urls")),
