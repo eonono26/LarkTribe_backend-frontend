@@ -4,6 +4,7 @@ from django.dispatch import receiver
 from django.core.validators import FileExtensionValidator
 from django.utils.text import slugify
 from vendors.models import Vendor
+from catalog.storage import Product3DStorage
 
 
 # ============================================================
@@ -782,7 +783,7 @@ class Product(models.Model):
     # 3D / 360 presentation (Proposal item 3). Both optional: products without
     # them simply show the normal photo gallery.
     model_3d = models.FileField(
-        upload_to="products/3d/", null=True, blank=True,
+        upload_to="products/3d/", storage=Product3DStorage(), null=True, blank=True,
         help_text="Optional .glb / .gltf 3D model shown in the interactive 3D viewer.",
     )
     model_3d_poster = models.ImageField(
