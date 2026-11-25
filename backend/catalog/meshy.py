@@ -37,6 +37,8 @@ _submission_lock = threading.Lock()
 _inflight_submissions = set()
 _refresh_lock = threading.Lock()
 _inflight_refreshes = set()
+_import_lock = threading.Lock()
+_inflight_imports = set()
 
 
 def _api_key():
@@ -278,6 +280,55 @@ def _download_to_field(field, url, filename):
     return True
 
 
+def _import_completed_task_worker(product_id, task_id):
+    """Download a completed Meshy task into durable media storage off-request."""
+    close_old_connections()
+    try:
+        product = Product.objects.get(pk=product_id)
+        import_completed_meshy_task(product, task_id)
+        logger.info("Imported Meshy task %s for product %s", task_id, product_id)
+    except Exception as exc:
+        logger.exception("Background Meshy import failed for product %s, task %s", product_id, task_id)
+        Product.objects.filter(pk=product_id).update(
+            ar_generation_status=Product.ARGenerationStatus.FAILED,
+            ar_generation_error=str(exc)[:1000] or "Unable to save the completed 3D model.",
+            ar_generation_updated_at=timezone.now(),
+        )
+    finally:
+        close_old_connections()
+        with _import_lock:
+            _inflight_imports.discard(product_id)
+
+
+def queue_completed_meshy_import(product, task_id):
+    """Persist the task and queue its asset transfer; return without waiting for storage."""
+    task_id = str(task_id or "").strip()
+    if not task_id or len(task_id) > 100:
+        raise ValueError("Enter a valid Meshy task ID.")
+    with _import_lock:
+        if product.pk in _inflight_imports:
+            return {"status": Product.ARGenerationStatus.PROCESSING, "task_id": task_id,
+                    "detail": "The model is already being imported."}
+        _inflight_imports.add(product.pk)
+    try:
+        Product.objects.filter(pk=product.pk).update(
+            ar_generation_task_id=task_id,
+            ar_generation_status=Product.ARGenerationStatus.PROCESSING,
+            ar_generation_error="",
+            ar_generation_updated_at=timezone.now(),
+        )
+        _executor.submit(_import_completed_task_worker, product.pk, task_id)
+    except Exception:
+        with _import_lock:
+            _inflight_imports.discard(product.pk)
+        raise
+    return {
+        "status": Product.ARGenerationStatus.PROCESSING,
+        "task_id": task_id,
+        "detail": "Meshy model import started. It will appear in the shop when the file transfer finishes.",
+    }
+
+
 def _refresh_product_generation(product):
     if product.ar_generation_status == Product.ARGenerationStatus.SUCCEEDED:
         return {
@@ -341,32 +392,8 @@ def _refresh_product_generation(product):
         return {"status": product.ar_generation_status, "progress": task.get("progress", 0)}
 
     if state == "SUCCEEDED":
-        urls = task.get("model_urls") or {}
-        try:
-            if not urls.get("glb"):
-                raise RuntimeError("Meshy completed the task without a GLB model.")
-            _download_to_field(product.model_3d, urls["glb"], f"product-{product.pk}.glb")
-            if urls.get("usdz"):
-                _download_to_field(product.model_3d_ios, urls["usdz"], f"product-{product.pk}.usdz")
-        except requests.RequestException as exc:
-            logger.exception("Meshy model download failed for product %s", product.pk)
-            raise RuntimeError(
-                "Meshy finished, but LarkTribe could not download the generated model files."
-            ) from exc
-
-        if not product.model_3d_poster:
-            lead = product.images.filter(is_primary=True).first() or product.images.first()
-            if lead and lead.image:
-                product.model_3d_poster = lead.image
-        product.ar_generation_status = Product.ARGenerationStatus.SUCCEEDED
-        product.ar_generation_error = ""
-        product.ar_generation_updated_at = timezone.now()
-        product.save()
-        return {
-            "status": product.ar_generation_status,
-            "model_3d_url": _safe_file_url(product.model_3d),
-            "model_3d_ios_url": _safe_file_url(product.model_3d_ios),
-        }
+        queued = queue_completed_meshy_import(product, product.ar_generation_task_id)
+        return queued
 
     if state in ("FAILED", "CANCELED"):
         error = task.get("task_error") or {}
@@ -457,8 +484,8 @@ def import_completed_meshy_task(product, task_id):
             return {
                 "status": current.ar_generation_status,
                 "task_id": task_id,
-                "model_3d_url": current.model_3d.url if current.model_3d else None,
-                "model_3d_ios_url": current.model_3d_ios.url if current.model_3d_ios else None,
+                "model_3d_url": _safe_file_url(current.model_3d),
+                "model_3d_ios_url": _safe_file_url(current.model_3d_ios),
             }
     except requests.RequestException as exc:
         logger.exception("Could not download completed Meshy task %s for product %s", task_id, product.pk)
