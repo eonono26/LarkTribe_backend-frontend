@@ -58,6 +58,10 @@ class Product3DStorage(Storage):
         """Delegate existence checks to the configured underlying storage."""
         return self._get_backend().exists(name)
 
+    def url(self, name):
+        """Return a usable URL from the configured underlying storage."""
+        return self._get_backend().url(name)
+
     def __getattr__(self, name):
         if name.startswith("_"):
             raise AttributeError(name)
