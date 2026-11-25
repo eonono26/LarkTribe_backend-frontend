@@ -112,7 +112,7 @@ export default function EditProductPage() {
       }
       const allPhotos = [...images, ...uploaded];
       if (uploaded.length) setImages(allPhotos);
-      if (uploaded.length && hasFrontBackPhotos(allPhotos)) {
+      if (uploaded.some((photo) => photo.view === "front" || photo.view === "back") && hasFrontBackPhotos(allPhotos)) {
         // A matching front/back pair is enough to start Meshy without blocking the seller.
         try {
           await vendorApi.generateProduct3D(productId);
