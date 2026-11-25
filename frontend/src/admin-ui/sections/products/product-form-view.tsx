@@ -24,6 +24,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { adminApi, ApiError, errorMessage } from '@/lib/admin-api';
+import Model3DViewer from '@/components/Model3DViewer';
+import { mediaUrl } from '@/lib/api';
 import { useAsync } from '@/admin-ui/hooks/use-async';
 import { Iconify } from '@/admin-ui/components/iconify';
 import { useRouter } from '@/admin-ui/routes/hooks';
@@ -78,6 +80,26 @@ export function ProductFormView({ productId }: { productId?: number }) {
       setVariants(product.data.variants);
     }
   }, [product.data]);
+
+  useEffect(() => {
+    if (!productId || !['queued', 'processing'].includes(product.data?.ar_generation_status ?? '')) return;
+    let active = true;
+    let busy = false;
+    const timer = window.setInterval(async () => {
+      if (busy || !active) return;
+      busy = true;
+      try {
+        await adminApi.products.product3DStatus(productId);
+        const refreshed = await adminApi.products.get(productId);
+        if (active) product.setData(refreshed);
+      } catch {
+        // Keep the admin editor usable if Meshy is temporarily unavailable.
+      } finally {
+        busy = false;
+      }
+    }, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [productId, product.data?.ar_generation_status]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -208,6 +230,38 @@ export function ProductFormView({ productId }: { productId?: number }) {
                 </Grid>
               </Box>
             </Card>
+
+            {!isNew && current && images.length > 0 && (
+              <Card>
+                <CardHeader title="3D & AR product preview" />
+                <Box sx={{ p: 3, pt: 1 }}>
+                  {current.model_3d ? (
+                    <Model3DViewer
+                      src={mediaUrl(current.model_3d)}
+                      iosSrc={current.model_3d_ios ? mediaUrl(current.model_3d_ios) : null}
+                      poster={current.model_3d_poster ? mediaUrl(current.model_3d_poster) : undefined}
+                      alt={current.name}
+                    />
+                  ) : (
+                    <Alert severity={current.ar_generation_status === 'failed' ? 'warning' : 'info'}>
+                      {current.ar_generation_status === 'failed' ? '3D generation failed. Review the source photos and retry.' : current.ar_generation_status === 'queued' || current.ar_generation_status === 'processing' ? 'The 3D model is being generated.' : 'Generate an interactive 3D model from the uploaded product photos.'}
+                    </Alert>
+                  )}
+                  {!current.model_3d && (
+                    <Button sx={{ mt: 2 }} variant="outlined" onClick={async () => {
+                      try {
+                        await adminApi.products.generate3d(productId!);
+                        const refreshed = await adminApi.products.get(productId!);
+                        product.setData(refreshed);
+                        toast.success('3D generation started.');
+                      } catch (error) { toast.error(errorMessage(error)); }
+                    }}>
+                      Generate 3D preview
+                    </Button>
+                  )}
+                </Box>
+              </Card>
+            )}
 
             <VariantsCard
               productId={productId} variants={variants} setVariants={setVariants}
