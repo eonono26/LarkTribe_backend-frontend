@@ -96,7 +96,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         busy = false;
       }
     };
-    const timer = window.setInterval(() => { void poll(); }, 15000);
+    // Check once immediately, then refresh frequently while the background
+    // storage transfer is running so the 3D tab appears as soon as it is ready.
+    void poll();
+    const timer = window.setInterval(() => { void poll(); }, 5000);
     return () => { active = false; window.clearInterval(timer); };
   }, [arGenerationStatus, slug]);
 
