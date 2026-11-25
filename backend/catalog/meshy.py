@@ -146,7 +146,14 @@ def _submit_product_generation(product_id):
             result = response.json()
         except ValueError as exc:
             raise RuntimeError("Meshy returned a response that was not valid JSON.") from exc
-        task_id = result.get("result") if isinstance(result, dict) else None
+        # Meshy may return the task ID as a plain "result" string (task
+        # submission response), or return the full task object with "id"
+        # (including status/model_urls when the task has already completed).
+        task_data = result.get("result") if isinstance(result, dict) else None
+        if isinstance(task_data, dict):
+            task_id = task_data.get("id") or task_data.get("task_id")
+        else:
+            task_id = task_data or (result.get("id") or result.get("task_id") if isinstance(result, dict) else None)
         if not task_id:
             raise RuntimeError(f"Meshy did not return a task ID. Response: {str(result)[:500]}")
 
