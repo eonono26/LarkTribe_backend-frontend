@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+import logging
+
 from django.db.models import Count
 from rest_framework import serializers
 
@@ -10,17 +12,22 @@ from orders.models import Order
 from orders.serializers import OrderItemSerializer
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def _abs(request, f):
-    """Absolute URL for a FileField/ImageField value, or None."""
+    """Return a media URL without allowing an unavailable object to break an API list."""
     if not f:
         return None
     try:
         url = f.url
-    except ValueError:
+        return request.build_absolute_uri(url) if request else url
+    except Exception:
+        # Remote storage can raise provider/network errors (not only ValueError)
+        # when a legacy object is missing or the storage service is temporarily
+        # unavailable. Keep the product/admin record readable in that case.
+        logger.exception("Unable to resolve media URL for stored file %r", getattr(f, "name", None))
         return None
-    return request.build_absolute_uri(url) if request else url
 
 
 # ----------------------------------------------------------------------
