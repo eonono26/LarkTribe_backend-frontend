@@ -180,6 +180,7 @@ export interface ProductDetail extends Omit<ProductListItem, "image"> {
   has_360?: boolean;
   spin_frames?: { color: string; url: string }[];
   model_3d_url?: string | null;
+  model_3d_ios_url?: string | null;
   model_3d_poster_url?: string | null;
   stock: number;
   sku: string;
