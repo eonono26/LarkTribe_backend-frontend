@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import Viewer360 from "@/components/Viewer360";
 import Model3DViewer from "@/components/Model3DViewer";
@@ -22,6 +22,12 @@ export default function ProductMedia({
   const has360 = frames.length >= 4;
   const has3d = !!product.model_3d_url;
   const isGenerating = product.ar_generation_status === "queued" || product.ar_generation_status === "processing";
+
+  // When the background import finishes, switch straight to the new 3D
+  // viewer instead of leaving shoppers on the photo tab.
+  useEffect(() => {
+    if (has3d) setTab("3d");
+  }, [has3d, product.model_3d_url]);
   const tabs: { key: Tab; label: string }[] = [
     { key: "photos", label: "Photos" },
     ...(has360 ? [{ key: "360" as Tab, label: "360°" }] : []),
