@@ -395,17 +395,18 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
             image.delete()  # the color's next photo is promoted if this was its primary
         else:
             geometry_fields = {"color", "view", "order", "is_primary"}
-            if geometry_fields.intersection(request.data.keys()):
+            changes_geometry = bool(geometry_fields.intersection(request.data.keys()))
+            if "view" in request.data and request.data["view"] not in ProductImage.View.values:
+                return Response({"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"}, status=status.HTTP_400_BAD_REQUEST)
+            if "order" in request.data and not str(request.data["order"]).isdigit():
+                return Response({"detail": "order must be a non-negative integer."}, status=status.HTTP_400_BAD_REQUEST)
+            if changes_geometry:
                 if self._generation_busy(product):
                     return Response(
                         {"detail": "Wait for the current 3D generation to finish before changing product photos."},
                         status=status.HTTP_409_CONFLICT,
                     )
                 self._invalidate_3d(product)
-            if "view" in request.data and request.data["view"] not in ProductImage.View.values:
-                return Response({"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"}, status=status.HTTP_400_BAD_REQUEST)
-            if "order" in request.data and not str(request.data["order"]).isdigit():
-                return Response({"detail": "order must be a non-negative integer."}, status=status.HTTP_400_BAD_REQUEST)
             for field in ("color", "alt_text", "view", "order"):
                 if field in request.data:
                     setattr(image, field, request.data[field])
