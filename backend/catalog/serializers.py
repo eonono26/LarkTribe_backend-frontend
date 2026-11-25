@@ -1,6 +1,10 @@
+import logging
+
 from rest_framework import serializers
 from .models import Department, Category, Brand, Product, ProductImage, BrandMedia, DepartmentMedia, CategoryMedia, ProductVariant, Review, Wishlist, AgeGroup, AgeGroupMedia, SizeGuide
 from accounts.models import User
+
+logger = logging.getLogger(__name__)
 
 
 class DepartmentMediaSerializer(serializers.ModelSerializer):
