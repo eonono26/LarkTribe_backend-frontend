@@ -992,8 +992,6 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     model plus a poster image for interactive product viewing.
     """
 
-    model_3d = serializers.FileField(required=False, allow_null=True)
-    model_3d_poster = serializers.ImageField(required=False, allow_null=True)
 
     images = ProductImageSerializer(
         many=True,
@@ -1022,8 +1020,6 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "status",
 
             "images",
-            "model_3d",
-            "model_3d_poster",
 
             "is_featured",
 
@@ -1034,21 +1030,6 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
         ]
-
-    def validate_model_3d(self, value):
-        if value is None:
-            return value
-        extension = value.name.rsplit(".", 1)[-1].lower()
-        if extension != "glb":
-            raise serializers.ValidationError("Upload a .glb 3D model for web and mobile AR.")
-        if value.size > 50 * 1024 * 1024:
-            raise serializers.ValidationError("The 3D model must be 50 MB or smaller.")
-        return value
-
-    def validate_model_3d_poster(self, value):
-        if value is not None and value.size > 10 * 1024 * 1024:
-            raise serializers.ValidationError("The 3D preview image must be 10 MB or smaller.")
-        return value
 
     def validate_status(self, value):
         """
