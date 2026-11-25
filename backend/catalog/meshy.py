@@ -88,7 +88,7 @@ def submit_product_generation(product, request=None):
         task_id = response.json().get("result")
         if not task_id:
             raise RuntimeError("Meshy did not return a task ID.")
-    except requests.RequestException as exc:
+    except Exception as exc:
         product.ar_generation_status = Product.ARGenerationStatus.FAILED
         product.ar_generation_error = "Could not submit the 3D generation request to Meshy."
         product.ar_generation_updated_at = timezone.now()
