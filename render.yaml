@@ -32,16 +32,6 @@ services:
           type: web
           name: duka-backend
           envVarKey: RENDER_EXTERNAL_URL
-      - key: AWS_STORAGE_BUCKET_NAME
-        sync: false
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: AWS_S3_REGION_NAME
-        value: us-east-1
-      - key: AWS_S3_ENDPOINT_URL
-        value: ""
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
