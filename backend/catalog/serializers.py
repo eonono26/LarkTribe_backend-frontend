@@ -985,23 +985,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class ProductWriteSerializer(serializers.ModelSerializer):
+    """
+    Vendor product creation/update, including optional 3D assets for AR.
+
+    Vendor selects category, gender and age groups, and may attach one GLB
+    model plus a poster image for interactive product viewing.
+    """
+
     model_3d = serializers.FileField(required=False, allow_null=True)
     model_3d_poster = serializers.ImageField(required=False, allow_null=True)
-    """
-    Vendor product creation/update.
-
-    Vendor selects:
-
-        Category
-        Gender
-        Age Groups
-
-    Example:
-
-        Category = Baby / Dresses
-        Gender = Girls
-        Age Groups = 6–12 Months, 12–24 Months
-    """
 
     images = ProductImageSerializer(
         many=True,
