@@ -163,7 +163,7 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
 
         {!loading && missing && (
           <div className="p-16 text-center text-stone-400 text-sm">
-            Sorry, we couldn't load this product.
+            Sorry, we couldn&apos;t load this product.
           </div>
         )}
 
