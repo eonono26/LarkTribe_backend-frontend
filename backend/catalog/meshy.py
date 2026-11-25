@@ -376,6 +376,84 @@ def _refresh_product_generation(product):
     }
 
 
+
+def import_completed_meshy_task(product, task_id):
+    """Download an already-generated Meshy task and attach it to a product.
+
+    This deliberately does not submit a new generation request or consume
+    additional Meshy credits.
+    """
+    task_id = str(task_id or "").strip()
+    if not task_id or len(task_id) > 100:
+        raise ValueError("Enter a valid Meshy task ID.")
+
+    response = requests.get(
+        f"{MESHY_API}/multi-image-to-3d/{task_id}",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+    if not response.ok:
+        raise RuntimeError(f"Meshy task lookup failed (HTTP {response.status_code}).")
+    try:
+        task = response.json()
+    except ValueError as exc:
+        raise RuntimeError("Meshy returned an invalid task response.") from exc
+
+    state = str(task.get("status", "")).upper()
+    if state != "SUCCEEDED":
+        if state in ("PENDING", "IN_PROGRESS", "QUEUED"):
+            raise ValueError(f"This Meshy task is not finished yet (status: {state}).")
+        error = task.get("task_error") or {}
+        detail = error.get("message") if isinstance(error, dict) else str(error)
+        raise ValueError(detail or f"Meshy task cannot be imported (status: {state or 'unknown'}).")
+
+    urls = task.get("model_urls") or {}
+    glb_url = urls.get("glb") or task.get("model_url")
+    usdz_url = urls.get("usdz")
+    if not glb_url:
+        raise RuntimeError("Meshy marked the task successful but did not return a GLB model URL.")
+
+    # Only download signed model assets hosted by Meshy; never accept arbitrary
+    # URLs supplied by the admin browser.
+    from urllib.parse import urlparse
+    for asset_url in (glb_url, usdz_url, task.get("thumbnail_url")):
+        if asset_url:
+            parsed = urlparse(asset_url)
+            if parsed.scheme != "https" or not (parsed.hostname or "").endswith("meshy.ai"):
+                raise RuntimeError("Meshy returned an unexpected model asset URL.")
+
+    try:
+        with transaction.atomic():
+            current = Product.objects.select_for_update().get(pk=product.pk)
+            _download_to_field(current.model_3d, glb_url, f"product-{current.pk}.glb")
+            if usdz_url:
+                _download_to_field(current.model_3d_ios, usdz_url, f"product-{current.pk}.usdz")
+            if task.get("thumbnail_url"):
+                _download_to_field(
+                    current.model_3d_poster,
+                    task["thumbnail_url"],
+                    f"product-{current.pk}-3d-poster.jpg",
+                )
+            elif not current.model_3d_poster:
+                lead = current.images.filter(is_primary=True).first() or current.images.first()
+                if lead and lead.image:
+                    current.model_3d_poster = lead.image
+            current.ar_generation_task_id = task_id
+            current.ar_generation_status = Product.ARGenerationStatus.SUCCEEDED
+            current.ar_generation_error = ""
+            current.ar_generation_updated_at = timezone.now()
+            current.save()
+            return {
+                "status": current.ar_generation_status,
+                "task_id": task_id,
+                "model_3d_url": current.model_3d.url if current.model_3d else None,
+                "model_3d_ios_url": current.model_3d_ios.url if current.model_3d_ios else None,
+            }
+    except requests.RequestException as exc:
+        logger.exception("Could not download completed Meshy task %s for product %s", task_id, product.pk)
+        raise RuntimeError("Meshy has the completed model, but LarkTribe could not download it into media storage.") from exc
+
+
 def refresh_product_generation(product):
     """Refresh the saved Meshy task status, preventing overlapping polls."""
     if not product.ar_generation_task_id:
