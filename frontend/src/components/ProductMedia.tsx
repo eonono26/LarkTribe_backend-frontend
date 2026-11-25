@@ -21,6 +21,7 @@ export default function ProductMedia({
   const frames = product.spin_frames || [];
   const has360 = frames.length >= 4;
   const has3d = !!product.model_3d_url;
+  const isGenerating = product.ar_generation_status === "queued" || product.ar_generation_status === "processing";
   const tabs: { key: Tab; label: string }[] = [
     { key: "photos", label: "Photos" },
     ...(has360 ? [{ key: "360" as Tab, label: "360°" }] : []),
@@ -45,6 +46,16 @@ export default function ProductMedia({
       {tab === "360" && has360 && <Viewer360 frames={frames} color={color} alt={product.name} />}
       {tab === "3d" && has3d && (
         <Model3DViewer src={product.model_3d_url!} iosSrc={product.model_3d_ios_url} poster={product.model_3d_poster_url ? product.model_3d_poster_url : (images[0] ? mediaUrl(images[0].image) : null)} alt={product.name} />
+      )}
+      {!has3d && isGenerating && (
+        <div className="mt-3 border border-stone-200 bg-stone-50 px-4 py-3 text-xs text-stone-600" role="status">
+          Your interactive 3D model is being prepared. Product photos remain available while generation finishes.
+        </div>
+      )}
+      {!has3d && product.ar_generation_status === "failed" && (
+        <div className="mt-3 border border-stone-200 bg-stone-50 px-4 py-3 text-xs text-stone-600">
+          3D preview is temporarily unavailable. You can still view all product photos.
+        </div>
       )}
     </div>
   );
