@@ -1015,6 +1015,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class ProductWriteSerializer(serializers.ModelSerializer):
+    """Vendor product serializer with read-only URLs for generated AR assets."""
     model_3d_url = serializers.SerializerMethodField()
     model_3d_ios_url = serializers.SerializerMethodField()
     model_3d_poster_url = serializers.SerializerMethodField()
@@ -1035,12 +1036,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     def get_model_3d_poster_url(self, obj):
         return self._media_abs(obj.model_3d_poster)
 
-    """
-    Vendor product creation/update, including optional 3D assets for AR.
 
-    Vendor selects category, gender and age groups, and may attach one GLB
-    model plus a poster image for interactive product viewing.
-    """
 
 
     images = ProductImageSerializer(
