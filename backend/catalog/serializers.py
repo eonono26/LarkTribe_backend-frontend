@@ -1037,6 +1037,8 @@ class ProductWriteSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
+            "ar_generation_status",
+            "ar_generation_error",
         ]
 
     def validate_status(self, value):
