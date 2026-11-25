@@ -32,6 +32,8 @@ export default function NewProductPage() {
   });
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<number[]>([]);
   const [images, setImages] = useState<File[]>([]);
+  const [model3d, setModel3d] = useState<File | null>(null);
+  const [model3dPoster, setModel3dPoster] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -65,6 +67,7 @@ export default function NewProductPage() {
       for (let i = 0; i < images.length; i++) {
         await vendorApi.uploadProductImage(product.id, images[i], i === 0);
       }
+      if (model3d) await vendorApi.uploadProduct3d(product.id, model3d, model3dPoster);
       router.push("/vendor/dashboard/products");
     } catch {
       setError("Couldn't save this product — check the fields (SKU must be unique) and try again.");
@@ -179,6 +182,19 @@ export default function NewProductPage() {
             onChange={(e) => setForm({ ...form, sku: e.target.value })}
             className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
+        </div>
+
+        <div className="rounded-xl border border-[var(--color-line)] p-4 space-y-3">
+          <div>
+            <label className="text-sm font-semibold block mb-1">3D model for AR (optional)</label>
+            <input type="file" accept=".glb,model/gltf-binary" onChange={(e) => setModel3d(e.target.files?.[0] ?? null)} className="text-sm w-full" />
+            <p className="text-xs text-neutral-400 mt-1">Upload a GLB model (maximum 50 MB). AI-generated GLB models are supported. Products without a model keep their normal photo gallery.</p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold block mb-1">3D preview image (optional)</label>
+            <input type="file" accept="image/*" onChange={(e) => setModel3dPoster(e.target.files?.[0] ?? null)} className="text-sm w-full" />
+            <p className="text-xs text-neutral-400 mt-1">Shown while the 3D model loads and as a fallback on unsupported devices.</p>
+          </div>
         </div>
 
         <div>
