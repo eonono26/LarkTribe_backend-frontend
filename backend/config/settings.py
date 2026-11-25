@@ -136,9 +136,22 @@ else:
         }
     }
 
+# Shared Cloudflare R2 media storage. New uploads use R2; the storage class
+# serves older GitHub-backed files until migrate_media_to_r2 copies them over.
+if os.environ.get("AR_STORAGE_BUCKET_NAME"):
+    INSTALLED_APPS.append("storages")
+    STORAGES = {
+        "default": {
+            "BACKEND": "catalog.storage.UnifiedMediaStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
 # Optional GitHub-backed media storage for temporary Render testing.
 # The repository can be private; the backend streams files through github_media.
-if os.environ.get("GITHUB_MEDIA_REPO") or os.environ.get("RENDER") == "true":
+if not os.environ.get("AR_STORAGE_BUCKET_NAME") and (os.environ.get("GITHUB_MEDIA_REPO") or os.environ.get("RENDER") == "true"):
     STORAGES = {
         "default": {
             "BACKEND": "catalog.github_storage.GitHubMediaStorage",
