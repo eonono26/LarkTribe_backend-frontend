@@ -73,6 +73,8 @@ export function ProductFormView({ productId }: { productId?: number }) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [generating3d, setGenerating3d] = useState(false);
+  const [meshyTaskId, setMeshyTaskId] = useState('');
+  const [importingMeshyTask, setImportingMeshyTask] = useState(false);
 
   useEffect(() => {
     if (product.data) {
@@ -255,6 +257,43 @@ export function ProductFormView({ productId }: { productId?: number }) {
                           : 'Generate an interactive 3D model from the uploaded product photos.'}
                     </Alert>
                   )}
+
+                  {!current.model_3d && (
+                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      <Typography variant="subtitle2">Already generated a model in Meshy?</Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Meshy task ID"
+                        placeholder="Paste the completed task ID"
+                        value={meshyTaskId}
+                        onChange={(event) => setMeshyTaskId(event.target.value)}
+                        helperText="Imports the existing GLB/USDZ from Meshy. It does not start another generation or use more credits."
+                      />
+                      <Button
+                        variant="contained"
+                        color="inherit"
+                        disabled={!meshyTaskId.trim() || importingMeshyTask}
+                        onClick={async () => {
+                          setImportingMeshyTask(true);
+                          try {
+                            await adminApi.products.importMeshyTask(productId!, meshyTaskId.trim());
+                            const refreshed = await adminApi.products.get(productId!);
+                            product.setData(refreshed);
+                            setMeshyTaskId('');
+                            toast.success('Completed Meshy model attached to this product.');
+                          } catch (error) {
+                            toast.error(errorMessage(error));
+                          } finally {
+                            setImportingMeshyTask(false);
+                          }
+                        }}
+                      >
+                        {importingMeshyTask ? 'Importing model…' : 'Import completed Meshy model'}
+                      </Button>
+                    </Box>
+                  )}
+
                   {!current.model_3d && !['queued', 'processing'].includes(current.ar_generation_status) && (
                     <Button sx={{ mt: 2 }} variant="outlined" disabled={generating3d} onClick={async () => {
                       setGenerating3d(true);
