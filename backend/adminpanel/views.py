@@ -698,7 +698,6 @@ class AdminMediaMigrationView(views.APIView):
     def post(self, request):
         import os
         from django.apps import apps
-        from rest_framework.exceptions import APIException
 
         required = (
             "AR_STORAGE_BUCKET_NAME", "AR_STORAGE_ENDPOINT_URL",
