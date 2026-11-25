@@ -7,6 +7,7 @@ import os
 import requests
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from django.conf import settings
 
 from .models import Product, ProductImage
 
@@ -41,11 +42,30 @@ def _source_images(product, request):
         url = item.image.url
         if request:
             url = request.build_absolute_uri(url)
+        else:
+            base_url = getattr(settings, "PUBLIC_BACKEND_URL", "").rstrip("/")
+            if base_url and url.startswith("/"):
+                url = f"{base_url}{url}"
         urls.append(url)
     return urls
 
 
 def start_product_generation(product, request=None):
+    """Queue generation without making a slow Meshy request in the web process."""
+    if product.model_3d and product.ar_generation_status == Product.ARGenerationStatus.SUCCEEDED:
+        return {"status": product.ar_generation_status, "detail": "A 3D model is already available."}
+    if product.ar_generation_status in (Product.ARGenerationStatus.QUEUED, Product.ARGenerationStatus.PROCESSING):
+        return {"status": product.ar_generation_status, "task_id": product.ar_generation_task_id or None}
+    _source_images(product, request)
+    product.ar_generation_status = Product.ARGenerationStatus.QUEUED
+    product.ar_generation_task_id = ""
+    product.ar_generation_error = ""
+    product.ar_generation_updated_at = timezone.now()
+    product.save(update_fields=["ar_generation_status", "ar_generation_task_id", "ar_generation_error", "ar_generation_updated_at"])
+    return {"status": product.ar_generation_status, "detail": "3D generation has been queued."}
+
+
+def submit_product_generation(product, request=None):
     if product.model_3d and product.ar_generation_status == Product.ARGenerationStatus.SUCCEEDED:
         return {"status": product.ar_generation_status, "detail": "A 3D model is already available."}
     if product.ar_generation_status in (Product.ARGenerationStatus.QUEUED, Product.ARGenerationStatus.PROCESSING) and product.ar_generation_task_id:
