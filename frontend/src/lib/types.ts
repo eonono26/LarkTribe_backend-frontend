@@ -118,6 +118,10 @@ export interface ProductListItem {
   stock: number;
   status: string;
   image_url: string | null;
+  model_3d_url?: string | null;
+  model_3d_ios_url?: string | null;
+  model_3d_poster_url?: string | null;
+  ar_generation_status?: "not_started" | "queued" | "processing" | "succeeded" | "failed";
   age_groups: AgeGroup[];
   gender: "girls" | "boys" | "unisex";
   
