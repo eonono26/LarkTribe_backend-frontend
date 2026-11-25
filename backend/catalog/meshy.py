@@ -3,6 +3,7 @@
 Only server-side code reads MESHY_API_KEY. Generated files are copied into
 Django's configured media storage because Meshy's task URLs expire.
 """
+import logging
 import os
 import requests
 from django.core.files.base import ContentFile
@@ -13,6 +14,7 @@ from .models import Product, ProductImage
 
 MESHY_API = "https://api.meshy.ai/openapi/v1"
 TIMEOUT = (10, 90)
+logger = logging.getLogger(__name__)
 
 
 def _api_key():
@@ -40,12 +42,14 @@ def _source_images(product, request):
     urls = []
     for item in chosen:
         url = item.image.url
-        if request:
-            url = request.build_absolute_uri(url)
-        else:
+        if not url.startswith(("http://", "https://")):
+            # Prefer the public Render URL so Meshy never receives an internal
+            # or proxy-derived URL for a product image.
             base_url = getattr(settings, "PUBLIC_BACKEND_URL", "").rstrip("/")
-            if base_url and url.startswith("/"):
-                url = f"{base_url}{url}"
+            if base_url:
+                url = f"{base_url}/{url.lstrip('/')}"
+            elif request:
+                url = request.build_absolute_uri(url)
         urls.append(url)
     return urls
 
@@ -93,13 +97,36 @@ def submit_product_generation(product, request=None):
             f"{MESHY_API}/multi-image-to-3d",
             headers=_headers(), json=payload, timeout=TIMEOUT,
         )
-        response.raise_for_status()
-        task_id = response.json().get("result")
+        if not response.ok:
+            try:
+                body = response.json()
+            except ValueError:
+                body = response.text
+            if isinstance(body, dict):
+                detail = body.get("message") or body.get("detail") or body.get("error") or body
+            else:
+                detail = body
+            raise RuntimeError(f"Meshy API returned HTTP {response.status_code}: {str(detail).strip()[:700]}")
+        try:
+            result = response.json()
+        except ValueError as exc:
+            raise RuntimeError("Meshy returned a response that was not valid JSON.") from exc
+        task_id = result.get("result") if isinstance(result, dict) else None
         if not task_id:
-            raise RuntimeError("Meshy did not return a task ID.")
-    except Exception as exc:
+            raise RuntimeError(f"Meshy did not return a task ID. Response: {str(result)[:500]}")
+    except requests.Timeout as exc:
+        error_message = "Meshy did not respond before the 90-second submission timeout. Check Meshy task history before retrying to avoid duplicate generation."
+        logger.exception("Meshy submission timed out for product %s", product.pk)
         product.ar_generation_status = Product.ARGenerationStatus.FAILED
-        product.ar_generation_error = "Could not submit the 3D generation request to Meshy."
+        product.ar_generation_error = error_message
+        product.ar_generation_updated_at = timezone.now()
+        product.save(update_fields=["ar_generation_status", "ar_generation_error", "ar_generation_updated_at"])
+        raise RuntimeError(error_message) from exc
+    except Exception as exc:
+        error_message = str(exc).strip() or "Unknown Meshy submission error."
+        logger.exception("Meshy submission failed for product %s: %s", product.pk, error_message)
+        product.ar_generation_status = Product.ARGenerationStatus.FAILED
+        product.ar_generation_error = error_message[:1000]
         product.ar_generation_updated_at = timezone.now()
         product.save(update_fields=["ar_generation_status", "ar_generation_error", "ar_generation_updated_at"])
         raise RuntimeError(product.ar_generation_error) from exc
