@@ -459,7 +459,7 @@ function ImagesCard({ productId, onGenerationStarted, images, variants, pendingV
       const updated = await adminApi.products.uploadImages(productId!, list, { color: color.trim(), view });
       setImages(updated);
       const sameColour = updated.filter((photo) => colorKey(photo.color) === colorKey(color));
-      if (hasFrontBackPhotos(sameColour)) {
+      if ((view === 'front' || view === 'back') && hasFrontBackPhotos(sameColour)) {
         await adminApi.products.generate3d(productId!);
         await onGenerationStarted?.();
         toast.success('Photos saved. 3D generation has started in the background.');
