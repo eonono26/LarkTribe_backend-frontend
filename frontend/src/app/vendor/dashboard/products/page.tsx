@@ -89,7 +89,7 @@ export default function VendorProductsPage() {
                     </span>
                   </td>
                   <td className="py-2 pr-4 text-xs text-neutral-500">
-                    {p.ar_generation_status === "succeeded" ? "Ready" : p.ar_generation_status === "queued" || p.ar_generation_status === "processing" ? "Generating…" : p.ar_generation_status === "failed" ? "Needs retry" : "Waiting for photos"}
+                    {p.ar_generation_status === "succeeded" ? "Ready" : p.ar_generation_status === "queued" || p.ar_generation_status === "processing" ? "Generating…" : p.ar_generation_status === "failed" ? "Needs retry" : p.images?.length ? "Not generated" : "Waiting for photos"}
                   </td>
                   <td className="py-2 pr-4 whitespace-nowrap">
                     <Link
