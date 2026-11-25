@@ -138,7 +138,7 @@ else:
 
 # Optional GitHub-backed media storage for temporary Render testing.
 # The repository can be private; the backend streams files through github_media.
-if os.environ.get("GITHUB_MEDIA_REPO"):
+if os.environ.get("GITHUB_MEDIA_REPO") or os.environ.get("RENDER") == "true":
     STORAGES = {
         "default": {
             "BACKEND": "catalog.github_storage.GitHubMediaStorage",
