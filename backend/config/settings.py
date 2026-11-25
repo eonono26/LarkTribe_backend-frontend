@@ -136,6 +136,18 @@ else:
         }
     }
 
+# Optional GitHub-backed media storage for temporary Render testing.
+# The repository can be private; the backend streams files through github_media.
+if os.environ.get("GITHUB_MEDIA_REPO"):
+    STORAGES = {
+        "default": {
+            "BACKEND": "catalog.github_storage.GitHubMediaStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
 # Optional shared S3-compatible media storage (AWS S3 / Cloudflare R2).
 # Configure identical bucket credentials on the web service and worker.
 if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
