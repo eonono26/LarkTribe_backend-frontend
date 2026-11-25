@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PRODUCT_GRID } from "@/lib/layout";
 import Link from "next/link";
 import { api, mediaUrl } from "@/lib/api";
