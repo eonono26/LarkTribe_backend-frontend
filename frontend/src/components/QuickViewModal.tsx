@@ -169,7 +169,7 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
                   No image
                 </div>
               )}
-              {(product.model_3d_url || (product.spin_frames?.length ?? 0) >= 4) && (
+              {(product.model_3d_url || (product.spin_frames?.length ?? 0) >= 4 || product.ar_generation_status === "queued" || product.ar_generation_status === "processing" || product.ar_generation_status === "failed") && (
                 <div className="mt-2 border-t border-stone-200 pt-4">
                   <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Explore this piece in 3D</p>
                   <ProductMedia product={product} images={images} color={selectedColor} />
