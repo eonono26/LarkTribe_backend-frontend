@@ -708,9 +708,13 @@ class ProductListSerializer(serializers.ModelSerializer):
     def _media_abs(self, field):
         if not field:
             return None
-        url = field.url
-        request = self.context.get("request")
-        return request.build_absolute_uri(url) if request else url
+        try:
+            url = field.url
+            request = self.context.get("request")
+            return request.build_absolute_uri(url) if request else url
+        except Exception:
+            logger.exception("Unable to resolve product media URL for %r", getattr(field, "name", None))
+            return None
 
     def get_model_3d_url(self, obj):
         return self._media_abs(obj.model_3d)
@@ -910,9 +914,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     def _abs(self, f):
         if not f:
             return None
-        request = self.context.get("request")
-        url = f.url
-        return request.build_absolute_uri(url) if request else url
+        try:
+            request = self.context.get("request")
+            url = f.url
+            return request.build_absolute_uri(url) if request else url
+        except Exception:
+            logger.exception("Unable to resolve product detail media URL for %r", getattr(f, "name", None))
+            return None
 
     def get_spin_frames(self, obj):
         # [{color, url}] ordered for the 360 viewer.
