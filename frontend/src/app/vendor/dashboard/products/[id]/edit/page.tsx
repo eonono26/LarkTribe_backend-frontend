@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Trash2 } from "lucide-react";
 import { vendorApi, VendorProduct, VendorProductImage, VendorAgeGroup } from "@/lib/vendor-api";
 import { mediaUrl } from "@/lib/api";
+import Model3DViewer from "@/components/Model3DViewer";
 
 interface CategoryOption {
   id: number;
@@ -208,6 +209,35 @@ export default function EditProductPage() {
             className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
         </div>
+
+        {(form.model_3d_url || form.ar_generation_status === "queued" || form.ar_generation_status === "processing" || form.ar_generation_status === "failed") && (
+          <section className="space-y-2 border border-[var(--color-line)] rounded-xl p-3">
+            <h3 className="text-sm font-semibold">3D &amp; AR product preview</h3>
+            {form.model_3d_url ? (
+              <Model3DViewer src={form.model_3d_url} iosSrc={form.model_3d_ios_url} poster={form.model_3d_poster_url || undefined} alt={form.name || "Product"} />
+            ) : (
+              <p className="text-xs text-neutral-500">
+                {form.ar_generation_status === "failed" ? "3D generation failed. Add clearer product photos and retry." : "Your 3D model is being generated. Your product photos remain available."}
+              </p>
+            )}
+            {form.model_3d_url ? <p className="text-xs text-emerald-700">3D model ready for shoppers and AR-supported devices.</p> : (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await vendorApi.generateProduct3D(productId);
+                    setForm((current) => current ? { ...current, ar_generation_status: "queued" } : current);
+                  } catch (error) {
+                    setError(error instanceof Error ? error.message : "Could not start 3D generation.");
+                  }
+                }}
+                className="text-xs font-semibold underline underline-offset-4"
+              >
+                Generate 3D preview
+              </button>
+            )}
+          </section>
+        )}
 
         {images.length > 0 && (
           <div>
