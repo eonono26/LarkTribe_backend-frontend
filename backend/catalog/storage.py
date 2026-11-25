@@ -32,6 +32,7 @@ class Product3DStorage(Storage):
                     ) from exc
 
                 endpoint = os.environ.get("AR_STORAGE_ENDPOINT_URL", "").strip()
+                custom_domain = os.environ.get("AR_STORAGE_CUSTOM_DOMAIN", "").strip()
                 self._backend = S3Storage(
                     bucket_name=bucket,
                     access_key=os.environ.get("AR_STORAGE_ACCESS_KEY_ID", ""),
@@ -39,10 +40,11 @@ class Product3DStorage(Storage):
                     endpoint_url=endpoint or None,
                     region_name=os.environ.get("AR_STORAGE_REGION_NAME", "auto"),
                     default_acl=None,
-                    querystring_auth=False,
+                    querystring_auth=not bool(custom_domain),
+                    querystring_expire=int(os.environ.get("AR_STORAGE_URL_TTL", "3600")),
                     file_overwrite=False,
                     addressing_style="path",
-                    custom_domain=os.environ.get("AR_STORAGE_CUSTOM_DOMAIN") or None,
+                    custom_domain=custom_domain or None,
                 )
         return self._backend
 
