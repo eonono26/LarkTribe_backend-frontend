@@ -119,7 +119,7 @@ def refresh_product_generation(product):
         product.ar_generation_status = Product.ARGenerationStatus.PROCESSING
         product.ar_generation_updated_at = timezone.now()
         product.save(update_fields=["ar_generation_status", "ar_generation_updated_at"])
-        return {"status": product.ar_generation_status, "progress": task.get(" progress", task.get("progress", 0))}
+        return {"status": product.ar_generation_status, "progress": task.get("progress", 0)}
 
     if state == "SUCCEEDED":
         urls = task.get("model_urls") or {}
