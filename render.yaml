@@ -1,3 +1,11 @@
+databases:
+  - name: duka-postgres
+    databaseName: duka
+    user: duka
+    plan: free
+    region: oregon
+    ipAllowList: []
+
 services:
   # ---------------------------------------------------------------------------
   # Backend Web Service: Django REST Framework API (Python 3.12 + SQLite)
@@ -15,6 +23,15 @@ services:
         value: 3.12.3
       - key: DJANGO_DEBUG
         value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: duka-postgres
+          property: connectionString
+      - key: PUBLIC_BACKEND_URL
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: RENDER_EXTERNAL_URL
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
@@ -33,6 +50,38 @@ services:
     #   - key: DATA_DIR
     #     value: /var/data
 
+  # ---------------------------------------------------------------------------
+  # Meshy Background Worker
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: duka-meshy-worker
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py process_meshy_queue
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: DJANGO_SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: duka-postgres
+          property: connectionString
+      - key: MESHY_API_KEY
+        sync: false
+      - key: PUBLIC_BACKEND_URL
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: RENDER_EXTERNAL_URL
   # ---------------------------------------------------------------------------
   # Frontend Web Service: Next.js Storefront & Admin (Node.js 20)
   # ---------------------------------------------------------------------------
