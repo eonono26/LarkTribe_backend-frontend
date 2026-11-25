@@ -764,8 +764,9 @@ class AdminMediaMigrationView(views.APIView):
                                     status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         batch = names[offset:offset + limit]
-        copied = skipped = failed = 0
+        copied = skipped = failed = missing = 0
         errors = []
+        missing_files = []
         for name in batch:
             try:
                 if destination.exists(name):
@@ -776,14 +777,20 @@ class AdminMediaMigrationView(views.APIView):
                 if not destination.exists(name):
                     raise RuntimeError("R2 verification failed after upload.")
                 copied += 1
+            except FileNotFoundError:
+                # A stale database reference must not block migration of other assets.
+                missing += 1
+                missing_files.append(name)
+                logger.warning("Legacy media is missing from GitHub storage: %s", name)
             except Exception as exc:
                 failed += 1
                 logger.exception("Media migration failed for %s", name)
-                errors.append({"file": name, "error": str(exc)[:240]})
+                errors.append({"file": name, "error": repr(exc)[:400]})
 
         next_offset = offset + len(batch)
         return Response({
             "processed": len(batch), "copied": copied, "already_in_r2": skipped,
+            "missing": missing, "missing_files": missing_files,
             "failed": failed, "errors": errors, "offset": next_offset,
             "total": len(names), "has_more": next_offset < len(names),
             "complete": next_offset >= len(names) and failed == 0,
