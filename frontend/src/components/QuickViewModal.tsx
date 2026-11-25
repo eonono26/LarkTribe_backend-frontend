@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
-import { api, apiErrorMessage, mediaUrl } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
 import ColorSwatch from "@/components/ColorSwatch";
@@ -170,35 +169,9 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
 
         {!loading && product && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-5 sm:p-8">
-            {/* Gallery for the selected color: primary front image first, other views stacked below. */}
-            <div key={selectedColor ?? "default"} className="flex min-w-0 flex-col gap-4" aria-label={selectedColor ? `${selectedColor} photos` : "Product photos"}>
-              {images.length > 0 ? (
-                images.map((img, i) => (
-                  <div
-                    key={img.id}
-                    className="relative w-full aspect-[4/5] bg-white overflow-hidden"
-                  >
-                    <Image
-                      src={mediaUrl(img.image)}
-                      alt={img.alt_text || [product.name, selectedColor, img.view_display].filter(Boolean).join(" — ") || `${product.name} — image ${i + 1}`}
-                      fill
-                      className="object-contain"
-                      sizes="(max-width: 640px) 100vw, 44vw"
-                      priority={i === 0}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div className="flex aspect-[4/5] w-full items-center justify-center bg-white text-xs text-stone-400">
-                  No image
-                </div>
-              )}
-              {(product.model_3d_url || (product.spin_frames?.length ?? 0) >= 4 || product.ar_generation_status === "queued" || product.ar_generation_status === "processing" || product.ar_generation_status === "failed") && (
-                <div className="mt-2 border-t border-stone-200 pt-4">
-                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Explore this piece in 3D</p>
-                  <ProductMedia product={product} images={images} color={selectedColor} />
-                </div>
-              )}
+            {/* The shared media gallery promotes the generated 3D model automatically when available; photos remain selectable. */}
+            <div className="min-w-0">
+              <ProductMedia product={product} images={images} color={selectedColor} />
             </div>
 
             {/* Info */}
