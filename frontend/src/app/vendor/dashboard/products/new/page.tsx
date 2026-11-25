@@ -65,6 +65,10 @@ export default function NewProductPage() {
       for (let i = 0; i < images.length; i++) {
         await vendorApi.uploadProductImage(product.id, images[i], i === 0);
       }
+      if (images.length > 0) {
+        // Queue generation after every source photo has been uploaded.
+        try { await vendorApi.generateProduct3D(product.id); } catch { /* Product remains saved; generation can be retried. */ }
+      }
       router.push("/vendor/dashboard/products");
     } catch {
       setError("Couldn't save this product — check the fields (SKU must be unique) and try again.");
