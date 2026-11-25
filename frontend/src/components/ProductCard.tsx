@@ -46,6 +46,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     compare_at_price,
     image_url,
     image,
+    model_3d_url,
+    model_3d_poster_url,
     images: productImages = [],
     discount_percent = 0,
     stock = 0,
@@ -152,7 +154,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const activeImage = galleryImages[0];
   const currentImageKey = `${selectedColor || "default"}-0`;
   const hasCurrentImageError = imageErrors[currentImageKey] || false;
-  const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : activeImage?.url || PLACEHOLDER_IMAGE;
+  const modelPoster = model_3d_poster_url ? buildFullUrl(model_3d_poster_url) : null;
+  // Prefer the generated Meshy render on storefront cards whenever a 3D model exists.
+  const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : (model_3d_url && modelPoster) ? modelPoster : activeImage?.url || PLACEHOLDER_IMAGE;
 
   // Whether the currently selected color can be added straight to the bag
   // (a resolvable variant, and no size to pick), vs. needing Quick View.
