@@ -149,7 +149,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
         for (const ph of pending) {
           try { await adminApi.products.uploadImages(created.id, [ph.file], { color: ph.color, view: ph.view }); } catch { photosFailed += 1; }
         }
-        if (pending.length > 0 && photosFailed === 0) {
+        if (photosFailed === 0 && hasFrontBackPhotos(pending)) {
           try { await adminApi.products.generate3d(created.id); } catch { /* Product is saved; the editor can retry generation later. */ }
         }
         if (variantsFailed || photosFailed) {
@@ -286,6 +286,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
 
             <ImagesCard
               productId={productId}
+              onGenerationStarted={async () => product.setData(await adminApi.products.get(productId!))}
               images={images}
               variants={variants}
               pendingVariants={pendingVariants}
@@ -380,6 +381,17 @@ export function ProductFormView({ productId }: { productId?: number }) {
 type PendingPhoto = { file: File; color: string; view: ProductImage['view'] };
 type PendingVariant = { size: string; color: string; stock: number };
 
+function hasFrontBackPhotos(photos: Array<{ color: string; view: string }>): boolean {
+  const groups = new Map<string, Set<string>>();
+  photos.forEach((photo) => {
+    const key = colorKey(photo.color);
+    const views = groups.get(key) ?? new Set<string>();
+    views.add(photo.view);
+    groups.set(key, views);
+  });
+  return [...groups.values()].some((views) => views.has('front') && views.has('back'));
+}
+
 const VIEW_OPTIONS: { value: ProductImage['view']; label: string }[] = [
   { value: 'front', label: 'Front' },
   { value: 'back', label: 'Back' },
@@ -392,8 +404,8 @@ const colorKey = (c: string) => (c || '').trim().toLowerCase();
 const galleryOrder = (a: ProductImage, b: ProductImage) =>
   Number(b.is_primary) - Number(a.is_primary) || a.order - b.order || a.id - b.id;
 
-function ImagesCard({ productId, images, variants, pendingVariants, setImages, pending, setPending }: {
-  productId?: number; images: ProductImage[]; variants: ProductVariant[]; pendingVariants: PendingVariant[];
+function ImagesCard({ productId, onGenerationStarted, images, variants, pendingVariants, setImages, pending, setPending }: {
+  productId?: number; onGenerationStarted?: () => Promise<void>; images: ProductImage[]; variants: ProductVariant[]; pendingVariants: PendingVariant[];
   setImages: (i: ProductImage[]) => void; pending: PendingPhoto[]; setPending: (p: PendingPhoto[]) => void;
 }) {
   const toast = useToast();
@@ -401,7 +413,6 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
   const [busy, setBusy] = useState(false);
   const [color, setColor] = useState('');
   const [view, setView] = useState<ProductImage['view']>('front');
-  const [repositoryPath, setRepositoryPath] = useState('');
   const isNew = productId === undefined;
   const previews = useMemo(() => pending.map((p) => URL.createObjectURL(p.file)), [pending]);
   useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
@@ -445,19 +456,17 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
     setBusy(true);
     try {
       // The first photo of a colour becomes its primary automatically (server-side).
-      setImages(await adminApi.products.uploadImages(productId!, list, { color: color.trim(), view }));
-      toast.success(`${list.length} photo${list.length > 1 ? 's' : ''} added${color.trim() ? ` to ${color.trim()}` : ''}.`);
+      const updated = await adminApi.products.uploadImages(productId!, list, { color: color.trim(), view });
+      setImages(updated);
+      const sameColour = updated.filter((photo) => colorKey(photo.color) === colorKey(color));
+      if (hasFrontBackPhotos(sameColour)) {
+        await adminApi.products.generate3d(productId!);
+        await onGenerationStarted?.();
+        toast.success('Photos saved. 3D generation has started in the background.');
+      } else {
+        toast.success(`${list.length} photo${list.length > 1 ? 's' : ''} added${color.trim() ? ` to ${color.trim()}` : ''}. Add the matching front and back views to start 3D generation.`);
+      }
     } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); if (input.current) input.current.value = ''; }
-  };
-
-  const importRepositoryImage = async () => {
-    if (!productId || !repositoryPath.trim()) return;
-    setBusy(true);
-    try {
-      setImages(await adminApi.products.importImage(productId, repositoryPath.trim(), { color: color.trim(), view }));
-      setRepositoryPath('');
-      toast.success('Repository image attached to this product.');
-    } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
   };
 
   const act = async (fn: () => Promise<ProductImage[]>, ok?: string) => {
@@ -509,30 +518,6 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
             Add photos
           </Button>
         </Box>
-
-        {!isNew && (
-          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 3, flexWrap: 'wrap' }}>
-            <TextField
-              size="small"
-              fullWidth
-              label="Existing image in ml_dataset"
-              value={repositoryPath}
-              onChange={(e) => setRepositoryPath(e.target.value)}
-              placeholder="products/your-image-name.jpeg"
-              helperText="Attach a file already uploaded to the GitHub media repository without uploading it again."
-              sx={{ flex: '1 1 320px' }}
-            />
-            <Button
-              variant="outlined"
-              color="inherit"
-              disabled={busy || !repositoryPath.trim()}
-              onClick={importRepositoryImage}
-              sx={{ height: 40, whiteSpace: 'nowrap' }}
-            >
-              Attach repository image
-            </Button>
-          </Box>
-        )}
 
         {groups.map((g) => (
           <Box key={g.color || '__general'} sx={{ mb: 3 }}>
@@ -604,7 +589,7 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
           {isNew
             ? 'Photos are uploaded when you create the product. '
             : 'Changes to photos are saved immediately. '}
-          Tip: add the Front view first — it becomes the colour&apos;s primary. JPG/PNG/WebP, up to 5 MB each.
+          Add Front and Back photos for the same colour to automatically start Meshy 3D generation. JPG/PNG/WebP, up to 5 MB each.
         </Typography>
       </Box>
     </Card>
