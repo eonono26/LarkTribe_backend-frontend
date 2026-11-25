@@ -16,12 +16,28 @@ export default function VendorProductsPage() {
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
-  function load() {
-    vendorApi.myProducts().then((p) => setProducts(Array.isArray(p) ? p : p.results)).finally(() => setLoading(false));
+  async function load() {
+    try {
+      const response = await vendorApi.myProducts();
+      const list = Array.isArray(response) ? response : response.results;
+      setProducts(list);
+      // Poll only active Meshy jobs. This also downloads completed assets into
+      // LarkTribe storage before Meshy's temporary result URLs expire.
+      const pending = list.filter((p) => p.ar_generation_status === "queued" || p.ar_generation_status === "processing");
+      if (pending.length) {
+        await Promise.all(pending.map((p) => vendorApi.product3DStatus(p.id).catch(() => null)));
+        const refreshed = await vendorApi.myProducts();
+        setProducts(Array.isArray(refreshed) ? refreshed : refreshed.results);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     load();
+    const timer = window.setInterval(() => { void load(); }, 15000);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function handleDelete(id: number) {
@@ -56,6 +72,7 @@ export default function VendorProductsPage() {
                 <th className="py-2 pr-4">Price</th>
                 <th className="py-2 pr-4">Stock</th>
                 <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">3D / AR</th>
                 <th className="py-2 pr-4"></th>
               </tr>
             </thead>
@@ -70,6 +87,9 @@ export default function VendorProductsPage() {
                     <span className={`text-xs font-semibold px-2 py-1 rounded ${STATUS_STYLE[p.status] ?? ""}`}>
                       {p.status}
                     </span>
+                  </td>
+                  <td className="py-2 pr-4 text-xs text-neutral-500">
+                    {p.ar_generation_status === "succeeded" ? "Ready" : p.ar_generation_status === "queued" || p.ar_generation_status === "processing" ? "Generating…" : p.ar_generation_status === "failed" ? "Needs retry" : "Waiting for photos"}
                   </td>
                   <td className="py-2 pr-4 whitespace-nowrap">
                     <Link
