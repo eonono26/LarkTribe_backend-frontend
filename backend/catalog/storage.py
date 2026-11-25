@@ -46,6 +46,14 @@ class Product3DStorage(Storage):
                 )
         return self._backend
 
+    def _open(self, name, mode="rb"):
+        """Open a stored object through the configured backend."""
+        return self._get_backend().open(name, mode)
+
+    def _save(self, name, content):
+        """Save an uploaded object through the configured backend."""
+        return self._get_backend().save(name, content)
+
     def exists(self, name):
         """Delegate existence checks to the configured underlying storage."""
         return self._get_backend().exists(name)
