@@ -1015,6 +1015,26 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class ProductWriteSerializer(serializers.ModelSerializer):
+    model_3d_url = serializers.SerializerMethodField()
+    model_3d_ios_url = serializers.SerializerMethodField()
+    model_3d_poster_url = serializers.SerializerMethodField()
+
+    def _media_abs(self, field):
+        if not field:
+            return None
+        url = field.url
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
+
+    def get_model_3d_url(self, obj):
+        return self._media_abs(obj.model_3d)
+
+    def get_model_3d_ios_url(self, obj):
+        return self._media_abs(obj.model_3d_ios)
+
+    def get_model_3d_poster_url(self, obj):
+        return self._media_abs(obj.model_3d_poster)
+
     """
     Vendor product creation/update, including optional 3D assets for AR.
 
@@ -1050,6 +1070,9 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "status",
             "ar_generation_status",
             "ar_generation_error",
+            "model_3d_url",
+            "model_3d_ios_url",
+            "model_3d_poster_url",
 
             "images",
 
