@@ -1024,6 +1024,8 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "sku",
 
             "status",
+            "ar_generation_status",
+            "ar_generation_error",
 
             "images",
 
