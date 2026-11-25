@@ -106,6 +106,12 @@ export const vendorApi = {
   updateProduct: (id: number, payload: Partial<VendorProduct>) =>
     authedRequest<VendorProduct>(`/catalog/my-products/${id}/`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteProduct: (id: number) => authedRequest<void>(`/catalog/my-products/${id}/`, { method: "DELETE" }),
+  uploadProduct3d: (productId: number, model: File, poster?: File | null) => {
+    const fd = new FormData();
+    fd.append("model_3d", model);
+    if (poster) fd.append("model_3d_poster", poster);
+    return authedRequest<VendorProduct>(`/catalog/my-products/${productId}/`, { method: "PATCH", body: fd });
+  },
   uploadProductImage: (productId: number, file: File, isPrimary = false) => {
     const fd = new FormData();
     fd.append("image", file);
