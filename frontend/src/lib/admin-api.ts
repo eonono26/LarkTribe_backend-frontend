@@ -86,6 +86,10 @@ const asList = <R,>(r: T.Page<R> | R[]): R[] => (Array.isArray(r) ? r : r.result
 export const adminApi = {
   overview: (days = 30) => call<T.Overview>(`${AP}/overview/?days=${days}`),
   lookups: () => call<T.Lookups>(`${AP}/lookups/`),
+  migrateMediaBatch: (offset: number, limit = 5) =>
+    call<{ processed: number; copied: number; already_in_r2: number; failed: number; errors: { file: string; error: string }[]; offset: number; total: number; has_more: boolean; complete: boolean }>(
+      `${AP}/media-migration/`, json('POST', { offset, limit }),
+    ),
 
   products: {
     ...crud<T.AdminProduct>(`${AP}/products`),
