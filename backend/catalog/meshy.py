@@ -12,10 +12,11 @@ import logging
 import mimetypes
 import os
 import threading
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-from django.core.files.base import ContentFile
+from django.core.files import File
 from django.db import close_old_connections, transaction
 from django.utils import timezone
 
@@ -272,11 +273,22 @@ def _safe_file_url(field):
 
 
 def _download_to_field(field, url, filename):
+    """Stream a generated asset to storage without loading the full model into RAM."""
     if not url:
         return False
-    response = requests.get(url, timeout=TIMEOUT)
-    response.raise_for_status()
-    field.save(filename, ContentFile(response.content), save=False)
+
+    # Meshy GLB/USDZ files can be large. Buffer only a small amount in memory;
+    # spill the remainder to temporary disk before handing it to R2 storage.
+    with requests.get(url, stream=True, timeout=TIMEOUT) as response:
+        response.raise_for_status()
+        with tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b") as temp_file:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    temp_file.write(chunk)
+            if temp_file.tell() == 0:
+                raise RuntimeError("Meshy returned an empty model asset.")
+            temp_file.seek(0)
+            field.save(filename, File(temp_file, name=filename), save=False)
     return True
 
 
