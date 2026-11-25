@@ -39,9 +39,9 @@ services:
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
       - key: AWS_S3_REGION_NAME
-        sync: false
+        value: us-east-1
       - key: AWS_S3_ENDPOINT_URL
-        sync: false
+        value: ""
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
@@ -86,17 +86,35 @@ services:
           name: duka-postgres
           property: connectionString
       - key: MESHY_API_KEY
-        sync: false
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: MESHY_API_KEY
       - key: AWS_STORAGE_BUCKET_NAME
-        sync: false
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: AWS_STORAGE_BUCKET_NAME
       - key: AWS_ACCESS_KEY_ID
-        sync: false
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: AWS_ACCESS_KEY_ID
       - key: AWS_SECRET_ACCESS_KEY
-        sync: false
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: AWS_SECRET_ACCESS_KEY
       - key: AWS_S3_REGION_NAME
-        sync: false
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: AWS_S3_REGION_NAME
       - key: AWS_S3_ENDPOINT_URL
-        sync: false
+        fromService:
+          type: web
+          name: duka-backend
+          envVarKey: AWS_S3_ENDPOINT_URL
       - key: PUBLIC_BACKEND_URL
         fromService:
           type: web
