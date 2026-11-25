@@ -192,7 +192,7 @@ export function MegaPanel({
                       key={l.href}
                       href={l.href}
                       onClick={onNavigate}
-                      className="px-3.5 py-1.5 rounded-full border border-stone-200 text-[13px] text-stone-700 hover:border-black hover:bg-black hover:text-white transition"
+                      className="px-3.5 py-1.5 rounded-none border border-stone-200 text-[13px] text-stone-700 hover:border-black hover:bg-black hover:text-white transition"
                     >
                       {l.label}
                     </Link>
@@ -256,7 +256,7 @@ export function MobileMenuBody({ data, href, label, onNavigate }: { data: MenuDa
           <p className="text-[10px] tracking-[0.14em] uppercase text-stone-400 mb-2">{g.title}</p>
           <div className="flex flex-wrap gap-2">
             {g.links.map((l) => (
-              <Link key={l.href} href={l.href} onClick={onNavigate} className="px-3 py-1.5 rounded-full border border-stone-200 bg-white text-[12px]">
+              <Link key={l.href} href={l.href} onClick={onNavigate} className="px-3 py-1.5 rounded-none border border-stone-200 bg-white text-[12px]">
                 {l.label}
               </Link>
             ))}

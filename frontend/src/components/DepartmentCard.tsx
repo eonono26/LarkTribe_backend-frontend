@@ -75,7 +75,7 @@ export default function DepartmentCard({ department, color, label }: DepartmentC
 
   if (!department) {
     return (
-      <div className="block rounded-2xl overflow-hidden bg-[var(--color-mist)] shadow-sm">
+      <div className="block rounded-none overflow-hidden bg-[var(--color-mist)] shadow-sm">
         <div className="relative aspect-[4/5] w-full bg-gray-200 animate-pulse" />
       </div>
     );
@@ -84,7 +84,7 @@ export default function DepartmentCard({ department, color, label }: DepartmentC
   return (
     <Link
       href={`/category/${department.slug}`}
-      className="group block rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+      className="group block rounded-none overflow-hidden bg-white shadow-sm hover: transition-all duration-300 hover:-translate-y-1"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={handleMouseLeave}
     >
@@ -119,7 +119,7 @@ export default function DepartmentCard({ department, color, label }: DepartmentC
 
             {/* Department label */}
             <div className="absolute bottom-0 left-0 right-0 p-2.5 sm:p-4">
-              <span className="block font-display text-sm sm:text-lg font-bold text-white drop-shadow-lg tracking-tight leading-tight break-words sm:truncate">
+              <span className="text-[13px] tracking-[0.08em] block font-display text-sm sm:text-lg text-white drop- leading-tight break-words sm:truncate">
                 {label || department.name}
               </span>
               {typeof department.product_count === 'number' && department.product_count > 0 && (
@@ -140,7 +140,7 @@ export default function DepartmentCard({ department, color, label }: DepartmentC
 
             {isVideo && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-white/20 backdrop-blur-md rounded-full p-4 sm:p-6 border border-white/40 shadow-2xl">
+                <div className="bg-white/20 backdrop-blur-md rounded-full p-4 sm:p-6 border border-white/40 ">
                   <svg className="w-8 h-8 sm:w-14 sm:h-14 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
@@ -151,7 +151,7 @@ export default function DepartmentCard({ department, color, label }: DepartmentC
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: (color || 'var(--color-accent)') + '15' }}>
             <div
-              className="h-14 w-14 sm:h-20 sm:w-20 rounded-2xl flex items-center justify-center shadow-xl"
+              className="h-14 w-14 sm:h-20 sm:w-20 rounded-none flex items-center justify-center "
               style={{ background: `linear-gradient(135deg, ${color || 'var(--color-accent)'}, ${color || 'var(--color-accent)'}cc)` }}
             >
               <span className="text-2xl sm:text-4xl text-white font-bold">

@@ -47,11 +47,11 @@ export default function VendorOrdersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h2 className="font-display text-lg font-bold">Order items</h2>
+        <h2 className="text-[13px] tracking-[0.08em] font-display text-lg ">Order items</h2>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="bg-[var(--color-mist)] rounded-full px-4 py-2 text-sm outline-none capitalize"
+          className="bg-[var(--color-mist)] rounded-none px-4 py-2 text-sm outline-none capitalize"
         >
           <option value="">All statuses</option>
           {STATUS_OPTIONS.map((s) => (
@@ -98,9 +98,9 @@ export default function VendorOrdersPage() {
                       value={i.fulfillment_status}
                       disabled={busyId === i.id}
                       onChange={(e) => updateStatus(i.id, e.target.value)}
-                      className={`text-xs font-semibold px-2 py-1.5 rounded-full capitalize outline-none border-0 disabled:opacity-40 ${
-                        STATUS_STYLE[i.fulfillment_status] ?? ""
-                      }`}
+                      className={`text-xs font-semibold px-2 py-1.5 rounded-none capitalize outline-none border-0 disabled:opacity-40 ${
+ STATUS_STYLE[i.fulfillment_status] ?? ""
+ }`}
                     >
                       {STATUS_OPTIONS.map((s) => (
                         <option key={s} value={s}>

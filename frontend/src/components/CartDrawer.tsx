@@ -16,9 +16,9 @@ export default function CartDrawer() {
   return (
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
-      <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-white flex flex-col shadow-2xl">
+      <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-white flex flex-col ">
         <div className="flex items-center justify-between p-5 border-b border-stone-200">
-          <h2 className="font-editorial text-xl">Your Bag</h2>
+          <h2 className="text-[13px] tracking-[0.08em] font-editorial ">Your Bag</h2>
           <button onClick={closeDrawer} aria-label="Close"><X size={20} strokeWidth={1.5} /></button>
         </div>
 

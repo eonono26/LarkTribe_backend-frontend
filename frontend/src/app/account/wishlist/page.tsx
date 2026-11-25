@@ -54,7 +54,7 @@ export default function WishlistPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
             <span className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold block mb-1">Saved Curations</span>
-            <h1 className="font-editorial text-3xl sm:text-4xl text-espresso">
+            <h1 className="text-[13px] tracking-[0.08em] font-editorial text-espresso">
               My Wishlist {items.length > 0 && <span className="text-stone-400 text-xl">({items.length})</span>}
             </h1>
           </div>
@@ -75,12 +75,12 @@ export default function WishlistPage() {
         {loading ? (
           <p className="text-stone-400 mt-8">Loading…</p>
         ) : items.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-stone-300 max-w-lg mt-8">
+          <div className="text-center py-16 bg-white rounded-none border border-dashed border-stone-300 max-w-lg mt-8">
             <p className="text-stone-600 font-medium">Nothing saved yet</p>
             <p className="text-sm text-stone-400 mt-1 mb-5">Tap the heart on any product to add it here.</p>
             <Link
               href="/shop"
-              className="inline-flex px-6 py-2.5 bg-espresso text-stone-50 hover:bg-stone-900 text-xs uppercase tracking-widest font-semibold rounded-lg transition"
+              className="inline-flex px-6 py-2.5 bg-espresso text-stone-50 hover:bg-stone-900 text-xs uppercase tracking-widest font-semibold rounded-none transition"
             >
               Browse The Shop
             </Link>
@@ -88,22 +88,22 @@ export default function WishlistPage() {
         ) : (
           <>
             {/* Summary bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-900 text-stone-100 rounded-2xl px-6 py-5 mt-8 mb-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-900 text-stone-100 rounded-none px-6 py-5 mt-8 mb-10">
               <div className="flex items-center gap-8">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-stone-400">Pieces Saved</p>
-                  <p className="font-editorial text-xl mt-0.5">{items.length}</p>
+                  <p className="text-[13px] tracking-[0.08em] font-editorial mt-0.5">{items.length}</p>
                 </div>
                 <div className="h-8 w-px bg-white/10" />
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-stone-400">Combined Value</p>
-                  <p className="font-editorial text-xl mt-0.5">{formatPrice(totalValue)}</p>
+                  <p className="text-[13px] tracking-[0.08em] font-editorial mt-0.5">{formatPrice(totalValue)}</p>
                 </div>
               </div>
               <button
                 onClick={moveAllToBag}
                 disabled={movingAll}
-                className="px-6 py-3 bg-white text-stone-900 hover:bg-stone-200 text-xs uppercase tracking-widest font-semibold rounded-lg transition disabled:opacity-60 whitespace-nowrap"
+                className="px-6 py-3 bg-white text-stone-900 hover:bg-stone-200 text-xs uppercase tracking-widest font-semibold rounded-none transition disabled:opacity-60 whitespace-nowrap"
               >
                 {movingAll ? "Moving…" : "Move All To Bag"}
               </button>

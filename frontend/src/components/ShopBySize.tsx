@@ -9,7 +9,7 @@ export default function ShopBySize() {
   return (
     <div className="w-full">
       <div className="w-full mb-3 sm:mb-4 flex items-baseline justify-between">
-        <h2 className="font-display text-lg sm:text-2xl md:text-3xl font-bold text-[var(--color-ink)]">
+        <h2 className="text-[13px] tracking-[0.08em] font-display text-lg text-[var(--color-ink)]">
           Shop by Size
         </h2>
         <span className="text-[11px] sm:text-sm text-neutral-500 font-medium hidden sm:inline">
@@ -22,7 +22,7 @@ export default function ShopBySize() {
           <Link
             key={s}
             href={`/shop?size=${encodeURIComponent(s)}`}
-            className="flex items-center justify-center min-w-[52px] sm:min-w-[60px] px-4 py-2.5 sm:py-3 rounded-full border border-[var(--color-line)] bg-white font-bold text-sm sm:text-base text-[var(--color-ink)] hover:border-[var(--color-ink)] hover:bg-[var(--color-ink)] hover:text-white transition-colors shadow-sm"
+            className="flex items-center justify-center min-w-[52px] sm:min-w-[60px] px-4 py-2.5 sm:py-3 rounded-none border border-[var(--color-line)] bg-white font-bold text-sm sm:text-base text-[var(--color-ink)] hover:border-[var(--color-ink)] hover:bg-[var(--color-ink)] hover:text-white transition-colors shadow-sm"
           >
             {s}
           </Link>

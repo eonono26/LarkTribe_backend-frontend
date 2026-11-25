@@ -63,7 +63,7 @@ export default function Viewer360({ frames, color, alt }: { frames: Frame[]; col
 
   return (
     <div className="w-full select-none">
-      <div className="bg-stone-50 p-3 sm:p-4 rounded-xl">
+      <div className="bg-stone-50 p-3 sm:p-4 rounded-none">
         <div
           ref={box}
           tabIndex={0}
@@ -97,26 +97,26 @@ export default function Viewer360({ frames, color, alt }: { frames: Frame[]; col
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={set[idx].url} alt="" draggable={false} className="absolute inset-0 w-full h-full object-contain transition-transform duration-150"
             style={{ transform: `scale(${zoom})`, transformOrigin: origin }} />
-          <span className="absolute top-3 left-3 bg-white/95 text-[11px] px-2.5 py-1.5 rounded-md shadow-sm">Zoom: {Math.round(zoom * 100)}%</span>
-          <span className="absolute top-3 right-3 bg-white/95 text-[11px] px-2.5 py-1.5 rounded-md shadow-sm text-center leading-tight">{viewLabel}<br /><span className="text-stone-500">{angle}°</span></span>
+          <span className="absolute top-3 left-3 bg-white/95 text-[11px] px-2.5 py-1.5 rounded-none shadow-sm">Zoom: {Math.round(zoom * 100)}%</span>
+          <span className="absolute top-3 right-3 bg-white/95 text-[11px] px-2.5 py-1.5 rounded-none shadow-sm text-center leading-tight">{viewLabel}<br /><span className="text-stone-500">{angle}°</span></span>
           {!ready && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-stone-200"><div className="h-full bg-black transition-all" style={{ width: `${(loaded / n) * 100}%` }} /></div>
           )}
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-stone-800/85 text-white text-[11px] px-3 py-2 rounded-md text-center max-w-[80%] leading-snug pointer-events-none">
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-stone-800/85 text-white text-[11px] px-3 py-2 rounded-none text-center max-w-[80%] leading-snug pointer-events-none">
             Drag to rotate • Double-click to reset zoom • Pinch to zoom on mobile
           </span>
         </div>
       </div>
 
       {/* Zoom panel */}
-      <div className="mt-4 bg-white border border-stone-200 rounded-lg p-4">
+      <div className="mt-4 bg-white border border-stone-200 rounded-none p-4">
         <p className="flex items-center gap-2 text-sm mb-3"><ZoomIn size={14} /> Zoom</p>
         <input type="range" min={0.5} max={2} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Zoom" className="w-full accent-black" />
         <div className="flex justify-between text-[11px] text-stone-500 mt-1"><span>50%</span><span>100%</span><span>200%</span></div>
         <div className="flex items-center gap-2 mt-3">
-          <button onClick={() => setZoom((z) => clampZoom(z - 0.25))} aria-label="Zoom out" className="p-2 border border-stone-200 rounded-md hover:border-stone-400"><ZoomOut size={14} /></button>
-          <button onClick={() => { setZoom(1); setOrigin("50% 50%"); }} className="flex-1 py-2 border border-stone-200 rounded-md text-xs hover:border-stone-400">Reset</button>
-          <button onClick={() => setZoom((z) => clampZoom(z + 0.25))} aria-label="Zoom in" className="p-2 border border-stone-200 rounded-md hover:border-stone-400"><ZoomIn size={14} /></button>
+          <button onClick={() => setZoom((z) => clampZoom(z - 0.25))} aria-label="Zoom out" className="p-2 border border-stone-200 rounded-none hover:border-stone-400"><ZoomOut size={14} /></button>
+          <button onClick={() => { setZoom(1); setOrigin("50% 50%"); }} className="flex-1 py-2 border border-stone-200 rounded-none text-xs hover:border-stone-400">Reset</button>
+          <button onClick={() => setZoom((z) => clampZoom(z + 0.25))} aria-label="Zoom in" className="p-2 border border-stone-200 rounded-none hover:border-stone-400"><ZoomIn size={14} /></button>
         </div>
       </div>
 
@@ -127,10 +127,10 @@ export default function Viewer360({ frames, color, alt }: { frames: Frame[]; col
         <button onClick={() => { setAuto(false); step(Math.max(1, Math.round(n / 8))); }} className={`${pill} inline-flex items-center gap-1`}>+45° <ChevronRight size={13} /></button>
       </div>
       <div className="mt-3 flex justify-center">
-        <div className="inline-flex gap-1 bg-stone-100 rounded-lg p-1 flex-wrap justify-center">
+        <div className="inline-flex gap-1 bg-stone-100 rounded-none p-1 flex-wrap justify-center">
           {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
             <button key={a} onClick={() => jump(a)}
-              className={`px-2.5 py-1.5 text-[11px] rounded-md transition ${Math.abs(angle - a) <= 360 / n ? "bg-white shadow-sm" : "text-stone-600 hover:bg-white/60"}`}>
+              className={`px-2.5 py-1.5 text-[11px] rounded-none transition ${Math.abs(angle - a) <= 360 / n ? "bg-white shadow-sm": "text-stone-600 hover:bg-white/60"}`}>
               {a}°
             </button>
           ))}

@@ -83,7 +83,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ id
 
         <div className="relative h-full container-shell flex items-end pb-6 sm:pb-8">
           <div className="flex items-center gap-4 sm:gap-5">
-            <div className="relative w-20 h-20 sm:w-28 sm:h-28 shrink-0 rounded-2xl overflow-hidden bg-white shadow-xl ring-4 ring-white/20">
+            <div className="relative w-20 h-20 sm:w-28 sm:h-28 shrink-0 rounded-none overflow-hidden bg-white ring-4 ring-white/20">
               {primaryImage ? (
                 <Image
                   src={primaryImage.file_url}
@@ -110,7 +110,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ id
             </div>
 
             <div>
-              <h1 className="font-display text-2xl sm:text-4xl font-black text-white leading-tight">{brand.name}</h1>
+              <h1 className="text-[13px] tracking-[0.08em] font-display text-white leading-tight">{brand.name}</h1>
               <p className="text-xs sm:text-sm text-white/80 mt-1">
                 {data.count} product{data.count === 1 ? "" : "s"}
                 {brand.website && (
@@ -140,10 +140,10 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ id
         {/* Brand Media Gallery */}
         {galleryImages.length > 0 && (
           <div className="mb-8">
-            <h2 className="font-display text-lg font-bold mb-4">Brand Gallery</h2>
+            <h2 className="text-[13px] tracking-[0.08em] font-display text-lg mb-4">Brand Gallery</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {galleryImages.slice(0, 8).map((media, index) => (
-                <div key={media.id || index} className="relative aspect-square rounded-lg overflow-hidden bg-[var(--color-mist)] group">
+                <div key={media.id || index} className="relative aspect-square rounded-none overflow-hidden bg-[var(--color-mist)] group">
                   <Image
                     src={media.file_url}
                     alt={media.alt_text || `${brand.name} image ${index + 1}`}

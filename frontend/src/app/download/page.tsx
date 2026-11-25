@@ -10,7 +10,7 @@ export const metadata = { title: "Get the Larktribe app" };
 export default function DownloadPage() {
   return (
     <main className="container-shell py-16 max-w-xl text-center font-sans">
-      <h1 className="font-display text-2xl font-bold">A better experience in the app</h1>
+      <h1 className="text-[13px] tracking-[0.08em] font-display ">A better experience in the app</h1>
       <p className="mt-3 text-sm text-stone-600">
         Faster checkout, M-Pesa payments, order tracking and app-only offers — right on your phone.
       </p>

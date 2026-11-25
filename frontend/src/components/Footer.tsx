@@ -5,27 +5,37 @@ const COLS = [
   {
     title: "Shop",
     links: [
-      { href: "/shop", label: "New In" },
-      { href: "/shop?stage=baby", label: "Baby" },
+      { href: "/shop", label: "New in" },
+      { href: "/shop?stage=baby", label: "Babies" },
       { href: "/shop?stage=kids", label: "Kids" },
       { href: "/shop?department=women", label: "Women" },
       { href: "/shop?department=men", label: "Men" },
+      { href: "/showroom", label: "3D store" },
+      { href: "/looks", label: "Looks" },
     ],
   },
   {
     title: "Company",
     links: [
-      { href: "/about", label: "About" },
+      { href: "/about", label: "About us" },
       { href: "/contact", label: "Contact" },
-      { href: "/vendor/apply", label: "Become a Vendor" },
+      { href: "/vendor/apply", label: "Become a vendor" },
+      { href: "/download", label: "Get the app" },
     ],
   },
   {
-    title: "Support",
+    title: "Help",
     links: [
+      { href: "/help", label: "Help centre" },
       { href: "/delivery", label: "Delivery" },
       { href: "/returns", label: "Returns" },
       { href: "/faq", label: "FAQ" },
+      { href: "/account/orders", label: "Track order" },
+    ],
+  },
+  {
+    title: "Policies",
+    links: [
       { href: "/terms", label: "Terms" },
       { href: "/privacy", label: "Privacy" },
     ],
@@ -34,31 +44,16 @@ const COLS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-black text-white pt-16 pb-10">
-      <div className="container-shell">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="inline-block">
-              <img
-                src="/Asset_2_1.svg"
-                alt="Lark Tribe"
-                className="h-14 w-auto max-w-[220px] object-contain brightness-0 invert"
-              />
-            </Link>
-            <p className="text-sm text-white/60 mt-4 leading-relaxed">
-              Family fashion, designed in Kenya.
-            </p>
-            <SocialLinks className="mt-5" />
-          </div>
-          {COLS.map(col => (
+    <footer className="mt-24 border-t border-stone-200 bg-white text-black">
+      <div className="px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-10">
+          {COLS.map((col) => (
             <div key={col.title}>
-              <h4 className="text-xs uppercase tracking-widest font-semibold mb-5 text-white/90">
-                {col.title}
-              </h4>
-              <ul className="space-y-2.5 text-[15px] text-white/60">
-                {col.links.map(l => (
+              <h4 className="text-[11px] tracking-[0.08em] mb-4">{col.title}</h4>
+              <ul className="space-y-2.5">
+                {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="hover:text-white transition">
+                    <Link href={l.href} className="text-[11px] uppercase tracking-[0.04em] text-stone-500 hover:text-black transition-colors">
                       {l.label}
                     </Link>
                   </li>
@@ -66,9 +61,13 @@ export default function Footer() {
               </ul>
             </div>
           ))}
+          <div className="col-span-2 md:col-span-1">
+            <h4 className="text-[11px] tracking-[0.08em] mb-4">Follow us</h4>
+            <SocialLinks />
+          </div>
         </div>
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-white/50">
-          <span>© 2026 LarkTribe. All rights reserved.</span>
+        <div className="mt-14 pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] uppercase tracking-[0.04em] text-stone-500">
+          <span>© 2026 LarkTribe · Nairobi, Kenya · KES</span>
           <span>concierge@larktribe.co.ke</span>
         </div>
       </div>

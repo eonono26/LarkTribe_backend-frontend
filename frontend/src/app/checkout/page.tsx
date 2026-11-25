@@ -87,7 +87,7 @@ export default function CheckoutPage() {
     return (
       <main className="bg-white min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="font-editorial text-2xl mb-2">Your bag is empty</h1>
+          <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-2">Your bag is empty</h1>
           <Link href="/shop" className="text-[11px] uppercase tracking-widest underline">Continue Shopping</Link>
         </div>
       </main>
@@ -196,7 +196,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-7">
             {step === "auth" ? (
               <>
-                <h1 className="font-editorial text-3xl mb-8">Checkout</h1>
+                <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-8">Checkout</h1>
                 <div className="flex gap-6 mb-6 text-sm">
                   <button onClick={() => setMode("guest")} className={`pb-1 border-b-2 ${mode === "guest" ? "border-black font-medium" : "border-transparent text-stone-500"}`}>Guest</button>
                   <button onClick={() => setMode("member")} className={`pb-1 border-b-2 ${mode === "member" ? "border-black font-medium" : "border-transparent text-stone-500"}`}>Member</button>
@@ -237,7 +237,7 @@ export default function CheckoutPage() {
               </>
             ) : (
               <>
-                <h1 className="font-editorial text-3xl mb-8">Delivery & Payment</h1>
+                <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-8">Delivery & Payment</h1>
 
                 {mode === "member" && savedAddresses.length > 0 && (
                   <div className="mb-6 space-y-2">
@@ -257,7 +257,7 @@ export default function CheckoutPage() {
                   <input placeholder="Delivery address" value={form.shipping_address} onChange={e => setForm({ ...form, shipping_address: e.target.value })} className={inputClass} />
                   <input placeholder="Town / City" value={form.shipping_city} onChange={e => setForm({ ...form, shipping_city: e.target.value })} className={inputClass} />
                   <div className="flex flex-wrap items-center gap-3">
-                    <button type="button" onClick={captureDeliveryLocation} className="border border-stone-300 rounded-full px-4 py-2 text-xs font-medium hover:border-black transition">
+                    <button type="button" onClick={captureDeliveryLocation} className="border border-stone-300 rounded-none px-4 py-2 text-xs font-medium hover:border-black transition">
                       {deliveryCoords ? "Delivery pin saved" : "Use my location for delivery"}
                     </button>
                     <span className="text-xs text-stone-500">{quote ? `${quote.eta} · nearest pickup: ${quote.pickup_point.name}` : (locationMessage || "Optional — gives an exact delivery fee, time and live map accuracy.")}</span>
@@ -315,7 +315,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-5">
             <div className="bg-stone-50 border border-stone-200 p-6 lg:sticky lg:top-24">
               <div className="flex items-center justify-between mb-5 pb-4 border-b border-stone-200">
-                <h2 className="font-editorial text-lg">Order Summary</h2>
+                <h2 className="text-[13px] tracking-[0.08em] font-editorial text-lg">Order Summary</h2>
                 <span className="text-xs text-stone-500">{itemCount} Item{itemCount !== 1 ? "s" : ""}</span>
               </div>
               <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
@@ -341,8 +341,8 @@ export default function CheckoutPage() {
                 {memberDiscount > 0 && <div className="flex justify-between text-stone-600"><span>Member Discount</span><span>-{formatPrice(memberDiscount)}</span></div>}
                 <div className="flex justify-between text-stone-500"><span>Delivery</span><span>{shippingFee === 0 ? "Complimentary" : formatPrice(shippingFee)}</span></div>
                 <div className="flex justify-between items-baseline pt-3 border-t border-stone-200 font-medium text-lg">
-                  <span className="font-editorial">Total</span>
-                  <span className="font-editorial">{formatPrice(total)}</span>
+                  <span className="text-[13px] tracking-[0.08em] font-editorial">Total</span>
+                  <span className="text-[13px] tracking-[0.08em] font-editorial">{formatPrice(total)}</span>
                 </div>
               </div>
             </div>

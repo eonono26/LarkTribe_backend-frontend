@@ -18,7 +18,7 @@ export default function MyLooksPage() {
 
   return (
     <main className="container-shell py-10">
-      <h1 className="font-editorial text-3xl mb-1">My Looks</h1>
+      <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-1">My Looks</h1>
       <p className="text-sm text-stone-500 mb-8">Virtual try-ons you&apos;ve saved. Delete any look and it&apos;s removed from our servers.</p>
       {looks === null ? <p className="text-sm text-stone-400">Loading…</p> : looks.length === 0 ? (
         <div className="text-center py-20 border border-dashed border-stone-200">

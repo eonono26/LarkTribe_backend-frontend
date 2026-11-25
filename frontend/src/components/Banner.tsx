@@ -41,24 +41,24 @@ export function HeroBanner({
     <BannerLink href={href}>
       <div
         className={`
-          group
-          relative
-          w-full
-          h-[150px]
-          sm:h-[180px]
-          md:h-[220px]
-          lg:h-[260px]
-          xl:h-[280px]
-          overflow-hidden
-          bg-[var(--color-mist)]
-          shadow-md
-          ring-1
-          ring-black/5
-          flex-shrink-0
-          transition-opacity
-          duration-700
-          ${isActive ? "opacity-100" : "opacity-0"}
-        `}
+ group
+ relative
+ w-full
+ h-[150px]
+ sm:h-[180px]
+ md:h-[220px]
+ lg:h-[260px]
+ xl:h-[280px]
+ overflow-hidden
+ bg-[var(--color-mist)]
+ 
+ ring-1
+ ring-black/5
+ flex-shrink-0
+ transition-opacity
+ duration-700
+ ${isActive ? "opacity-100": "opacity-0"}
+ `}
       >
         <Image
           src={mediaUrl(campaign.image)}
@@ -250,37 +250,37 @@ export function BannerGroup({
           aria-label="Previous slide"
           onClick={goToPrevious}
           className="
-            absolute
-            left-2
-            top-1/2
-            -translate-y-1/2
-            z-20
+ absolute
+ left-2
+ top-1/2
+ -translate-y-1/2
+ z-20
 
-            flex
-            h-9
-            w-9
-            md:h-10
-            md:w-10
+ flex
+ h-9
+ w-9
+ md:h-10
+ md:w-10
 
-            items-center
-            justify-center
+ items-center
+ justify-center
 
-            rounded-full
-            bg-white/90
+ rounded-full
+ bg-white/90
 
-            shadow-md
-            backdrop-blur-sm
+ 
+ backdrop-blur-sm
 
-            transition-all
-            duration-200
+ transition-all
+ duration-200
 
-            hover:bg-white
-            hover:scale-105
+ hover:bg-white
+ hover:scale-105
 
-            opacity-0
-            group-hover:opacity-100
-            sm:opacity-100
-          "
+ opacity-0
+ group-hover:opacity-100
+ sm:opacity-100
+ "
         >
           <ChevronLeft
             className="
@@ -301,37 +301,37 @@ export function BannerGroup({
           aria-label="Next slide"
           onClick={goToNext}
           className="
-            absolute
-            right-2
-            top-1/2
-            -translate-y-1/2
-            z-20
+ absolute
+ right-2
+ top-1/2
+ -translate-y-1/2
+ z-20
 
-            flex
-            h-9
-            w-9
-            md:h-10
-            md:w-10
+ flex
+ h-9
+ w-9
+ md:h-10
+ md:w-10
 
-            items-center
-            justify-center
+ items-center
+ justify-center
 
-            rounded-full
-            bg-white/90
+ rounded-full
+ bg-white/90
 
-            shadow-md
-            backdrop-blur-sm
+ 
+ backdrop-blur-sm
 
-            transition-all
-            duration-200
+ transition-all
+ duration-200
 
-            hover:bg-white
-            hover:scale-105
+ hover:bg-white
+ hover:scale-105
 
-            opacity-0
-            group-hover:opacity-100
-            sm:opacity-100
-          "
+ opacity-0
+ group-hover:opacity-100
+ sm:opacity-100
+ "
         >
           <ChevronRight
             className="

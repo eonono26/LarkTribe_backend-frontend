@@ -50,7 +50,7 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
     <div className="mt-6 flex flex-col items-center gap-3 text-center">
       <div>
         <p className="text-[10px] uppercase tracking-[0.22em] text-stone-400">{current.category_name}</p>
-        <h3 className="mt-1 font-editorial text-2xl text-white normal-case">{sentenceCase(current.name)}</h3>
+        <h3 className="text-[13px] tracking-[0.08em] mt-1 font-editorial text-white normal-case">{sentenceCase(current.name)}</h3>
         <p className="mt-1 text-sm text-stone-300">{formatPrice(Number(current.price) || 0)}</p>
       </div>
       <div className="flex gap-2">
@@ -67,7 +67,7 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
 
       <div className="mx-auto max-w-5xl text-center">
         <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400">The showroom</p>
-        <h2 className="mt-2 font-editorial text-3xl tracking-tight sm:text-5xl">Walk the collection</h2>
+        <h2 className="text-[13px] tracking-[0.08em] mt-2 font-editorial ">Walk the collection</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-stone-400">Drag, or use the arrows, to move around this season&apos;s favourites.</p>
       </div>
 

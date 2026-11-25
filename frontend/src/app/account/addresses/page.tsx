@@ -115,7 +115,7 @@ export default function AddressesPage() {
   return (
     <main className="account-page">
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
-      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Saved addresses</h1>
+      <h1 className="text-[13px] tracking-[0.08em] mb-2 font-editorial ">Saved addresses</h1>
       <p className="mb-6 text-sm text-neutral-500">Keep delivery details ready for a faster checkout.</p>
       <AccountNav />
       {error && !showForm && <p role="alert" className="mb-4 text-sm text-[var(--color-flag)]">{error}</p>}
@@ -138,7 +138,7 @@ export default function AddressesPage() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold uppercase tracking-wide bg-[var(--color-mist)] px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-bold uppercase tracking-wide bg-[var(--color-mist)] px-2 py-0.5 rounded-none">
                         {a.label}
                       </span>
                       {a.is_default && (
@@ -179,11 +179,11 @@ export default function AddressesPage() {
                     type="button"
                     key={l}
                     onClick={() => setForm({ ...form, label: l })}
-                    className={`border rounded-lg py-2.5 text-xs font-semibold uppercase ${
-                      form.label === l
-                        ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white"
-                        : "border-[var(--color-line)]"
-                    }`}
+                    className={`border rounded-none py-2.5 text-xs font-semibold uppercase ${
+ form.label === l
+ ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white"
+ : "border-[var(--color-line)]"
+ }`}
                   >
                     {l}
                   </button>
@@ -193,25 +193,25 @@ export default function AddressesPage() {
                 placeholder="Full name"
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
+                className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
               />
               <input
                 placeholder="Phone number"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
+                className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
               />
               <input
                 placeholder="Delivery address"
                 value={form.address_line}
                 onChange={(e) => setForm({ ...form, address_line: e.target.value })}
-                className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
+                className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
               />
               <input
                 placeholder="Town / City"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
+                className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
               />
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -244,7 +244,7 @@ export default function AddressesPage() {
           ) : (
             <button
               onClick={openNew}
-              className="border border-[var(--color-ink)] px-6 py-3 rounded-full text-sm font-semibold uppercase"
+              className="border border-[var(--color-ink)] px-6 py-3 rounded-none text-sm font-semibold uppercase"
             >
               + Add new address
             </button>

@@ -14,6 +14,8 @@ import RecommendedRow from "@/components/RecommendedRow";
 import VideoShowcase from "@/components/VideoShowcase";
 import PopularNearYou from "@/components/PopularNearYou";
 import Tilt3DShowcase from "@/components/Tilt3DShowcase";
+import Reveal from "@/components/Reveal";
+import Tilt from "@/components/Tilt";
 
 const FALLBACK_IMG = {
   hero: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=2070&auto=format&fit=crop",
@@ -202,23 +204,21 @@ function CategoryBlock({
 }) {
   return (
     <Link href={href} className="group block min-w-0">
-      <div className="relative aspect-[4/5] overflow-hidden bg-transparent lg:aspect-[3/4]">
-        <img
-          src={image}
-          alt={title}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-      </div>
-      <div className="pt-3 text-center">
-        <h3 className="font-editorial text-xl tracking-wide text-black lg:text-2xl">
-          {title}
-        </h3>
-        {subtitle && (
-          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-stone-500">
-            {subtitle}
-          </p>
-        )}
-      </div>
+      <Tilt max={3}>
+        <div className="relative aspect-[3/4] overflow-hidden bg-stone-100 lg:aspect-[4/5]">
+          <img
+            src={image}
+            alt={title}
+            className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+          <div className="tilt-layer absolute bottom-5 left-5 right-5 text-white">
+            <h3 className="text-[13px] tracking-[0.08em]">{title}</h3>
+            {subtitle && <p className="mt-1 text-[11px] tracking-[0.06em] uppercase opacity-80">{subtitle}</p>}
+            <span className="mt-3 inline-block zara-link">Shop now</span>
+          </div>
+        </div>
+      </Tilt>
     </Link>
   );
 }
@@ -318,106 +318,78 @@ export default async function Home() {
       : FALLBACK_HERO;
 
   return (
-    <main className="bg-white container-shell font-sans text-black">
-      <HeroCarousel
-        campaigns={slides}
-        slideInterval={7000}
-      />
+    <main className="bg-white font-sans text-black">
+      {/* Full-bleed hero, runs under the transparent header */}
+      <HeroCarousel campaigns={slides} slideInterval={7000} />
 
-      <section className="grid grid-cols-2 gap-3 py-3 lg:grid-cols-4 lg:gap-4 lg:py-4">
-        <CategoryBlock
-          href="/shop?stage=baby"
-          image={babyImg}
-          title="Babies"
-        />
-        <CategoryBlock
-          href="/shop?stage=kids"
-          image={kidsImg}
-          title="Kids"
-        />
-        <CategoryBlock
-          href="/shop?department=women"
-          image={womenImg}
-          title="Women"
-        />
-        <CategoryBlock
-          href="/shop?department=men"
-          image={menImg}
-          title="Men"
-        />
+      {/* Four departments, edge to edge */}
+      <section className="grid grid-cols-2 gap-[2px] lg:grid-cols-4">
+        <CategoryBlock href="/shop?stage=baby" image={babyImg} title="Babies" subtitle="0 – 24 months" />
+        <CategoryBlock href="/shop?stage=kids" image={kidsImg} title="Kids" subtitle="2 – 8 yrs & up" />
+        <CategoryBlock href="/shop?department=women" image={womenImg} title="Women" subtitle="Activewear" />
+        <CategoryBlock href="/shop?department=men" image={menImg} title="Men" subtitle="Shorts" />
       </section>
 
       {products.length > 0 && (
-        <section className="py-2 lg:py-4">
-          <div className="mb-4 flex items-end justify-between lg:mb-4">
-            <h2 className="font-editorial text-3xl tracking-tight lg:text-5xl">
-              New In
-            </h2>
-            <Link
-              href="/shop"
-              className="border-b border-transparent pb-0.5 text-[11px] uppercase tracking-[0.15em] text-stone-500 transition hover:border-black hover:text-black"
-            >
-              View All
-            </Link>
-          </div>
-          <div className={PRODUCT_GRID}>
-            {products
-              .slice(0, 12)
-              .map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
+        <Reveal>
+          <section className="pt-14 lg:pt-20">
+            <div className="mb-5 flex items-end justify-between px-4 sm:px-6 lg:px-8">
+              <h2 className="text-[13px] tracking-[0.08em]">New in</h2>
+              <Link href="/shop" className="zara-link">View all</Link>
+            </div>
+            <div className={PRODUCT_GRID}>
+              {products.slice(0, 12).map((product) => (
+                <ProductCard key={product.id} product={product} />
               ))}
-          </div>
-        </section>
+            </div>
+          </section>
+        </Reveal>
       )}
 
       {products.length >= 4 && (
-        <section className="py-7 sm:py-10">
-          <Tilt3DShowcase products={products} />
-        </section>
+        <Reveal>
+          <section className="pt-14 lg:pt-20 px-4 sm:px-6 lg:px-8">
+            <Tilt3DShowcase products={products} />
+          </section>
+        </Reveal>
       )}
 
-      <section className="py-7 sm:py-10">
-        <Link href="/showroom" className="group relative block min-h-[340px] overflow-hidden bg-[#b9a99a] text-white sm:min-h-[460px]">
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(20,15,12,.78)_0%,rgba(20,15,12,.42)_48%,rgba(20,15,12,.08)_100%),url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=85&w=2000&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-[1.025]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
-          <div className="relative flex min-h-[340px] flex-col justify-end gap-7 px-5 py-9 sm:min-h-[460px] sm:flex-row sm:items-end sm:justify-between sm:px-12 sm:py-12 lg:px-16">
-            <div className="max-w-2xl">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.32em] text-white/75">LarkTribe · Virtual flagship</p>
-              <h2 className="max-w-xl font-editorial text-4xl leading-[1.05] tracking-tight sm:text-6xl">A store you can step into.</h2>
-              <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/80 sm:text-base">Walk the departments, explore pieces on display and pick up a look to inspect it up close.</p>
+      {/* 3D virtual flagship */}
+      <Reveal>
+        <section className="pt-14 lg:pt-20">
+          <Link href="/showroom" className="group relative block h-[78svh] min-h-[480px] overflow-hidden bg-stone-900 text-white">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=85&w=2400&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-[1600ms] group-hover:scale-[1.04]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/20" />
+            <div className="absolute bottom-8 left-5 right-5 sm:left-8 lg:left-12 lg:bottom-12">
+              <p className="zara-label opacity-80">LarkTribe · 3D store</p>
+              <h2 className="mt-3 max-w-xl text-[22px] leading-tight tracking-[0.04em] sm:text-[30px]">Walk into the store</h2>
+              <span className="mt-5 inline-block zara-link">Enter</span>
             </div>
-            <span className="inline-flex shrink-0 items-center gap-3 self-start border border-white/70 bg-white px-7 py-4 text-[10px] uppercase tracking-[0.2em] text-black transition group-hover:bg-black group-hover:text-white sm:self-auto">Enter the showroom <span aria-hidden>↗</span></span>
-          </div>
-        </Link>
-      </section>
+          </Link>
+        </section>
+      </Reveal>
 
-      <PopularNearYou />
+      <Reveal>
+        <div className="pt-14 lg:pt-20"><PopularNearYou /></div>
+      </Reveal>
 
-      <section className="py-2 lg:py-4">
-        <VideoShowcase videos={showcaseVideos} />
-      </section>
+      <Reveal>
+        <section className="pt-14 lg:pt-20">
+          <VideoShowcase videos={showcaseVideos} />
+        </section>
+      </Reveal>
 
-      <section className="py-2 lg:py-4">
-        <RecommendedRow
-          title="Just For You"
-          kind="recommended"
-        />
-      </section>
+      <Reveal>
+        <section className="pt-14 lg:pt-20">
+          <RecommendedRow title="Just for you" kind="recommended" />
+        </section>
+      </Reveal>
 
-      <section className="border-stone-200 py-12 text-center sm:py-16">
-        <h2 className="mx-auto max-w-2xl font-editorial text-2xl leading-snug tracking-tight lg:text-4xl">
-          Designed for modern Larktribe. Made in Kenya,
-          worn everywhere.
-        </h2>
-        <Link
-          href="/about"
-          className="mt-6 inline-block border-b border-transparent pb-0.5 text-[11px] uppercase tracking-[0.15em] text-stone-500 transition hover:border-black hover:text-black"
-        >
-          Read Our Story
-        </Link>
+      <section className="px-4 py-20 text-center">
+        <p className="mx-auto max-w-xl text-[13px] leading-relaxed tracking-[0.06em] uppercase">
+          Designed for the modern family. Made in Kenya, worn everywhere.
+        </p>
+        <Link href="/about" className="mt-6 inline-block zara-link">Our story</Link>
       </section>
     </main>
   );

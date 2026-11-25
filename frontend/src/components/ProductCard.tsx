@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, Heart, ImageOff, ShoppingBag, Star } from "lucide-react";
+import { Eye, Heart, ImageOff, ShoppingBag } from "lucide-react";
 import TryOnButton from "@/components/TryOnButton";
 import { trackEvent } from "@/lib/tracking";
 import { useCart } from "@/lib/cart-context";
@@ -53,11 +53,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     color_images = {},
     color_variant_ids = {},
     needs_size = false,
-    rating_avg,
-    rating_count = 0,
   } = product;
-  const ratingValue = Number(rating_avg) || 0;
-  const displayName = name.trim().toLowerCase().replace(/^\S/, (letter) => letter.toUpperCase());
+  const displayName = name.trim();
 
   const numericPrice = Number(price) || 0;
   const numericComparePrice = compare_at_price != null ? Number(compare_at_price) || 0 : null;
@@ -216,7 +213,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     }
   }
 
-  const glass = "pointer-events-auto flex items-center justify-center h-9 rounded-full bg-white/85 backdrop-blur text-espresso shadow-[0_6px_18px_-6px_rgba(0,0,0,.35)] hover:bg-white hover:scale-105 active:scale-95 transition";
+  const glass = "pointer-events-auto flex items-center justify-center h-9 bg-white text-black hover:bg-black hover:text-white transition-colors";
+  const hoverImage = galleryImages[1]?.url && galleryImages[1].url !== activeImage?.url ? galleryImages[1].url : null;
   const openQuick = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setShowQuickView(true); };
 
   return (
@@ -225,10 +223,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     >
       <div className="block">
         {/* Static product image; only the action buttons respond to hover. */}
-        <div className="relative w-full aspect-[4/5]">
-          <div className="absolute left-[12%] right-[12%] -bottom-1 h-3 rounded-[50%] bg-black/10 blur-md pointer-events-none" />
+        <div className="relative w-full aspect-[3/4]">
           <div
-            className="absolute inset-0 overflow-hidden bg-transparent shadow-none"
+            className="absolute inset-0 overflow-hidden bg-stone-100"
           >
             {!hasCurrentImageError ? (
               <Image
@@ -236,7 +233,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 src={finalImage}
                 alt={name}
                 fill
-                className="object-contain"
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
                 onError={handleImageError}
                 unoptimized={finalImage.startsWith("data:")}
@@ -247,6 +244,16 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 <span className="text-xs">No image</span>
               </div>
             )}
+            {hoverImage && !hasCurrentImageError && (
+              <Image
+                src={hoverImage}
+                alt=""
+                fill
+                aria-hidden
+                className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 17vw"
+              />
+            )}
             <Link
               href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
               aria-label={`View ${name}`}
@@ -256,24 +263,24 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
             {!isInStock && (
               <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                <span className="text-espresso text-xs uppercase tracking-widest">Sold out</span>
+                <span className="text-black text-[11px] uppercase tracking-[0.08em]">Sold out</span>
               </div>
             )}
 
             {discount > 0 && isInStock && (
-              <span className="absolute top-2.5 left-2.5 text-[10px] uppercase tracking-wider bg-white/85 backdrop-blur text-espresso px-2 py-0.5 rounded-full">
+              <span className="absolute top-2 left-2 text-[10px] uppercase tracking-[0.06em] bg-white text-black px-1.5 py-0.5">
                 -{discount}%
               </span>
             )}
 
             <button
               onClick={handleWishlist}
-              className="lark-card-wishlist absolute top-2.5 right-2.5 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur text-espresso transition-opacity"
+              className="lark-card-wishlist absolute top-2 right-2 z-10 h-8 w-8 flex items-center justify-center text-black transition-opacity"
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
               aria-pressed={isWishlisted}
               disabled={wishlistBusy}
             >
-              <Heart size={15} className={isWishlisted ? "fill-espresso" : ""} />
+              <Heart size={17} strokeWidth={1.3} className={isWishlisted ? "fill-black" : ""} />
             </button>
 
             {/* Actions float above the image (z-lifted): Quick view · Try on · Add */}
@@ -282,11 +289,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 className="lark-card-actions absolute inset-x-2 bottom-2 z-10 flex items-center gap-1.5 transition-all duration-200"
                 
               >
-                <button type="button" onClick={openQuick} className={`${glass} flex-1 gap-1.5 whitespace-nowrap text-[9px] uppercase tracking-wider px-2`} aria-label="Quick view">
+                <button type="button" onClick={openQuick} className={`${glass} flex-1 gap-1.5 whitespace-nowrap text-[10px] uppercase tracking-[0.06em] px-2`} aria-label="Quick view">
                   <Eye size={13} /> <span className="hidden sm:inline">Quick view</span>
                 </button>
-                <TryOnButton product={{ id, name, slug, colors }} color={selectedColor} label="" variant="outline" className={`${glass} !border-0 !py-0 w-9 !rounded-full`} />
-                <button type="button" onClick={handlePrimaryAction} disabled={adding} className={`${glass} w-9 !bg-espresso !text-white hover:!bg-black disabled:opacity-60`} aria-label={canQuickAdd ? "Add to bag" : "Choose size"}>
+                <TryOnButton product={{ id, name, slug, colors }} color={selectedColor} label="" variant="outline" className={`${glass} !border-0 !py-0 w-9 !rounded-none`} />
+                <button type="button" onClick={handlePrimaryAction} disabled={adding} className={`${glass} w-9 !bg-black !text-white hover:!bg-stone-700 disabled:opacity-60`} aria-label={canQuickAdd ? "Add to bag" : "Choose size"}>
                   <ShoppingBag size={14} />
                 </button>
               </div>
@@ -294,23 +301,20 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           </div>
         </div>
 
-        <div className="px-1 pt-4 flex flex-col gap-1">
-          <h3 className="text-md normal-case tracking-normal text-espresso line-clamp-2 sm:line-clamp-1">{displayName}</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-md text-espresso">{formatPrice(numericPrice)}</span>
-            {numericComparePrice !== null && numericComparePrice > numericPrice && (
-              <span className="text-md text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
-            )}
-            {rating_count > 0 && (
-              <span className="ml-auto flex items-center gap-0.5 text-[11px] text-stone-500" aria-label={`Rated ${ratingValue.toFixed(1)} out of 5`}>
-                <Star size={11} className="fill-espresso text-espresso" /> {ratingValue.toFixed(1)}
-              </span>
-            )}
+        <div className="px-2 pt-2.5 flex flex-col gap-1">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-[11px] uppercase tracking-[0.04em] leading-snug text-black line-clamp-2">{displayName}</h3>
+            <div className="shrink-0 text-right text-[11px] tracking-[0.02em]">
+              <span className="text-black">{formatPrice(numericPrice)}</span>
+              {numericComparePrice !== null && numericComparePrice > numericPrice && (
+                <span className="ml-2 text-stone-400 line-through">{formatPrice(numericComparePrice)}</span>
+              )}
+            </div>
           </div>
-          {colors.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+          {colors.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               {colors.map((color) => (
-                <ColorSwatch key={color} color={color} size={16} shape="round" selected={selectedColor === color} onClick={(e) => handleColorSelect(e, color)} />
+                <ColorSwatch key={color} color={color} size={12} shape="round" selected={selectedColor === color} onClick={(e) => handleColorSelect(e, color)} />
               ))}
             </div>
           )}

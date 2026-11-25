@@ -87,7 +87,7 @@ export default function VendorInsightsPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="font-display text-2xl font-black mb-1">AI Sales Insights</h1>
+        <h1 className="text-[13px] tracking-[0.08em] font-display mb-1">AI Sales Insights</h1>
         <p className="text-sm text-neutral-500 mb-6">
           Pricing and demand signals generated from recent sales activity across your store.
         </p>
@@ -99,13 +99,13 @@ export default function VendorInsightsPage() {
       )}
 
       <section>
-        <h2 className="font-display font-bold mb-3">Dynamic pricing suggestions</h2>
+        <h2 className="text-[13px] tracking-[0.08em] font-display mb-3">Dynamic pricing suggestions</h2>
         {pricing.length === 0 ? (
           <p className="text-sm text-neutral-500">No pricing suggestions yet — check back once you have more sales history.</p>
         ) : (
           <div className="space-y-2">
             {pricing.map((s) => (
-              <div key={s.product_id} className="border border-[var(--color-line)] rounded-lg p-4 text-sm">
+              <div key={s.product_id} className="border border-[var(--color-line)] rounded-none p-4 text-sm">
                 <div className="flex flex-wrap justify-between gap-2 font-semibold">
                   <span>{productName(s.product_id)}</span>
                   <span className={s.change_percent > 0 ? "text-[var(--dept-maternity)]" : "text-[var(--color-flag)]"}>
@@ -131,13 +131,13 @@ export default function VendorInsightsPage() {
       </section>
 
       <section>
-        <h2 className="font-display font-bold mb-3">Inventory & demand forecast</h2>
+        <h2 className="text-[13px] tracking-[0.08em] font-display mb-3">Inventory & demand forecast</h2>
         {forecast.length === 0 ? (
           <p className="text-sm text-neutral-500">No forecast data yet — this fills in as your orders build up.</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">
             {forecast.map((f) => (
-              <div key={f.product_id} className="border border-[var(--color-line)] rounded-lg p-4 text-sm">
+              <div key={f.product_id} className="border border-[var(--color-line)] rounded-none p-4 text-sm">
                 <p className="font-semibold">{productName(f.product_id)}</p>
                 <p className="text-neutral-500 text-xs mt-1">
                   Forecast next period: <span className="font-semibold text-[var(--color-ink)]">{f.forecast_units_next_period} units</span>
@@ -152,7 +152,7 @@ export default function VendorInsightsPage() {
                 )}
                 {f.reorder_recommended ? (
                   <>
-                    <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--color-flag)]/10 text-[var(--color-flag)]">
+                    <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-none bg-[var(--color-flag)]/10 text-[var(--color-flag)]">
                       Reorder {f.reorder_quantity} units — below reorder point ({f.reorder_point})
                     </span>
                     <button
@@ -165,7 +165,7 @@ export default function VendorInsightsPage() {
                     </button>
                   </>
                 ) : (
-                  <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--dept-maternity)]/10 text-[var(--dept-maternity)]">
+                  <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-none bg-[var(--dept-maternity)]/10 text-[var(--dept-maternity)]">
                     Stock healthy
                   </span>
                 )}

@@ -41,7 +41,7 @@ export default function AppDownloadPopup() {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-[fadeIn_0.25s_ease-out]">
+      <div className="relative w-full max-w-sm bg-white rounded-none p-6 animate-[fadeIn_0.25s_ease-out]">
         <button
           onClick={close}
           aria-label="Close"
@@ -51,10 +51,10 @@ export default function AppDownloadPopup() {
         </button>
 
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-[var(--color-ink)] flex items-center justify-center">
+          <div className="w-14 h-14 rounded-none bg-[var(--color-ink)] flex items-center justify-center">
             <Smartphone size={26} className="text-white" strokeWidth={1.75} />
           </div>
-          <h2 className="font-display text-lg font-black">Get the Lark Tribe app</h2>
+          <h2 className="text-[13px] tracking-[0.08em] font-display text-lg ">Get the Lark Tribe app</h2>
           <p className="text-sm text-neutral-500">
             Faster checkout, order tracking, and app-only offers — right on your phone.
           </p>

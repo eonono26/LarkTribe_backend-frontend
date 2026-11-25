@@ -122,7 +122,7 @@ export default function DriverDashboardPage() {
             <VehicleIcon size={20} />
           </div>
           <div>
-            <p className="font-display font-bold">{me.name}</p>
+            <p className="text-[13px] tracking-[0.08em] font-display ">{me.name}</p>
             <p className="text-xs text-neutral-500">{me.vehicle_plate || "No plate on file"}</p>
           </div>
         </div>
@@ -161,13 +161,13 @@ export default function DriverDashboardPage() {
             {mine.map((d) => {
               const next = ACTION_FOR_STATUS[d.status];
               return (
-                <div key={d.id} className="border border-[var(--color-line)] rounded-xl p-4">
+                <div key={d.id} className="border border-[var(--color-line)] rounded-none p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-semibold text-sm">{d.shipping_name}</p>
                       <p className="text-xs text-neutral-500">{d.item_count} item{d.item_count === 1 ? "" : "s"} · Order {d.order_number}</p>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wide bg-[var(--color-mist)] px-2 py-1 rounded-full">
+                    <span className="text-[10px] font-bold uppercase tracking-wide bg-[var(--color-mist)] px-2 py-1 rounded-none">
                       {d.status.replace(/_/g, " ")}
                     </span>
                   </div>
@@ -204,7 +204,7 @@ export default function DriverDashboardPage() {
           ) : (
             <div className="space-y-3">
               {available.map((d) => (
-                <div key={d.id} className="border border-[var(--color-line)] rounded-xl p-4">
+                <div key={d.id} className="border border-[var(--color-line)] rounded-none p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-semibold text-sm">{d.shipping_city}</p>

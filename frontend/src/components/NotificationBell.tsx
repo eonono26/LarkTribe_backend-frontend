@@ -40,7 +40,7 @@ export default function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-3 w-80 bg-white border border-[var(--color-line)] rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+        <div className="absolute right-0 mt-3 w-80 bg-white border border-[var(--color-line)] rounded-none z-50 max-h-96 overflow-y-auto">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-line)]">
             <span className="font-semibold text-sm">Notifications</span>
             {unread > 0 && <button onClick={markAll} className="text-xs underline">Mark all read</button>}

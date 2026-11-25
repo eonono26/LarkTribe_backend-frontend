@@ -137,7 +137,7 @@ export default function AccountProfilePage() {
     <main className="min-h-screen bg-stone-50 text-espresso font-sans">
       <div className="account-page">
       <span className="text-[11px] uppercase tracking-widest text-stone-500 block mb-1">Lark Tribe</span>
-      <h1 className="font-editorial text-3xl sm:text-4xl text-espresso mb-1">
+      <h1 className="text-[13px] tracking-[0.08em] font-editorial text-espresso mb-1">
         {user ? `${user.first_name || user.username}` : "My Account"}
       </h1>
       <p className="text-sm text-stone-500 mb-6">
@@ -148,9 +148,9 @@ export default function AccountProfilePage() {
       {loading ? (
         <p className="text-stone-400">Loading…</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5 bg-white border border-stone-200 p-4 shadow-sm sm:rounded-xl sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-white border border-stone-200 p-4 shadow-sm sm:rounded-none sm:p-8">
           {/* Profile Picture Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-stone-50 border border-stone-200 rounded-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-stone-50 border border-stone-200 rounded-none">
             <div className="relative w-20 h-20 rounded-full overflow-hidden bg-stone-200 flex-shrink-0">
               {profilePicturePreview ? (
                 <Image
@@ -160,7 +160,7 @@ export default function AccountProfilePage() {
                   className="object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center font-editorial text-2xl text-stone-400">
+                <div className="text-[13px] tracking-[0.08em] w-full h-full flex items-center justify-center font-editorial text-stone-400">
                   {user?.first_name?.[0] || user?.username?.[0] || "?"}
                 </div>
               )}
@@ -170,7 +170,7 @@ export default function AccountProfilePage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-xs uppercase tracking-wider bg-white px-4 py-1.5 rounded-full border border-stone-300 hover:border-espresso transition"
+                  className="text-xs uppercase tracking-wider bg-white px-4 py-1.5 rounded-none border border-stone-300 hover:border-espresso transition"
                 >
                   Upload
                 </button>
@@ -179,14 +179,14 @@ export default function AccountProfilePage() {
                     <button
                       type="button"
                       onClick={handleRemoveProfilePicture}
-                      className="text-xs uppercase tracking-wider text-stone-500 px-4 py-1.5 rounded-full border border-stone-300 hover:border-espresso transition"
+                      className="text-xs uppercase tracking-wider text-stone-500 px-4 py-1.5 rounded-none border border-stone-300 hover:border-espresso transition"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleDeleteProfilePicture}
-                      className="text-xs uppercase tracking-wider text-terracotta px-4 py-1.5 rounded-full border border-terracotta/40 hover:bg-terracotta/5 transition"
+                      className="text-xs uppercase tracking-wider text-terracotta px-4 py-1.5 rounded-none border border-terracotta/40 hover:bg-terracotta/5 transition"
                     >
                       Remove
                     </button>
@@ -211,7 +211,7 @@ export default function AccountProfilePage() {
               placeholder="First name"
               value={form.first_name}
               onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-              className="w-full min-w-0 bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 outline-none focus:bg-white focus:ring-1 focus:ring-espresso text-sm transition"
+              className="w-full min-w-0 bg-stone-50 border border-stone-200 rounded-none px-4 py-3 outline-none focus:bg-white focus:ring-1 focus:ring-espresso text-sm transition"
             />
             <input
               placeholder="Last name"
@@ -241,7 +241,7 @@ export default function AccountProfilePage() {
               <select
                 value={form.preferred_currency}
                 onChange={(e) => setForm({ ...form, preferred_currency: e.target.value })}
-                className="w-full min-w-0 bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 outline-none focus:ring-1 focus:ring-espresso text-sm"
+                className="w-full min-w-0 bg-stone-50 border border-stone-200 rounded-none px-4 py-3 outline-none focus:ring-1 focus:ring-espresso text-sm"
               >
                 <option value="KES">KES - Kenyan Shilling</option>
                 {/* <option value="USD">USD - US Dollar</option>

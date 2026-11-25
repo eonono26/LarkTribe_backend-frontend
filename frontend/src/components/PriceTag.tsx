@@ -33,7 +33,7 @@ export default function PriceTag({
         <span className={`price ${compareSize} text-neutral-400 line-through`}>{formatPrice(compareAtPrice)}</span>
       ) : null}
       {hasDiscount && (
-        <span className="price text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--color-accent-tint)] text-[var(--color-accent-dark)]">
+        <span className="price text-[11px] font-bold px-1.5 py-0.5 rounded-none bg-[var(--color-accent-tint)] text-[var(--color-accent-dark)]">
           -{pctOff}%
         </span>
       )}

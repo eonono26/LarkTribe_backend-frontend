@@ -25,7 +25,7 @@ export default function AuthShell({
         <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-950/40 to-stone-950/10" />
         <div className="relative z-10 h-full flex flex-col justify-between p-10 xl:p-14 text-white">
           <span className="text-[11px] uppercase tracking-[0.25em] text-stone-300">Lark Tribe Private Portal</span>
-          <blockquote className="font-editorial text-3xl xl:text-4xl italic font-light leading-snug max-w-lg">
+          <blockquote className="text-[13px] tracking-[0.08em] font-editorial italic font-light leading-snug max-w-lg">
             &ldquo;Welcome back to the Lark Tribe Atelier. Your wishlist, orders, and saved details await.&rdquo;
           </blockquote>
           <div className="flex items-center gap-3">

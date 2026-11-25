@@ -66,10 +66,10 @@ export default function ChatbotWidget() {
   return (
     <div className="fixed bottom-20 left-3 right-3 z-50 font-sans sm:bottom-5 sm:left-auto sm:right-5">
       {open && (
-        <div className="mb-3 ml-auto flex h-[min(70dvh,28rem)] max-h-[calc(100dvh-7rem)] w-full max-w-sm flex-col overflow-hidden rounded-xl border border-stone-200 bg-stone-50 shadow-2xl">
+        <div className="mb-3 ml-auto flex h-[min(70dvh,28rem)] max-h-[calc(100dvh-7rem)] w-full max-w-sm flex-col overflow-hidden rounded-none border border-stone-200 bg-stone-50 ">
           <div className="bg-stone-900 text-stone-100 px-4 py-3 flex items-center justify-between">
             <div>
-              <span className="font-editorial text-lg tracking-wide">LarkTribe Concierge</span>
+              <span className="text-[13px] tracking-[0.08em] font-editorial text-lg tracking-wide">LarkTribe Concierge</span>
               <p className="text-[11px] text-stone-300">Shopping and order help</p>
             </div>
             <button onClick={() => setOpen(false)} aria-label="Close chat"><X size={18} /></button>
@@ -78,9 +78,9 @@ export default function ChatbotWidget() {
             {messages.map((m, i) => (
               <div key={i} className={m.sender === "user" ? "text-right" : "text-left"}>
                 <span
-                  className={`inline-block px-3 py-2 rounded-lg max-w-[85%] ${
-                    m.sender === "user" ? "bg-stone-900 text-stone-50" : "bg-stone-200 text-espresso"
-                  }`}
+                  className={`inline-block px-3 py-2 rounded-none max-w-[85%] ${
+ m.sender === "user"? "bg-stone-900 text-stone-50": "bg-stone-200 text-espresso"
+ }`}
                 >
                   {m.sender === "bot" ? renderBotText(m.text) : m.text}
                 </span>
@@ -124,7 +124,7 @@ export default function ChatbotWidget() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Open Client Live Chat"
-        className="bg-stone-900 hover:bg-black text-stone-100 p-3.5 rounded-full shadow-xl hover:shadow-2xl transition-all duration-200"
+        className="bg-stone-900 hover:bg-black text-stone-100 p-3.5 rounded-full hover: transition-all duration-200"
       >
         {open ? <X size={20} strokeWidth={1.6} /> : <MessageCircle size={20} strokeWidth={1.6} />}
       </button>

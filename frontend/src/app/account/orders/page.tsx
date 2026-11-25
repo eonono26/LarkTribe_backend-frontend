@@ -53,7 +53,7 @@ export default function MyOrdersPage() {
   return (
     <main className="account-page">
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
-      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Orders</h1>
+      <h1 className="text-[13px] tracking-[0.08em] mb-2 font-editorial ">Orders</h1>
       <p className="mb-6 text-sm text-neutral-500">Track your purchases from confirmation to delivery.</p>
       <AccountNav />
       {loading ? (
@@ -68,7 +68,7 @@ export default function MyOrdersPage() {
       ) : orders.length === 0 ? (
         <div className="border border-dashed border-stone-300 bg-white px-5 py-12 text-center">
           <PackageOpen className="mx-auto mb-4 text-stone-400" size={28} />
-          <h2 className="font-editorial text-2xl">Your next find is waiting</h2>
+          <h2 className="text-[13px] tracking-[0.08em] font-editorial ">Your next find is waiting</h2>
           <p className="mt-2 text-sm text-neutral-500">Orders you place will appear here with their delivery updates.</p>
           <Link href="/shop" className="btn btn-ink mt-5">Explore the shop</Link>
         </div>

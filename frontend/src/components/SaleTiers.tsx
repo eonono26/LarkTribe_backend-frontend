@@ -9,11 +9,11 @@ export default function SaleTiers({ active }: { active?: number }) {
     <div className="flex flex-wrap gap-2 mb-8">
       <Link
         href="/deals"
-        className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
-          !active
-            ? "bg-[var(--color-ink)] text-white border-[var(--color-ink)]"
-            : "border-[var(--color-line)] hover:border-[var(--color-ink)]"
-        }`}
+        className={`px-4 py-2 rounded-none text-sm font-semibold border transition-colors ${
+ !active
+ ? "bg-[var(--color-ink)] text-white border-[var(--color-ink)]"
+ : "border-[var(--color-line)] hover:border-[var(--color-ink)]"
+ }`}
       >
         All deals
       </Link>
@@ -21,11 +21,11 @@ export default function SaleTiers({ active }: { active?: number }) {
         <Link
           key={t}
           href={`/deals?min_discount=${t}`}
-          className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
-            active === t
-              ? "bg-[var(--color-flag)] text-white border-[var(--color-flag)]"
-              : "border-[var(--color-line)] hover:border-[var(--color-flag)]"
-          }`}
+          className={`px-4 py-2 rounded-none text-sm font-semibold border transition-colors ${
+ active === t
+ ? "bg-[var(--color-flag)] text-white border-[var(--color-flag)]"
+ : "border-[var(--color-line)] hover:border-[var(--color-flag)]"
+ }`}
         >
           {t}% OFF
         </Link>

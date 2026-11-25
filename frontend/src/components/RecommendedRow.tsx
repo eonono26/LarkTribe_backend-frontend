@@ -79,7 +79,7 @@ export default function RecommendedRow({
   if (loading) {
     return (
       <section className="py-8 lg:py-12">
-        <h2 className="font-editorial text-2xl lg:text-3xl tracking-tight mb-2">{title}</h2>
+        <h2 className="text-[13px] tracking-[0.08em] font-editorial mb-2">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-10">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -100,7 +100,7 @@ export default function RecommendedRow({
   return (
     <section>
       <div className="flex items-end justify-between mb-8 lg:mb-4">
-        <h2 className="font-editorial text-5xl lg:text-5xl tracking-tight">{title}</h2>
+        <h2 className="text-[13px] tracking-[0.08em] font-editorial ">{title}</h2>
         <Link
           href="/shop"
           className="text-[11px] tracking-[0.15em] uppercase text-stone-500 hover:text-black transition border-b border-transparent hover:border-black pb-0.5"

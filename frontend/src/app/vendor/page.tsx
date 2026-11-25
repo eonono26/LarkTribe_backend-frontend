@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function VendorPage() {
   return (
     <main className="container-shell py-16 max-w-lg">
-      <h1 className="font-display text-3xl font-black mb-3">Sell on duka</h1>
+      <h1 className="text-[13px] tracking-[0.08em] font-display mb-3">Sell on duka</h1>
       <p className="text-neutral-600 mb-6">
         Manage your products, stock, and orders from the vendor dashboard.
       </p>

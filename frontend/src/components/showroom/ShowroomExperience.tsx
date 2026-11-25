@@ -98,7 +98,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
   if (failed || wings.length === 0) {
     return (
       <div className="container-shell py-24 text-center">
-        <p className="font-editorial text-2xl mb-2">{failed ? "Your browser can't show the 3D store." : "The store is being stocked."}</p>
+        <p className="text-[13px] tracking-[0.08em] font-editorial mb-2">{failed ? "Your browser can't show the 3D store." : "The store is being stocked."}</p>
         <Link href="/shop" className="text-[11px] uppercase tracking-widest underline underline-offset-4">Browse the shop instead</Link>
       </div>
     );
@@ -114,7 +114,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
 
       {/* departments, in shopping order */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 max-w-[96vw]">
-        <div className="flex max-w-full items-center gap-1 bg-white/95 p-1.5 shadow-md backdrop-blur overflow-x-auto">
+        <div className="flex max-w-full items-center gap-1 bg-white/95 p-1.5 backdrop-blur overflow-x-auto">
           {wings.map((w, i) => (
             <button key={w.slug} onClick={() => { close(); engine.current?.goToWing(i); }} className={`${chip} ${loc.w === i ? "text-white" : "hover:bg-stone-100"}`} style={loc.w === i ? { background: "#" + w.accent.toString(16).padStart(6, "0") } : undefined}>
               {w.title}
@@ -122,7 +122,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
           ))}
         </div>
         {wing && (
-          <div className="flex max-w-full items-center gap-1 bg-white/90 p-1.5 shadow-md backdrop-blur overflow-x-auto">
+          <div className="flex max-w-full items-center gap-1 bg-white/90 p-1.5 backdrop-blur overflow-x-auto">
             {wing.bays.map((b, i) => (
               <button key={b.title} onClick={() => { close(); engine.current?.goToBay(loc.w, i); }} className={`${chip} !py-1.5 ${loc.b === i ? "bg-black text-white" : "hover:bg-stone-100"}`}>{b.title}</button>
             ))}
@@ -154,7 +154,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
 
       {/* Floating product label: live catalogue name + price */}
       {hover && !selected && (
-        <div className="pointer-events-none fixed z-30 -translate-x-1/2 -translate-y-full bg-white px-3 py-2 shadow-lg text-center" style={{ left: hover.x, top: hover.y - 14 }}>
+        <div className="pointer-events-none fixed z-30 -translate-x-1/2 -translate-y-full bg-white px-3 py-2 text-center" style={{ left: hover.x, top: hover.y - 14 }}>
           <p className="text-[10px] normal-case tracking-normal">{hover.p.name.charAt(0).toUpperCase() + hover.p.name.slice(1).toLowerCase()}</p>
           <p className="text-sm font-medium">{formatPrice(parseFloat(hover.p.price) || 0)}</p>
         </div>
@@ -162,11 +162,11 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
 
       {/* picked-up product: controls + quick view */}
       {selected && (
-        <aside className="absolute z-20 bg-white/95 backdrop-blur shadow-xl bottom-0 inset-x-0 max-h-[46vh] overflow-y-auto sm:inset-x-auto sm:right-0 sm:top-0 sm:bottom-auto sm:h-full sm:max-h-none sm:w-[330px]">
+        <aside className="absolute z-20 bg-white/95 backdrop-blur bottom-0 inset-x-0 max-h-[46vh] overflow-y-auto sm:inset-x-auto sm:right-0 sm:top-0 sm:bottom-auto sm:h-full sm:max-h-none sm:w-[330px]">
           <button onClick={close} aria-label="Close" className="absolute top-3 right-3 p-1.5 hover:bg-stone-100"><X size={16} /></button>
           <div className="p-5 sm:p-6 sm:pt-16">
             <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">{selected.category_name}</p>
-            <h2 className="font-editorial text-2xl mt-1 pr-6">{selected.name.charAt(0).toUpperCase() + selected.name.slice(1).toLowerCase()}</h2>
+            <h2 className="text-[13px] tracking-[0.08em] font-editorial mt-1 pr-6">{selected.name.charAt(0).toUpperCase() + selected.name.slice(1).toLowerCase()}</h2>
             <p className="mt-1 text-lg">{formatPrice(parseFloat(selected.price) || 0)}</p>
 
             <p className="mt-5 mb-2 text-[10px] uppercase tracking-widest text-stone-500 flex items-center gap-1.5"><RotateCw size={12} /> Turn it · drag the product in any direction</p>

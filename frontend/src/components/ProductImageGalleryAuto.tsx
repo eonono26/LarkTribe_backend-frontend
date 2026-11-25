@@ -43,7 +43,7 @@ export default function ProductImageGalleryAuto({
 
   if (!images || images.length === 0) {
     return (
-      <div className="relative aspect-[3/4] bg-[var(--color-mist)] rounded-lg overflow-hidden">
+      <div className="relative aspect-[3/4] bg-[var(--color-mist)] rounded-none overflow-hidden">
         <div className="h-full w-full flex items-center justify-center text-neutral-400 text-sm">
           No image yet
         </div>
@@ -70,7 +70,7 @@ export default function ProductImageGalleryAuto({
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Main Image */}
-      <div className="relative aspect-[3/4] bg-[var(--color-mist)] rounded-lg overflow-hidden">
+      <div className="relative aspect-[3/4] bg-[var(--color-mist)] rounded-none overflow-hidden">
         <Image
           src={mediaUrl(selectedImage.image)}
           alt={selectedImage.alt_text || productName}
@@ -81,7 +81,7 @@ export default function ProductImageGalleryAuto({
         
         {/* Discount Badge */}
         {discountPercent && discountPercent > 0 && (
-          <span className="absolute top-3 left-3 bg-[var(--color-flag)] text-white text-xs font-bold px-2 py-1 rounded z-10">
+          <span className="absolute top-3 left-3 bg-[var(--color-flag)] text-white text-xs font-bold px-2 py-1 rounded-none z-10">
             -{discountPercent}%
           </span>
         )}
@@ -112,7 +112,7 @@ export default function ProductImageGalleryAuto({
 
         {/* Image Counter */}
         {images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm z-10">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded-none backdrop-blur-sm z-10">
             {selectedIndex + 1} / {images.length}
           </div>
         )}
@@ -142,12 +142,12 @@ export default function ProductImageGalleryAuto({
               key={image.id}
               onClick={() => setSelectedIndex(index)}
               className={`
-                relative aspect-square rounded-lg overflow-hidden border-2 transition-all
-                ${selectedIndex === index 
-                  ? 'border-[var(--color-ink)] ring-2 ring-[var(--color-ink)]/20' 
-                  : 'border-transparent hover:border-neutral-300'
-                }
-              `}
+ relative aspect-square rounded-none overflow-hidden border-2 transition-all
+ ${selectedIndex === index 
+ ? 'border-[var(--color-ink)] ring-2 ring-[var(--color-ink)]/20' 
+ : 'border-transparent hover:border-neutral-300'
+ }
+ `}
             >
               <Image
                 src={mediaUrl(image.image)}

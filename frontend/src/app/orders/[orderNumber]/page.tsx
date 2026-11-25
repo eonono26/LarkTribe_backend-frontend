@@ -121,7 +121,7 @@ export default function OrderTrackingPage() {
           </button>
         </div>
 
-        <h1 className="font-editorial text-3xl sm:text-4xl text-espresso mb-2 max-w-xl">
+        <h1 className="text-[13px] tracking-[0.08em] font-editorial text-espresso mb-2 max-w-xl">
           {STATUS_HEADLINE[order.status] || "Order Update."}
         </h1>
         <p className="text-sm text-stone-500 max-w-lg mb-2">{STATUS_SUBCOPY[order.status]}</p>
@@ -179,7 +179,7 @@ export default function OrderTrackingPage() {
               <div key={item.id} className="flex items-center gap-4">
                 <Link
                   href={item.product_slug ? `/product/${item.product_slug}` : "#"}
-                  className="w-16 h-20 bg-stone-100 rounded-lg overflow-hidden shrink-0"
+                  className="w-16 h-20 bg-stone-100 rounded-none overflow-hidden shrink-0"
                 >
                   {item.product_image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -252,11 +252,11 @@ export default function OrderTrackingPage() {
                 onChange={(e) => setTicketMessage(e.target.value)}
                 placeholder="Tell us what you'd like to return and why…"
                 rows={3}
-                className="w-full bg-white border border-stone-300 focus:border-espresso focus:ring-0 rounded-lg px-4 py-3 outline-none text-sm"
+                className="w-full bg-white border border-stone-300 focus:border-espresso focus:ring-0 rounded-none px-4 py-3 outline-none text-sm"
               />
               <button
                 onClick={submitTicket}
-                className="px-6 py-3 bg-espresso text-stone-50 hover:bg-stone-900 text-xs uppercase tracking-widest font-semibold rounded-lg transition"
+                className="px-6 py-3 bg-espresso text-stone-50 hover:bg-stone-900 text-xs uppercase tracking-widest font-semibold rounded-none transition"
               >
                 Submit Request
               </button>
@@ -264,7 +264,7 @@ export default function OrderTrackingPage() {
           ) : (
             <button
               onClick={() => setTicketOpen(true)}
-              className="border border-stone-300 hover:border-espresso text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-lg text-espresso transition"
+              className="border border-stone-300 hover:border-espresso text-xs uppercase tracking-widest font-semibold px-6 py-3 rounded-none text-espresso transition"
             >
               Request A Return Or Refund
             </button>

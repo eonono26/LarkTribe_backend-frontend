@@ -244,7 +244,7 @@ export default function VirtualTryOn({
             </button>
 
             <p className="text-[10px] uppercase tracking-[0.22em] text-stone-500">Virtual styling studio</p>
-            <h2 id="try-on-title" className="mt-2 font-editorial text-2xl sm:text-3xl">Try {productName}</h2>
+            <h2 id="try-on-title" className="text-[13px] tracking-[0.08em] mt-2 font-editorial ">Try {productName}</h2>
 
             <div className="mt-4 flex gap-6 border-b border-stone-200 text-[11px] uppercase tracking-widest">
               {(["studio", "saved"] as const).map((t) => (

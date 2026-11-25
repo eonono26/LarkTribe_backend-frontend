@@ -52,9 +52,9 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap shrink-0 border transition ${
-        active ? "bg-black text-white border-black" : "bg-white text-stone-700 border-stone-200 hover:border-black"
-      }`}
+      className={`px-3.5 py-1.5 rounded-none text-[13px] whitespace-nowrap shrink-0 border transition ${
+ active ? "bg-black text-white border-black": "bg-white text-stone-700 border-stone-200 hover:border-black"
+ }`}
     >
       {children}
     </button>
@@ -129,7 +129,7 @@ export default function ShopFilters({ categories, brands, ageGroups = [], showGe
           <div className="flex items-center gap-3 py-3">
             <button
               onClick={() => setOpen(true)}
-              className="flex items-center gap-2 h-10 px-4 rounded-full border border-stone-300 hover:border-black text-[13px] font-medium transition shrink-0"
+              className="flex items-center gap-2 h-10 px-4 rounded-none border border-stone-300 hover:border-black text-[11px] uppercase tracking-[0.06em] transition shrink-0"
             >
               <SlidersHorizontal className="w-4 h-4" strokeWidth={1.5} />
               Filter
@@ -144,7 +144,7 @@ export default function ShopFilters({ categories, brands, ageGroups = [], showGe
                 <button
                   key={c.key}
                   onClick={() => toggle(c.key, get(c.key))}
-                  className="flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-full bg-stone-100 hover:bg-stone-200 text-[12px] whitespace-nowrap transition"
+                  className="flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-none bg-stone-100 hover:bg-stone-200 text-[12px] whitespace-nowrap transition"
                 >
                   {c.label}
                   <X className="w-3 h-3" strokeWidth={2} />
@@ -190,7 +190,7 @@ export default function ShopFilters({ categories, brands, ageGroups = [], showGe
         <aside
           role="dialog"
           aria-label="Filters"
-          className={`absolute inset-y-0 right-0 w-full max-w-[400px] bg-white flex flex-col shadow-2xl transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
+          className={`absolute inset-y-0 right-0 w-full max-w-[400px] bg-white flex flex-col transition-transform duration-300 ${open ? "translate-x-0": "translate-x-full"}`}
         >
           <div className="flex items-center justify-between px-6 h-16 border-b border-stone-100 shrink-0">
             <h2 className="text-[15px] font-medium">Filter</h2>
@@ -247,9 +247,9 @@ export default function ShopFilters({ categories, brands, ageGroups = [], showGe
                   <button
                     key={s}
                     onClick={() => toggle("size", s)}
-                    className={`min-w-[48px] h-10 px-3 rounded-lg text-[13px] border transition ${
-                      get("size") === s ? "bg-black text-white border-black" : "border-stone-200 text-stone-700 hover:border-black"
-                    }`}
+                    className={`min-w-[48px] h-10 px-3 rounded-none text-[13px] border transition ${
+ get("size") === s ? "bg-black text-white border-black": "border-stone-200 text-stone-700 hover:border-black"
+ }`}
                   >
                     {s}
                   </button>
@@ -276,11 +276,11 @@ export default function ShopFilters({ categories, brands, ageGroups = [], showGe
             <button
               onClick={clearAll}
               disabled={chips.length === 0}
-              className="h-12 px-5 rounded-full border border-stone-300 text-[13px] disabled:opacity-40 hover:border-black transition"
+              className="h-12 px-5 rounded-none border border-stone-300 text-[11px] uppercase tracking-[0.06em] disabled:opacity-40 hover:border-black transition"
             >
               Clear all
             </button>
-            <button onClick={() => setOpen(false)} className="flex-1 h-12 rounded-full bg-black text-white text-[13px] font-medium hover:bg-stone-800 transition">
+            <button onClick={() => setOpen(false)} className="flex-1 h-12 rounded-none bg-black text-white text-[11px] uppercase tracking-[0.06em] hover:bg-stone-800 transition">
               {pending ? "Updating…" : `View ${totalCount} items`}
             </button>
           </div>

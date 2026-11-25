@@ -78,7 +78,7 @@ export default function LiveDeliveryTracker({ orderNumber }: { orderNumber: stri
         )}
       </div>
 
-      <div className="bg-stone-900 text-stone-100 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-stone-900 text-stone-100 rounded-none overflow-hidden ">
         {isActive && (dropoff || driverPos) && (
           <div className="h-56 sm:h-64 relative border-b border-white/10">
             <DeliveryTrackingMap
@@ -93,7 +93,7 @@ export default function LiveDeliveryTracker({ orderNumber }: { orderNumber: stri
         )}
 
         <div className="p-5 sm:p-6">
-          <p className="font-editorial text-xl sm:text-2xl mb-5">{STATUS_LABEL[tracking.status] || tracking.status}</p>
+          <p className="text-[13px] tracking-[0.08em] font-editorial mb-5">{STATUS_LABEL[tracking.status] || tracking.status}</p>
 
           {tracking.status !== "cancelled" && tracking.status !== "failed" && (
             <div className="flex items-center mb-6">
@@ -117,7 +117,7 @@ export default function LiveDeliveryTracker({ orderNumber }: { orderNumber: stri
           )}
 
           {tracking.driver && (
-            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-none p-4">
               <div className="h-11 w-11 rounded-full bg-white/10 text-stone-100 flex items-center justify-center shrink-0">
                 <VehicleIcon size={19} strokeWidth={1.6} />
               </div>
