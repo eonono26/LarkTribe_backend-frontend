@@ -15,6 +15,7 @@ export default function PlpProductCard({ product }: { product: ProductListItem }
         ) : (
           <div className="w-full h-full bg-stone-100" />
         )}
+        {product.model_3d_url && <span className="absolute bottom-2 left-2 bg-black/85 text-white text-[9px] uppercase tracking-widest px-2 py-1">3D · AR</span>}
         {product.discount_percent ? (
           <span className="absolute top-2 left-2 bg-black text-white text-[9px] uppercase tracking-wider px-1.5 py-0.5">Sale</span>
         ) : null}
