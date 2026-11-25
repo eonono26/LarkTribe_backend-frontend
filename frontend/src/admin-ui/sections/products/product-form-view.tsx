@@ -241,23 +241,6 @@ export function ProductFormView({ productId }: { productId?: number }) {
               <Card>
                 <CardHeader title="3D & AR product preview" />
                 <Box sx={{ p: 3, pt: 1 }}>
-                  {current.model_3d ? (
-                    <Model3DViewer
-                      src={mediaUrl(current.model_3d)}
-                      iosSrc={current.model_3d_ios ? mediaUrl(current.model_3d_ios) : null}
-                      poster={current.model_3d_poster ? mediaUrl(current.model_3d_poster) : undefined}
-                      alt={current.name}
-                    />
-                  ) : (
-                    <Alert severity={current.ar_generation_status === 'failed' ? 'error' : 'info'}>
-                      {current.ar_generation_status === 'failed'
-                        ? current.ar_generation_error || '3D generation failed. Check the source photos and retry.'
-                        : current.ar_generation_status === 'queued' || current.ar_generation_status === 'processing'
-                          ? 'Meshy is generating the 3D model. This can take a few minutes; this panel will update automatically.'
-                          : 'Generate an interactive 3D model from the uploaded product photos.'}
-                    </Alert>
-                  )}
-
                   {!current.model_3d && (
                     <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                       <Typography variant="subtitle2">Already generated a model in Meshy?</Typography>
@@ -293,6 +276,24 @@ export function ProductFormView({ productId }: { productId?: number }) {
                       </Button>
                     </Box>
                   )}
+
+                  {current.model_3d ? (
+                    <Model3DViewer
+                      src={mediaUrl(current.model_3d)}
+                      iosSrc={current.model_3d_ios ? mediaUrl(current.model_3d_ios) : null}
+                      poster={current.model_3d_poster ? mediaUrl(current.model_3d_poster) : undefined}
+                      alt={current.name}
+                    />
+                  ) : (
+                    <Alert severity={current.ar_generation_status === 'failed' ? 'error' : 'info'}>
+                      {current.ar_generation_status === 'failed'
+                        ? current.ar_generation_error || '3D generation failed. Check the source photos and retry.'
+                        : current.ar_generation_status === 'queued' || current.ar_generation_status === 'processing'
+                          ? 'Meshy is generating the 3D model. This can take a few minutes; this panel will update automatically.'
+                          : 'Generate an interactive 3D model from the uploaded product photos.'}
+                    </Alert>
+                  )}
+
 
                   {!current.model_3d && !['queued', 'processing'].includes(current.ar_generation_status) && (
                     <Button sx={{ mt: 2 }} variant="outlined" disabled={generating3d} onClick={async () => {
