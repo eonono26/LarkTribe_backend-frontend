@@ -20,6 +20,7 @@ from .permissions import IsOwnerVendorOrReadOnly
 from .filters import ProductFilter, CategoryFilter, BrandFilter
 from .pagination import LargePageNumberPagination
 from .utils import category_subtree_ids
+from .meshy import start_product_generation, refresh_product_generation
 
 
 from rest_framework.decorators import api_view
@@ -1424,6 +1425,28 @@ class MyProductsViewSet(viewsets.ModelViewSet):
             image.refresh_from_db()
         serializer = ProductImageSerializer(image, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="generate-3d")
+    def generate_3d(self, request, pk=None):
+        """Queue one Meshy generation using this product's existing photos."""
+        product = self.get_object()
+        try:
+            result = start_product_generation(product, request)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(result, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=["get"], url_path="3d-status")
+    def three_d_status(self, request, pk=None):
+        """Refresh Meshy task status and persist completed GLB/USDZ assets."""
+        product = self.get_object()
+        try:
+            result = refresh_product_generation(product)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(result)
 
     @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>\d+)")
     def delete_image(self, request, pk=None, image_id=None):
