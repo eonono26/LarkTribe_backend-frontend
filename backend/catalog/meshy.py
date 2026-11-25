@@ -104,6 +104,15 @@ def refresh_product_generation(product):
     if not product.ar_generation_task_id:
         return {"status": product.ar_generation_status, "detail": "No generation task has been started."}
 
+    # Avoid calling Meshy repeatedly when multiple shoppers open the same item.
+    if product.ar_generation_updated_at and product.ar_generation_status in (
+        Product.ARGenerationStatus.QUEUED,
+        Product.ARGenerationStatus.PROCESSING,
+    ):
+        elapsed = (timezone.now() - product.ar_generation_updated_at).total_seconds()
+        if elapsed < 12:
+            return {"status": product.ar_generation_status}
+
     try:
         response = requests.get(
             f"{MESHY_API}/multi-image-to-3d/{product.ar_generation_task_id}",
