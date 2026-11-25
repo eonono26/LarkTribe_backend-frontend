@@ -74,34 +74,38 @@ export function DashboardView() {
   const [days, setDays] = useState(30);
   const [migrationRunning, setMigrationRunning] = useState(false);
   const [migrationMessage, setMigrationMessage] = useState('');
-  const [migrationProgress, setMigrationProgress] = useState({ copied: 0, skipped: 0, total: 0 });
+  const [migrationProgress, setMigrationProgress] = useState({ copied: 0, skipped: 0, missing: 0, total: 0 });
   const { data, loading, error, reload } = useAsync(() => adminApi.overview(days), [days]);
 
   const labels = (data?.sales_by_day ?? []).map((d) => new Date(d.date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }));
   const migrateMedia = async () => {
     setMigrationRunning(true);
     setMigrationMessage('Preparing media migration…');
-    setMigrationProgress({ copied: 0, skipped: 0, total: 0 });
+    setMigrationProgress({ copied: 0, skipped: 0, missing: 0, total: 0 });
     let offset = 0;
     let copied = 0;
     let skipped = 0;
+    let missing = 0;
+    let firstMissing = '';
     let total = 0;
     try {
       while (true) {
         const result = await adminApi.migrateMediaBatch(offset, 5);
         copied += result.copied;
         skipped += result.already_in_r2;
+        missing += result.missing;
+        if (!firstMissing && result.missing_files.length) firstMissing = result.missing_files[0];
         total = result.total;
         offset = result.offset;
-        setMigrationProgress({ copied, skipped, total });
+        setMigrationProgress({ copied, skipped, missing, total });
         setMigrationMessage(`Processed ${offset} of ${total} media files…`);
         if (result.failed > 0) {
           const first = result.errors[0];
-          throw new Error(`Migration stopped: ${result.failed} file(s) failed. ${first ? first.file + ': ' + first.error : ''} Run it again to retry files not yet copied.`);
+          throw new Error(`Migration stopped: ${result.failed} transfer error(s). ${first ? first.file + ': ' + first.error : ''} Retry to continue.`);
         }
         if (!result.has_more) break;
       }
-      setMigrationMessage(`Migration complete. ${copied} copied to R2; ${skipped} were already there.`);
+      setMigrationMessage(`Migration finished. ${copied} copied to R2; ${skipped} already in R2; ${missing} missing from the old GitHub repository.${firstMissing ? ' First missing file: ' + firstMissing : ''}`);
     } catch (e) {
       setMigrationMessage(e instanceof Error ? e.message : 'Media migration failed. Please retry.');
     } finally {
@@ -169,11 +173,11 @@ export function DashboardView() {
               Move existing product and catalog images and media from the legacy GitHub store into your configured R2 bucket. New uploads already use R2.
             </Typography>
             {(migrationMessage || migrationRunning) && (
-              <Alert severity={migrationMessage.startsWith('Migration complete') ? 'success' : migrationMessage.startsWith('Migration stopped') || migrationMessage.includes('failed') ? 'error' : 'info'} sx={{ mt: 2 }}>
+              <Alert severity={migrationMessage.startsWith('Migration finished') ? (migrationProgress.missing ? 'warning' : 'success') : migrationMessage.startsWith('Migration stopped') || migrationMessage.includes('failed') ? 'error' : 'info'} sx={{ mt: 2 }}>
                 {migrationMessage || 'Migration running…'}
                 {migrationProgress.total > 0 && (
                   <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                    {migrationProgress.copied} copied · {migrationProgress.skipped} already in R2 · {migrationProgress.total} total
+                    {migrationProgress.copied} copied · {migrationProgress.skipped} already in R2 · {migrationProgress.missing} missing at source · {migrationProgress.total} total
                   </Typography>
                 )}
               </Alert>
