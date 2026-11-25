@@ -15,12 +15,8 @@ class DepartmentMediaSerializer(serializers.ModelSerializer):
         fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
     
     def get_file_url(self, obj):
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
+        # Remote media URL resolution must never take down product/category detail.
+        return _safe_media_url(obj.file, self.context.get("request"))
 
 
 class CategoryMediaSerializer(serializers.ModelSerializer):
@@ -31,12 +27,8 @@ class CategoryMediaSerializer(serializers.ModelSerializer):
         fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
     
     def get_file_url(self, obj):
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
+        # Remote media URL resolution must never take down product/category detail.
+        return _safe_media_url(obj.file, self.context.get("request"))
 
 
 class AgeGroupMediaSerializer(serializers.ModelSerializer):
@@ -47,12 +39,8 @@ class AgeGroupMediaSerializer(serializers.ModelSerializer):
         fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
     
     def get_file_url(self, obj):
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
+        # Remote media URL resolution must never take down product/category detail.
+        return _safe_media_url(obj.file, self.context.get("request"))
 
 
 # ============================================================
@@ -374,12 +362,8 @@ class BrandMediaSerializer(serializers.ModelSerializer):
         fields = ['id', 'file', 'file_url', 'media_type', 'alt_text', 'is_primary', 'order', 'uploaded_at']
     
     def get_file_url(self, obj):
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
+        # Remote media URL resolution must never take down product/category detail.
+        return _safe_media_url(obj.file, self.context.get("request"))
 
 
 class BrandSerializer(serializers.ModelSerializer):
@@ -417,13 +401,8 @@ class BrandSerializer(serializers.ModelSerializer):
         return obj.products.filter(status=Product.Status.ACTIVE).count()
     
     def get_logo_url(self, obj):
-        """Get the absolute URL of the brand logo"""
-        if obj.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.logo.url)
-            return obj.logo.url
-        return None
+        """Resolve brand logos safely when remote storage is temporarily unavailable."""
+        return _safe_media_url(obj.logo, self.context.get("request"))
 
 def _safe_media_url(field, request=None):
     """Resolve a storage URL without letting missing remote media break API responses."""
