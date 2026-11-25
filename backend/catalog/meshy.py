@@ -183,6 +183,8 @@ def start_product_generation(product, request=None):
     """Persist a submission state and return without waiting for Meshy."""
     if product.model_3d and product.ar_generation_status == Product.ARGenerationStatus.SUCCEEDED:
         return {"status": product.ar_generation_status, "detail": "A 3D model is already available."}
+    if not product.images.filter(image__isnull=False).exclude(image="").exists():
+        raise ValueError("Upload at least one product photo before generating a 3D model.")
 
     with transaction.atomic():
         current = Product.objects.select_for_update().get(pk=product.pk)
@@ -202,6 +204,17 @@ def start_product_generation(product, request=None):
             )
             if age <= SUBMISSION_STALE_SECONDS:
                 return {"status": current.ar_generation_status, "detail": "Submitting task to Meshy."}
+            message = (
+                "The previous submission did not save a Meshy task ID. "
+                "Check Meshy task history before retrying to avoid duplicate credit usage."
+            )
+            current.ar_generation_status = Product.ARGenerationStatus.FAILED
+            current.ar_generation_error = message
+            current.ar_generation_updated_at = timezone.now()
+            current.save(update_fields=[
+                "ar_generation_status", "ar_generation_error", "ar_generation_updated_at",
+            ])
+            return {"status": current.ar_generation_status, "detail": message}
 
         current.ar_generation_status = Product.ARGenerationStatus.PROCESSING
         current.ar_generation_task_id = ""
