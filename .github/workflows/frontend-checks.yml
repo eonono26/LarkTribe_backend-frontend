@@ -28,7 +28,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
       - name: Full frontend lint (existing repository backlog is non-blocking)
         run: npm run lint
         continue-on-error: true
@@ -36,10 +36,25 @@ jobs:
         run: >-
           npx eslint
           src/components/ProductCard.tsx
+          src/components/ProductMedia.tsx
+          src/components/QuickViewModal.tsx
+          src/components/PlpProductCard.tsx
+          src/components/EditorialProductCard.tsx
+          src/components/ShowroomStage.tsx
           src/components/Tilt3DShowcase.tsx
           src/components/showroom/ShowroomExperience.tsx
           src/components/showroom/engine.ts
+          src/app/product/[slug]/page.tsx
+          src/app/vendor/dashboard/products/page.tsx
+          src/app/vendor/dashboard/products/new/page.tsx
+          src/app/vendor/dashboard/products/[id]/edit/page.tsx
+          src/admin-ui/sections/products/product-form-view.tsx
           src/app/api/showroom-asset/route.ts
+          src/lib/api.ts
+          src/lib/types.ts
+          src/lib/vendor-api.ts
+          src/lib/admin-api.ts
+          src/lib/admin-types.ts
           src/lib/wishlist-context.tsx
           src/components/RootShell.tsx
           src/app/account/wishlist/page.tsx
