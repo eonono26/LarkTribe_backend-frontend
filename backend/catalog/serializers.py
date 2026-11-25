@@ -819,6 +819,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     spin_frames = serializers.SerializerMethodField()
     model_3d_url = serializers.SerializerMethodField()
+    model_3d_ios_url = serializers.SerializerMethodField()
     model_3d_poster_url = serializers.SerializerMethodField()
     has_360 = serializers.SerializerMethodField()
 
@@ -832,8 +833,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "description",
             "spin_frames",
             "model_3d_url",
+            "model_3d_ios_url",
             "model_3d_poster_url",
             "has_360",
+            "ar_generation_status",
             "features",
             "materials",
             "care_instructions",
@@ -896,6 +899,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_model_3d_url(self, obj):
         return self._abs(obj.model_3d)
+
+    def get_model_3d_ios_url(self, obj):
+        return self._abs(obj.model_3d_ios)
 
     def get_model_3d_poster_url(self, obj):
         return self._abs(obj.model_3d_poster)
