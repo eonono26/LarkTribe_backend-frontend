@@ -1126,6 +1126,16 @@ class ProductViewSet(
             permissions.AllowAny()
         ]
 
+    @action(detail=True, methods=["get"], url_path="3d-status")
+    def three_d_status(self, request, slug=None):
+        """Public, rate-limited status refresh so shoppers can receive completed AR assets."""
+        product = self.get_object()
+        try:
+            result = refresh_product_generation(product)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(result)
+
     # --------------------------------------------------------
     # BABY SHOPPING
     # --------------------------------------------------------
