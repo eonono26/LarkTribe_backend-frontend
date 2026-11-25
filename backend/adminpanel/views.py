@@ -15,6 +15,8 @@ dispatch, analytics and the AI dashboard keep using their existing endpoints.
 from datetime import timedelta
 from decimal import Decimal
 
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.db.models.functions import TruncDate
@@ -32,6 +34,8 @@ from catalog.models import (
 from orders.models import Order, OrderItem
 from vendors.models import Vendor
 from catalog.meshy import start_product_generation, refresh_product_generation
+
+logger = logging.getLogger(__name__)
 
 from .pagination import AdminPagination
 from .permissions import IsPlatformAdmin
@@ -241,6 +245,34 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
     def _variants(self, product):
         return AdminProductVariantSerializer(ProductVariant.objects.filter(product=product).order_by("id"), many=True).data
 
+    def _generation_busy(self, product):
+        return product.ar_generation_status in (
+            Product.ARGenerationStatus.QUEUED,
+            Product.ARGenerationStatus.PROCESSING,
+        )
+
+    def _invalidate_3d(self, product):
+        """Remove generated geometry whenever its source photo set changes."""
+        for field_name in ("model_3d", "model_3d_ios"):
+            field = getattr(product, field_name)
+            if field:
+                try:
+                    field.delete(save=False)
+                except Exception:
+                    # A missing old file must not prevent the admin from fixing
+                    # the source gallery; the database references are cleared below.
+                    logger.exception("Could not delete stale %s for product %s", field_name, product.pk)
+        product.model_3d_poster = None
+        product.ar_generation_status = Product.ARGenerationStatus.NOT_STARTED
+        product.ar_generation_task_id = ""
+        product.ar_generation_error = ""
+        product.ar_generation_updated_at = None
+        product.save(update_fields=[
+            "model_3d", "model_3d_ios", "model_3d_poster",
+            "ar_generation_status", "ar_generation_task_id",
+            "ar_generation_error", "ar_generation_updated_at",
+        ])
+
     # --- moderation (same effect + vendor notification as /catalog/admin/products/<id>/approve|reject) ---
     def _notify_vendor(self, product, title, body):
         try:
@@ -335,6 +367,12 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         if view not in ProductImage.View.values:
             return Response({"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"}, status=status.HTTP_400_BAD_REQUEST)
         alt = request.data.get("alt_text", "") or product.name
+        if self._generation_busy(product):
+            return Response(
+                {"detail": "Wait for the current 3D generation to finish before changing product photos."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        self._invalidate_3d(product)
         # New photos are appended to the end of THIS color's gallery.
         start = ProductImage.group(product.id, color).count()
         for i, f in enumerate(files):
@@ -348,8 +386,22 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         product = self.get_object()
         image = get_object_or_404(product.images, pk=image_id)
         if request.method == "DELETE":
+            if self._generation_busy(product):
+                return Response(
+                    {"detail": "Wait for the current 3D generation to finish before changing product photos."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            self._invalidate_3d(product)
             image.delete()  # the color's next photo is promoted if this was its primary
         else:
+            geometry_fields = {"color", "view", "order", "is_primary"}
+            if geometry_fields.intersection(request.data.keys()):
+                if self._generation_busy(product):
+                    return Response(
+                        {"detail": "Wait for the current 3D generation to finish before changing product photos."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                self._invalidate_3d(product)
             if "view" in request.data and request.data["view"] not in ProductImage.View.values:
                 return Response({"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"}, status=status.HTTP_400_BAD_REQUEST)
             if "order" in request.data and not str(request.data["order"]).isdigit():
@@ -366,6 +418,12 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
     def set_primary_image(self, request, pk=None, image_id=None):
         product = self.get_object()
         chosen = get_object_or_404(product.images, pk=image_id)
+        if self._generation_busy(product):
+            return Response(
+                {"detail": "Wait for the current 3D generation to finish before changing product photos."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        self._invalidate_3d(product)
         ProductImage.set_primary(chosen)
         return Response(self._images(product, request))
 
