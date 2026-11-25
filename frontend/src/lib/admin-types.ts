@@ -14,6 +14,7 @@ export interface AdminProduct {
   created_at: string; updated_at: string; primary_image: string | null; images: ProductImage[]; variants: ProductVariant[];
   model_3d: string | null; model_3d_ios: string | null; model_3d_poster: string | null;
   ar_generation_status: 'not_started' | 'queued' | 'processing' | 'succeeded' | 'failed';
+  ar_generation_error: string;
 }
 export interface MediaItem { id: number; file: string | null; media_type: 'image' | 'video'; alt_text: string; is_primary: boolean; order: number }
 export interface Department { id: number; name: string; slug: string; order: number; description: string; is_active: boolean; category_count: number; product_count: number; media: MediaItem[]; image_url: string | null }
