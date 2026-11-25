@@ -352,6 +352,62 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         return Response(result)
 
     # --- images ---
+    @action(detail=True, methods=["post"], url_path=r"images/import")
+    def import_repository_image(self, request, pk=None):
+        """Attach an image already present in the configured media repository."""
+        product = self.get_object()
+        path = (request.data.get("path") or "").strip().lstrip("/")
+        if (
+            not path.startswith("products/")
+            or ".." in path.split("/")
+            or "\\" in path
+            or not path.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+        ):
+            return Response(
+                {"detail": "Enter a valid products/ image path ending in JPG, PNG or WebP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        color = (request.data.get("color") or "").strip()
+        view = request.data.get("view") or ProductImage.View.FRONT
+        if view not in ProductImage.View.values:
+            return Response(
+                {"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if self._generation_busy(product):
+            return Response(
+                {"detail": "Wait for the current 3D generation to finish before changing product photos."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        storage = ProductImage._meta.get_field("image").storage
+        try:
+            if not storage.exists(path):
+                return Response(
+                    {"detail": f"'{path}' was not found in the configured media repository."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        except Exception:
+            logger.exception("Unable to verify repository image %s", path)
+            return Response(
+                {"detail": "Could not access the media repository. Check its configuration and try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        if ProductImage.objects.filter(product=product, image=path).exists():
+            return Response(
+                {"detail": "This repository image is already attached to the product."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        self._invalidate_3d(product)
+        image = ProductImage.objects.create(
+            product=product,
+            image=path,
+            color=color,
+            view=view,
+            alt_text=request.data.get("alt_text", "") or product.name,
+            order=ProductImage.group(product.id, color).count(),
+        )
+        return Response(self._images(product, request), status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=["post"], url_path="images", parser_classes=[parsers.MultiPartParser, parsers.FormParser])
     def upload_images(self, request, pk=None):
         product = self.get_object()
