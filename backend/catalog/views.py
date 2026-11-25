@@ -1412,6 +1412,20 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         order = request.data.get("order")
         order = int(order) if str(order or "").isdigit() else group.count()
 
+        # A changed source photo invalidates the previous generated geometry.
+        if product.model_3d:
+            product.model_3d.delete(save=False)
+        if product.model_3d_ios:
+            product.model_3d_ios.delete(save=False)
+        product.ar_generation_status = Product.ARGenerationStatus.NOT_STARTED
+        product.ar_generation_task_id = ""
+        product.ar_generation_error = ""
+        product.ar_generation_updated_at = None
+        product.save(update_fields=[
+            "model_3d", "model_3d_ios", "ar_generation_status",
+            "ar_generation_task_id", "ar_generation_error", "ar_generation_updated_at",
+        ])
+
         image = ProductImage.objects.create(
             product=product,
             image=image_file,
@@ -1453,6 +1467,18 @@ class MyProductsViewSet(viewsets.ModelViewSet):
         product = self.get_object()
         image = get_object_or_404(product.images, id=image_id)
         image.delete()
+        if product.model_3d:
+            product.model_3d.delete(save=False)
+        if product.model_3d_ios:
+            product.model_3d_ios.delete(save=False)
+        product.ar_generation_status = Product.ARGenerationStatus.NOT_STARTED
+        product.ar_generation_task_id = ""
+        product.ar_generation_error = ""
+        product.ar_generation_updated_at = None
+        product.save(update_fields=[
+            "model_3d", "model_3d_ios", "ar_generation_status",
+            "ar_generation_task_id", "ar_generation_error", "ar_generation_updated_at",
+        ])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"], url_path=r"images/(?P<image_id>\d+)/set-primary")
