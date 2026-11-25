@@ -33,7 +33,7 @@ from catalog.models import (
 )
 from orders.models import Order, OrderItem
 from vendors.models import Vendor
-from catalog.meshy import start_product_generation, refresh_product_generation
+from catalog.meshy import start_product_generation, refresh_product_generation, import_completed_meshy_task
 
 logger = logging.getLogger(__name__)
 
@@ -341,6 +341,20 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         except RuntimeError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response(result, status=status.HTTP_202_ACCEPTED)
+
+
+    @action(detail=True, methods=["post"], url_path="import-meshy-task")
+    def import_meshy_task(self, request, pk=None):
+        """Attach a completed Meshy task without generating (or charging) again."""
+        product = self.get_object()
+        task_id = (request.data.get("task_id") or "").strip()
+        try:
+            result = import_completed_meshy_task(product, task_id)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"], url_path="3d-status")
     def three_d_status(self, request, pk=None):
