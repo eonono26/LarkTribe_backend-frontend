@@ -156,8 +156,9 @@ def refresh_product_generation(product):
 
     if state in ("FAILED", "CANCELED"):
         error = task.get("task_error") or {}
+        error_message = error.get("message") if isinstance(error, dict) else str(error)
         product.ar_generation_status = Product.ARGenerationStatus.FAILED
-        product.ar_generation_error = str(error.get("message") or "Meshy could not generate a model from these photos.")[:1000]
+        product.ar_generation_error = str(error_message or "Meshy could not generate a model from these photos.")[:1000]
         product.ar_generation_updated_at = timezone.now()
         product.save(update_fields=["ar_generation_status", "ar_generation_error", "ar_generation_updated_at"])
         return {"status": product.ar_generation_status, "detail": product.ar_generation_error}
