@@ -180,7 +180,7 @@ export default async function CategoriesPage() {
   return (
     <main className="min-h-screen bg-white font-sans text-black">
       <div className="container-shell py-12">
-        <h1 className="text-[13px] tracking-[0.08em] mb-10 font-editorial ">
+        <h1 className="mb-10 font-editorial text-4xl">
           Collections
         </h1>
 
@@ -202,7 +202,7 @@ export default async function CategoriesPage() {
               <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/25" />
 
               <div className="absolute inset-0 flex items-end justify-center pb-8 text-white">
-                <h2 className="text-[13px] tracking-[0.08em] font-editorial tracking-wide">
+                <h2 className="font-editorial text-2xl tracking-wide">
                   {department.name}
                 </h2>
               </div>

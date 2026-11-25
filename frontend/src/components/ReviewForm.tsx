@@ -51,7 +51,7 @@ export default function ReviewForm({ productId, onSubmitted }: { productId: numb
         onChange={(e) => setComment(e.target.value)}
         placeholder="Share your experience with this product…"
         rows={3}
-        className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none text-sm"
+        className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none text-sm"
       />
       {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
       <button

@@ -21,7 +21,7 @@ export default function WhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Chat with Style Concierge on WhatsApp"
       title="WhatsApp Style Concierge"
-      className="fixed bottom-40 lg:bottom-24 right-5 z-50 flex items-center group bg-[#25D366] hover:bg-[#20bd5a] text-white p-3.5 rounded-full hover: transition-all duration-300 transform hover:-translate-y-0.5 font-sans"
+      className="fixed bottom-40 lg:bottom-24 right-5 z-50 flex items-center group bg-[#25D366] hover:bg-[#20bd5a] text-white p-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 font-sans"
     >
       <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs group-hover:pr-2 group-hover:pl-1 text-xs font-semibold tracking-wide transition-all duration-300">
         Stylist Concierge

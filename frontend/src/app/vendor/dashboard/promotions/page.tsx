@@ -60,18 +60,18 @@ export default function VendorPromotionsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-[13px] tracking-[0.08em] font-display mb-1">Coupons & Promotions</h1>
+        <h1 className="font-display text-2xl font-black mb-1">Coupons & Promotions</h1>
         <p className="text-sm text-neutral-500">Create discount codes shoppers can apply at checkout.</p>
       </div>
 
-      <form onSubmit={handleCreate} className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 items-end border border-[var(--color-line)] rounded-none p-4">
+      <form onSubmit={handleCreate} className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 items-end border border-[var(--color-line)] rounded-lg p-4">
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Code</label>
           <input
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
             placeholder="SAVE20"
-            className="w-full bg-[var(--color-mist)] rounded-none px-3 py-2.5 mt-1 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-3 py-2.5 mt-1 outline-none"
             required
           />
         </div>
@@ -84,7 +84,7 @@ export default function VendorPromotionsPage() {
             value={form.percent_off}
             onChange={(e) => setForm({ ...form, percent_off: e.target.value, amount_off: "" })}
             placeholder="e.g. 10"
-            className="w-full bg-[var(--color-mist)] rounded-none px-3 py-2.5 mt-1 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-3 py-2.5 mt-1 outline-none"
           />
         </div>
         <div>
@@ -95,7 +95,7 @@ export default function VendorPromotionsPage() {
             value={form.amount_off}
             onChange={(e) => setForm({ ...form, amount_off: e.target.value, percent_off: "" })}
             placeholder="e.g. 500"
-            className="w-full bg-[var(--color-mist)] rounded-none px-3 py-2.5 mt-1 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-3 py-2.5 mt-1 outline-none"
           />
         </div>
         <div>
@@ -104,7 +104,7 @@ export default function VendorPromotionsPage() {
             type="date"
             value={form.valid_until}
             onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-3 py-2.5 mt-1 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-3 py-2.5 mt-1 outline-none"
           />
         </div>
         <button
@@ -124,7 +124,7 @@ export default function VendorPromotionsPage() {
       ) : (
         <div className="space-y-2">
           {coupons.map((c) => (
-            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 border border-[var(--color-line)] rounded-none p-3 text-sm">
+            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 border border-[var(--color-line)] rounded-lg p-3 text-sm">
               <div>
                 <p className="font-mono font-bold">{c.code}</p>
                 <p className="text-neutral-500 text-xs">
@@ -134,9 +134,9 @@ export default function VendorPromotionsPage() {
               </div>
               <div className="flex items-center gap-3">
                 <span
-                  className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-none ${
- c.active ? "bg-[var(--dept-maternity)]/10 text-[var(--dept-maternity)]": "bg-[var(--color-mist)] text-neutral-500"
- }`}
+                  className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full ${
+                    c.active ? "bg-[var(--dept-maternity)]/10 text-[var(--dept-maternity)]" : "bg-[var(--color-mist)] text-neutral-500"
+                  }`}
                 >
                   {c.active ? "Active" : "Paused"}
                 </span>

@@ -138,7 +138,7 @@ export default function Tilt3DShowcase({
           <button
             type="button"
             onClick={() => setQuickViewSlug(product.slug)}
-            className="rounded-none bg-white/95 px-2.5 py-2 text-[9px] uppercase tracking-wider text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white sm:px-3"
+            className="rounded-full bg-white/95 px-2.5 py-2 text-[9px] uppercase tracking-wider text-black shadow-sm transition hover:-translate-y-0.5 hover:bg-white sm:px-3"
           >
             Quick view
           </button>
@@ -165,7 +165,7 @@ export default function Tilt3DShowcase({
   return (
     <section className="relative w-full overflow-hidden bg-white py-10 sm:py-14" aria-label={title}>
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-8">
-        <h2 className="text-[13px] tracking-[0.08em] text-center font-editorial ">{title}</h2>
+        <h2 className="text-center font-editorial text-3xl tracking-tight sm:text-4xl">{title}</h2>
         <p className="mb-2 mt-2 text-center text-[11px] uppercase tracking-[0.2em] text-stone-500">
           Drag to spin
         </p>

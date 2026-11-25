@@ -29,10 +29,10 @@ export default async function DealsPage({
       {/* Editorial sale hero — red takeover band, matches the homepage promo strip */}
       <div className="bg-[var(--color-flag)] text-white">
         <div className="container-shell py-8 sm:py-12">
-          <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] mb-3 opacity-90">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-[0.15em] mb-3">
             Baby · Kids · Women · Men
           </span>
-          <h1 className="text-[13px] tracking-[0.08em] font-display leading-tight">
+          <h1 className="font-display text-3xl sm:text-5xl font-black leading-tight">
             Sale &amp; Promotions
           </h1>
           <p className="text-sm sm:text-base text-white/90 mt-2 max-w-md">

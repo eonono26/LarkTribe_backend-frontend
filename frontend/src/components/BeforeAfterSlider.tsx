@@ -32,7 +32,7 @@ export default function BeforeAfterSlider({ before, after, alt = "Try-on preview
       <span className="absolute top-3 left-3 bg-black/60 text-white text-[10px] uppercase tracking-widest px-2 py-1">Before</span>
       <span className="absolute top-3 right-3 bg-black/60 text-white text-[10px] uppercase tracking-widest px-2 py-1">After</span>
       <div className="absolute top-0 bottom-0 w-px bg-white shadow" style={{ left: `${pos}%` }}>
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white flex items-center justify-center text-black">
+        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-black">
           <MoveHorizontal size={16} />
         </div>
       </div>

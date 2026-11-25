@@ -78,7 +78,7 @@ export default function Product360Viewer({
           <section role="dialog" aria-modal="true" aria-label={`${productName} 360° view`} className="relative h-full w-full max-w-4xl overflow-y-auto bg-white p-5 sm:h-auto sm:max-h-[94vh] sm:p-8">
             <button type="button" onClick={() => setOpen(false)} aria-label="Close 360° view" className="absolute right-4 top-4 p-2 text-stone-500 hover:text-black"><X size={20} /></button>
             <p className="text-center text-[10px] uppercase tracking-[0.22em] text-stone-500">360° interactive view</p>
-            <h2 className="text-[13px] tracking-[0.08em] mt-1 text-center font-editorial ">{productName}</h2>
+            <h2 className="mt-1 text-center font-editorial text-2xl">{productName}</h2>
             <p className="mt-1 text-center text-xs text-stone-500">{[color, size && `Size ${size}`, priceLabel].filter(Boolean).join(" · ")}</p>
 
             <div className="mt-5 grid gap-5 md:grid-cols-[200px_1fr]">

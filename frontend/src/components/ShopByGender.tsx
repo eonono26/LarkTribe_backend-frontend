@@ -46,11 +46,11 @@ export default function ShopByGender({
 
   return (
     <section className="container-shell mt-6 sm:mt-8">
-      <h2 className="text-[13px] tracking-[0.08em] font-display mb-3 sm:mb-5">Shop by</h2>
+      <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-5">Shop by</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-5">
         {tiles.map((tile) => (
           <Link key={tile.label} href={tile.href} className="group block">
-            <div className="relative aspect-[3/4] rounded-none overflow-hidden bg-[var(--color-ink)]">
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[var(--color-ink)]">
               {tile.image ? (
                 <>
                   <Image
@@ -63,7 +63,7 @@ export default function ShopByGender({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
                 </>
               ) : null}
-              <p className="text-[13px] tracking-[0.08em] absolute bottom-3 left-4 font-display text-lg text-white drop-shadow-sm ">
+              <p className="absolute bottom-3 left-4 font-display font-black text-lg md:text-2xl text-white drop-shadow-sm tracking-tight">
                 {tile.label}
               </p>
             </div>

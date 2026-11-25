@@ -13,10 +13,10 @@ export default async function BrandsPage() {
       {/* Editorial header band — consistent with the sale/deals page treatment */}
       <div className="bg-[var(--color-ink)] text-white">
         <div className="container-shell py-8 sm:py-12">
-          <span className="inline-flex items-center gap-1.5 rounded-none bg-white/15 backdrop-blur-sm border border-white/30 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-[0.15em] mb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-[0.15em] mb-3">
             Shop by brand
           </span>
-          <h1 className="text-[13px] tracking-[0.08em] font-display leading-tight">Brands</h1>
+          <h1 className="font-display text-3xl sm:text-5xl font-black leading-tight">Brands</h1>
           <p className="text-sm sm:text-base text-white/80 mt-2 max-w-md">
             {brands.length} brand{brands.length === 1 ? "" : "s"} for baby, kids, women & men, from established names to LarkTribe favorites.
           </p>
@@ -32,7 +32,7 @@ export default async function BrandsPage() {
             <Link
               key={b.id}
               href={`/brand/${b.id}`}
-              className="group border border-[var(--color-line)] rounded-none overflow-hidden hover: hover:-translate-y-0.5 transition-all bg-white"
+              className="group border border-[var(--color-line)] rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all bg-white"
             >
               {/* Brand Image/Logo */}
               <div className="relative h-32 w-full bg-[var(--color-mist)] flex items-center justify-center p-4">
@@ -63,7 +63,7 @@ export default async function BrandsPage() {
               
               {/* Brand Info */}
               <div className="p-4 text-center border-t border-[var(--color-line)]">
-                <p className="text-[13px] tracking-[0.08em] font-display break-words sm:truncate text-sm group-hover:text-[var(--color-accent)] transition-colors">
+                <p className="font-display font-bold break-words sm:truncate text-sm group-hover:text-[var(--color-accent)] transition-colors">
                   {b.name}
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">

@@ -501,7 +501,7 @@ export default function AgeGroupNav({
     <div className="w-full mb-8 sm:mb-10">
       {/* Header */}
       <div className="w-full mb-3 sm:mb-4 flex items-baseline justify-between">
-        <h2 className="text-[13px] tracking-[0.08em] font-display text-lg text-[var(--color-ink)]">
+        <h2 className="font-display text-lg sm:text-2xl md:text-3xl font-bold text-[var(--color-ink)]">
           Shop by Age
         </h2>
         <span className="text-[11px] sm:text-sm text-neutral-500 font-medium hidden sm:inline">
@@ -519,24 +519,24 @@ export default function AgeGroupNav({
               scroll("left")
             }
             className="
- absolute
- left-1
- sm:left-2
- top-1/2
- -translate-y-1/2
- z-20
- bg-white/95
- backdrop-blur-sm
- 
- rounded-full
- p-2
- sm:p-3
- hover:bg-white
- transition-all
- duration-200
- border
- border-neutral-200
- "
+              absolute
+              left-1
+              sm:left-2
+              top-1/2
+              -translate-y-1/2
+              z-20
+              bg-white/95
+              backdrop-blur-sm
+              shadow-lg
+              rounded-full
+              p-2
+              sm:p-3
+              hover:bg-white
+              transition-all
+              duration-200
+              border
+              border-neutral-200
+            "
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 text-neutral-700" />
@@ -623,17 +623,17 @@ export default function AgeGroupNav({
                   <div className="relative w-full aspect-square flex justify-center">
                     <div
                       className={`
- relative
- w-full
- h-full
- rounded-full
- overflow-hidden
- 
- hover:
- transition-all
- duration-300
- ${imageSizeClass}
- `}
+                        relative
+                        w-full
+                        h-full
+                        rounded-full
+                        overflow-hidden
+                        shadow-md
+                        hover:shadow-xl
+                        transition-all
+                        duration-300
+                        ${imageSizeClass}
+                      `}
                     >
                       {imageUrl ? (
                         <Image
@@ -654,7 +654,7 @@ export default function AgeGroupNav({
                         />
                       ) : (
                         <div
-                          className={`text-[13px] tracking-[0.08em] w-full h-full flex items-center justify-center font-display text-white ${color.accentBg}`}
+                          className={`w-full h-full flex items-center justify-center font-display font-black text-3xl sm:text-4xl text-white ${color.accentBg}`}
                         >
                           {ag.name.charAt(0)}
                         </div>
@@ -665,17 +665,17 @@ export default function AgeGroupNav({
                         0 && (
                         <div
                           className={`
- absolute
- top-0.5
- right-0.5
- ${color.accentBg}
- text-white
- font-bold
- rounded-full
- 
- z-10
- ${badgeSizeClass}
- `}
+                            absolute
+                            top-0.5
+                            right-0.5
+                            ${color.accentBg}
+                            text-white
+                            font-bold
+                            rounded-full
+                            shadow-md
+                            z-10
+                            ${badgeSizeClass}
+                          `}
                         >
                           {
                             productCount
@@ -730,24 +730,24 @@ export default function AgeGroupNav({
               scroll("right")
             }
             className="
- absolute
- right-1
- sm:right-2
- top-1/2
- -translate-y-1/2
- z-20
- bg-white/95
- backdrop-blur-sm
- 
- rounded-full
- p-2
- sm:p-3
- hover:bg-white
- transition-all
- duration-200
- border
- border-neutral-200
- "
+              absolute
+              right-1
+              sm:right-2
+              top-1/2
+              -translate-y-1/2
+              z-20
+              bg-white/95
+              backdrop-blur-sm
+              shadow-lg
+              rounded-full
+              p-2
+              sm:p-3
+              hover:bg-white
+              transition-all
+              duration-200
+              border
+              border-neutral-200
+            "
             aria-label="Scroll right"
           >
             <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 text-neutral-700" />

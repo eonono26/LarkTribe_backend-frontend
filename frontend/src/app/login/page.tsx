@@ -74,7 +74,7 @@ export default function LoginPage() {
   return (
     <main className="bg-white text-black font-sans min-h-[70vh] flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
-        <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-1">Sign In</h1>
+        <h1 className="font-editorial text-3xl mb-1">Sign In</h1>
 
         <p className="text-sm text-stone-500 mb-8">
           Welcome back to Lark Tribe.

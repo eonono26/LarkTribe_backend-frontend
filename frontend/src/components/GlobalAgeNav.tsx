@@ -114,9 +114,9 @@ export default function GlobalAgeNav({
         {/* Left scroll button - mobile only */}
         <button
           onClick={() => scroll('left')}
-          className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 sm:hidden flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 ${
- atStart ? 'opacity-0 pointer-events-none' : 'opacity-100'
- }`}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 sm:hidden flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-all duration-200 ${
+            atStart ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
           aria-label="Scroll left"
         >
           <ChevronLeft className="w-4 h-4 text-gray-700" />
@@ -136,11 +136,11 @@ export default function GlobalAgeNav({
               <Link
                 key={ag.slug}
                 href={`/shop/age/${ag.slug}`}
-                className={`shrink-0 flex flex-col items-center gap-2 rounded-none px-3 py-3 min-w-[90px] sm:min-w-[100px] transition-colors duration-150 bg-white hover:bg-gray-50 ${
- active
- ? "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]"
- : "text-[var(--color-ink-soft)]"
- }`}
+                className={`shrink-0 flex flex-col items-center gap-2 rounded-xl px-3 py-3 min-w-[90px] sm:min-w-[100px] transition-colors duration-150 bg-white hover:bg-gray-50 ${
+                  active
+                    ? "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]"
+                    : "text-[var(--color-ink-soft)]"
+                }`}
               >
                 {/* Image on top - increased size with white background, no hover effects */}
                 {imageUrl ? (
@@ -175,9 +175,9 @@ export default function GlobalAgeNav({
         {/* Right scroll button - mobile only */}
         <button
           onClick={() => scroll('right')}
-          className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 sm:hidden flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 ${
- atEnd ? 'opacity-0 pointer-events-none' : 'opacity-100'
- }`}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 sm:hidden flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-all duration-200 ${
+            atEnd ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
           aria-label="Scroll right"
         >
           <ChevronRight className="w-4 h-4 text-gray-700" />

@@ -7,6 +7,7 @@ import {
   useRef,
 } from "react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import type { Campaign } from "@/lib/types";
 
@@ -39,9 +40,11 @@ export default function HeroCarousel({
 
   if (count === 0) return null;
 
+  const arrowClass = "absolute top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white shadow-lg backdrop-blur-md transition-all duration-200 hover:scale-105 hover:bg-black/50 active:scale-95 focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100";
+
   return (
     <section
-      className="group relative w-full overflow-hidden bg-black"
+      className="group relative w-full overflow-hidden bg-white"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={(event) => {
@@ -57,59 +60,31 @@ export default function HeroCarousel({
         setIsPaused(false);
       }}
     >
-      <div className="relative h-[88svh] min-h-[520px] w-full overflow-hidden lg:h-[100svh]">
+      <div className="relative aspect-[16/6] w-full overflow-hidden">
         {slides.map((campaign, i) => {
           const isActive = i === activeIndex;
           const imageSrc = campaign.image ? mediaUrl(campaign.image) : "";
           return (
-            <article
-              key={campaign.id || i}
-              className={`absolute inset-0 h-full w-full transition-opacity duration-1000 ease-in-out ${isActive ? "z-10 pointer-events-auto opacity-100" : "pointer-events-none z-0 opacity-0"}`}
-              aria-hidden={!isActive}
-            >
-              <Link
-                href={campaign.link_url || "#"}
-                aria-label={campaign.title || "Shop this collection"}
-                tabIndex={isActive ? 0 : -1}
-                className="relative block h-full w-full overflow-hidden"
-              >
+            <article key={campaign.id || i} className={`absolute inset-0 h-full w-full transition-opacity duration-700 ease-in-out ${isActive ? "z-10 pointer-events-auto opacity-100" : "pointer-events-none z-0 opacity-0"}`} aria-hidden={!isActive}>
+              <Link href={campaign.link_url || "#"} aria-label={campaign.title || "Shop this collection"} tabIndex={isActive ? 0 : -1} className="relative block h-full w-full overflow-hidden">
                 {imageSrc ? (
-                  <img
-                    src={imageSrc}
-                    alt={campaign.title || ""}
-                    draggable={false}
-                    className={`absolute inset-0 h-full w-full select-none object-cover object-center transition-transform duration-[9000ms] ease-out ${isActive ? "scale-[1.07]" : "scale-100"}`}
-                  />
+                  <img src={imageSrc} alt={campaign.title || ""} draggable={false} className={`absolute inset-0 h-full min-h-full w-full min-w-full select-none object-cover object-center transition-transform duration-[7000ms] ease-out ${isActive ? "scale-105" : "scale-100"}`} />
                 ) : (
-                  <div className="absolute inset-0" style={{ backgroundColor: campaign.background_color || "#0A0A0A" }} />
+                  <div className="absolute inset-0 h-full w-full" style={{ backgroundColor: campaign.background_color || "#ffffff" }} />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-                <div className="absolute bottom-10 left-5 right-5 text-white sm:left-8 lg:bottom-14 lg:left-12">
-                  {campaign.title && (
-                    <h2 className="max-w-2xl text-[22px] leading-tight tracking-[0.06em] sm:text-[34px] lg:text-[44px]">{campaign.title}</h2>
-                  )}
-                  {campaign.description && (
-                    <p className="mt-3 max-w-md text-[12px] uppercase tracking-[0.06em] opacity-85">{campaign.description}</p>
-                  )}
-                  <span className="mt-5 inline-block zara-link">{campaign.cta_label || "Shop now"}</span>
-                </div>
               </Link>
             </article>
           );
         })}
-
         {count > 1 && (
-          <div className="absolute bottom-4 right-5 z-20 flex gap-1.5 sm:right-8 lg:right-12">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Go to slide ${i + 1}`}
-                onClick={() => goTo(i)}
-                className={`h-[2px] w-8 transition-colors ${i === activeIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"}`}
-              />
-            ))}
-          </div>
+          <>
+            <button type="button" aria-label="Previous slide" onClick={goPrev} className={`${arrowClass} left-2 sm:left-4 lg:left-6`}>
+              <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
+            </button>
+            <button type="button" aria-label="Next slide" onClick={goNext} className={`${arrowClass} right-2 sm:right-4 lg:right-6`}>
+              <ChevronRight className="h-5 w-5" strokeWidth={1.8} />
+            </button>
+          </>
         )}
       </div>
     </section>

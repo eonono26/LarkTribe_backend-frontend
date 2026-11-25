@@ -59,7 +59,7 @@ function VideoTile({ item }: { item: ShowcaseVideoItem }) {
       </button>
 
       {/* <div className="absolute bottom-0 left-0 right-0 p-4">
-        <p className="text-[13px] tracking-[0.08em] text-white font-display text-lg drop- line-clamp-2">{item.title}</p>
+        <p className="text-white font-display font-bold text-lg drop-shadow-md line-clamp-2">{item.title}</p>
         <span className="text-white/90 text-sm font-semibold underline">{item.cta_label || "Shop now"}</span>
       </div> */}
     </Link>

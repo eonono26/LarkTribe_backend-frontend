@@ -33,7 +33,7 @@ export default function VendorProductsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-[13px] tracking-[0.08em] font-display text-lg ">Your products</h2>
+        <h2 className="font-display text-lg font-bold">Your products</h2>
         <Link
           href="/vendor/dashboard/products/new"
           className="btn btn-ink btn-sm"
@@ -67,7 +67,7 @@ export default function VendorProductsPage() {
                   <td className="py-2 pr-4">{formatKES(p.price)}</td>
                   <td className="py-2 pr-4">{p.stock}</td>
                   <td className="py-2 pr-4">
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-none ${STATUS_STYLE[p.status] ?? ""}`}>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${STATUS_STYLE[p.status] ?? ""}`}>
                       {p.status}
                     </span>
                   </td>

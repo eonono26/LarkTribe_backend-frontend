@@ -11,13 +11,13 @@ export default function SharedLookPage({ params }: { params: Promise<{ token: st
 
   useEffect(() => { features.sharedLook(token).then(setLook).catch(() => setMissing(true)); }, [token]);
 
-  if (missing) return <main className="container-shell py-24 text-center"><p className="text-[13px] tracking-[0.08em] font-editorial mb-2">This look is no longer shared.</p><Link href="/shop" className="text-[11px] uppercase tracking-widest underline">Shop LarkTribe</Link></main>;
+  if (missing) return <main className="container-shell py-24 text-center"><p className="font-editorial text-2xl mb-2">This look is no longer shared.</p><Link href="/shop" className="text-[11px] uppercase tracking-widest underline">Shop LarkTribe</Link></main>;
   if (!look) return <main className="container-shell py-24 text-center text-sm text-stone-400">Loading…</main>;
 
   return (
     <main className="container-shell py-10 max-w-md mx-auto">
       <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-1">A LarkTribe look</p>
-      <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-4">{look.product_name}</h1>
+      <h1 className="font-editorial text-2xl mb-4">{look.product_name}</h1>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={look.result_url!} alt={`Virtual try-on of ${look.product_name}`} className="w-full aspect-[3/4] object-cover" />
       <p className="text-[11px] text-stone-400 mt-2">AI-generated preview.</p>

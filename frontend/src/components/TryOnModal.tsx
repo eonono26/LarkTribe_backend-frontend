@@ -147,12 +147,12 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={onClose} role="dialog" aria-modal="true" aria-label="Virtual try-on">
-      <div className="bg-white w-full max-w-5xl max-h-[94vh] overflow-y-auto relative " onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-5xl max-h-[94vh] overflow-y-auto relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white"><X size={18} /></button>
 
         <div className="p-5 sm:p-8">
           <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-1">AI Virtual Try-On</p>
-          <h2 className="text-[13px] tracking-[0.08em] font-editorial mb-1 pr-8">{product.name}</h2>
+          <h2 className="font-editorial text-2xl mb-1 pr-8">{product.name}</h2>
 
           {!loggedIn ? (
             <div className="py-10 text-center">
@@ -162,7 +162,7 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
           ) : phase === "working" ? (
             <div className="py-16 text-center">
               <Loader2 className="mx-auto animate-spin mb-4" size={28} />
-              <p className="text-[13px] tracking-[0.08em] font-editorial text-lg">Creating your look…</p>
+              <p className="font-editorial text-lg">Creating your look…</p>
               <p className="text-xs text-stone-500 mt-2">This usually takes 10–30 seconds.</p>
             </div>
           ) : phase === "result" && active ? (
@@ -183,7 +183,7 @@ export default function TryOnModal({ product, initialColor, companions = [], onC
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium">Try-on results</p>
-                    <span className="text-[10px] px-2 py-1 border border-stone-200 rounded-none text-stone-600">Same shopper</span>
+                    <span className="text-[10px] px-2 py-1 border border-stone-200 rounded-full text-stone-600">Same shopper</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {beforeSrc && (

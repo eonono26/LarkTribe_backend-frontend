@@ -85,7 +85,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <img src={BAND_IMG[department]} alt={heading} className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex items-end container-shell pb-5">
-            <h1 className="text-[13px] tracking-[0.08em] font-editorial text-white tracking-wide">{heading}</h1>
+            <h1 className="font-editorial text-3xl lg:text-5xl text-white tracking-wide">{heading}</h1>
           </div>
         </div>
       )} */}
@@ -93,7 +93,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
       <div className="pt-8 pb-4">
         {/* {!isAdultDept && (
           <div className="flex items-end justify-between mb-6">
-            <h1 className="text-[13px] tracking-[0.08em] font-editorial ">{heading}</h1>
+            <h1 className="font-editorial text-3xl lg:text-4xl tracking-tight">{heading}</h1>
             <span className="text-[11px] text-stone-500 uppercase tracking-widest">{totalCount} Items</span>
           </div>
         )}

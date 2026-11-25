@@ -32,21 +32,21 @@ export default function DriverLoginPage() {
 
   return (
     <main className="container-shell py-16 max-w-sm mx-auto">
-      <h1 className="text-[13px] tracking-[0.08em] font-display mb-1">Driver sign in</h1>
+      <h1 className="font-display text-2xl font-black mb-1">Driver sign in</h1>
       <p className="text-sm text-neutral-500 mb-6">See your deliveries and go online for LarkTribe.</p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Username"
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
         />
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
         />
         {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
         <button

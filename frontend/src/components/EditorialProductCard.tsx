@@ -183,7 +183,7 @@ export default function EditorialProductCard({
           )}
 
           {badge && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-none text-[10px] tracking-wider uppercase font-semibold text-white bg-[var(--color-accent)] shadow-sm">
+            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] tracking-wider uppercase font-semibold text-white bg-[var(--color-accent)] shadow-sm">
               {badge}
             </span>
           )}

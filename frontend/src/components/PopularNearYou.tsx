@@ -28,7 +28,7 @@ export default function PopularNearYou() {
   return (
     <section className="container-shell py-6">
       <div className="flex items-end justify-between mb-5">
-        <h2 className="text-[13px] tracking-[0.08em] font-editorial ">Popular in {city}</h2>
+        <h2 className="font-editorial text-3xl lg:text-4xl tracking-tight">Popular in {city}</h2>
         {!coords && status !== "denied" && (
           <button onClick={() => request()} className="text-[11px] uppercase tracking-widest text-stone-500 hover:text-black border-b border-transparent hover:border-black pb-0.5">
             Use my location

@@ -75,27 +75,27 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-lg">
-      <h2 className="text-[13px] tracking-[0.08em] font-display text-lg mb-4">Add a product</h2>
+      <h2 className="font-display text-lg font-bold mb-4">Add a product</h2>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
           required
           placeholder="Product name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
         />
         <textarea
           placeholder="Description"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           rows={3}
         />
         <select
           required
           value={form.category}
           onChange={(e) => setForm({ ...form, category: e.target.value })}
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
         >
           <option value="">Select category</option>
           {categories.map((c) => (
@@ -110,7 +110,7 @@ export default function NewProductPage() {
           <select
             value={form.gender}
             onChange={(e) => setForm({ ...form, gender: e.target.value as typeof form.gender })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           >
             {GENDER_OPTIONS.map((g) => (
               <option key={g.value} value={g.value}>
@@ -132,11 +132,11 @@ export default function NewProductPage() {
                   type="button"
                   key={ag.id}
                   onClick={() => toggleAgeGroup(ag.id)}
-                  className={`border rounded-none px-3 py-1.5 text-xs font-semibold ${
- selectedAgeGroups.includes(ag.id)
- ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white"
- : "border-[var(--color-line)]"
- }`}
+                  className={`border rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    selectedAgeGroups.includes(ag.id)
+                      ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white"
+                      : "border-[var(--color-line)]"
+                  }`}
                 >
                   {ag.name}
                 </button>
@@ -153,14 +153,14 @@ export default function NewProductPage() {
             type="number"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
           <input
             placeholder="Compare-at price (optional)"
             type="number"
             value={form.compare_at_price}
             onChange={(e) => setForm({ ...form, compare_at_price: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -170,14 +170,14 @@ export default function NewProductPage() {
             type="number"
             value={form.stock}
             onChange={(e) => setForm({ ...form, stock: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
           <input
             required
             placeholder="SKU (unique)"
             value={form.sku}
             onChange={(e) => setForm({ ...form, sku: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
         </div>
 

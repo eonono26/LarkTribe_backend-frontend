@@ -67,16 +67,16 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-[var(--color-paper)] w-full sm:max-w-lg sm:rounded-none rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-[var(--color-paper)] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-line)]">
-          <h2 className="text-[13px] tracking-[0.08em] font-display text-lg ">{t("chooseDeliveryLocation")}</h2>
+          <h2 className="font-display text-lg font-bold">{t("chooseDeliveryLocation")}</h2>
           <button onClick={onClose} aria-label="Close" className="hover:opacity-70">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto">
-          <form onSubmit={handleSearch} className="flex items-center gap-2 bg-[var(--color-mist)] rounded-none px-4 py-2.5">
+          <form onSubmit={handleSearch} className="flex items-center gap-2 bg-[var(--color-mist)] rounded-full px-4 py-2.5">
             <Search size={18} className="text-neutral-500 shrink-0" />
             <input
               value={query}
@@ -92,7 +92,7 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
           </button>
 
           {results.length > 0 && (
-            <ul className="border border-[var(--color-line)] rounded-none divide-y divide-[var(--color-line)] max-h-40 overflow-y-auto">
+            <ul className="border border-[var(--color-line)] rounded-xl divide-y divide-[var(--color-line)] max-h-40 overflow-y-auto">
               {results.map((r, i) => (
                 <li key={i}>
                   <button
@@ -107,7 +107,7 @@ export default function LocationModal({ open, onClose, onSave, initialLocation }
             </ul>
           )}
 
-          <div className="h-64 w-full rounded-none overflow-hidden border border-[var(--color-line)]">
+          <div className="h-64 w-full rounded-xl overflow-hidden border border-[var(--color-line)]">
             <MapPicker center={picked} onChange={(lat, lng) => setPicked((p) => ({ ...p, lat, lng, label: p.label === "Current location" ? p.label : "Pinned location" }))} />
           </div>
 

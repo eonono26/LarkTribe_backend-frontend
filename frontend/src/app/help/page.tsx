@@ -13,7 +13,7 @@ const TOPICS = [
 export default function HelpCenterPage() {
   return (
     <main className="container-shell py-12">
-      <h1 className="text-[13px] tracking-[0.08em] font-display mb-2">Help center</h1>
+      <h1 className="font-display text-3xl font-black mb-2">Help center</h1>
       <p className="text-sm text-neutral-500 mb-8 max-w-xl">
         Find answers about orders, deliveries, returns, and your account — or get in touch with our support team directly.
       </p>
@@ -26,7 +26,7 @@ export default function HelpCenterPage() {
             className="surface-card p-5 hover:-translate-y-0.5"
           >
             <t.icon size={22} className="mb-3" />
-            <p className="text-[13px] tracking-[0.08em] font-display ">{t.title}</p>
+            <p className="font-display font-bold">{t.title}</p>
             <p className="text-sm text-neutral-500 mt-1">{t.desc}</p>
           </Link>
         ))}

@@ -69,7 +69,7 @@ export default function CouponsPage() {
   return (
     <main className="account-page">
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
-      <h1 className="text-[13px] tracking-[0.08em] mb-2 font-editorial ">Coupons</h1>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Coupons</h1>
       <p className="mb-6 text-sm text-neutral-500">Save offers here and apply an eligible code at checkout.</p>
       <AccountNav />
 
@@ -83,7 +83,7 @@ export default function CouponsPage() {
       ) : (
         <>
           <section className="mb-10">
-            <h2 className="text-[13px] tracking-[0.08em] font-editorial mb-3">Saved coupons</h2>
+            <h2 className="font-editorial text-2xl mb-3">Saved coupons</h2>
             {mine.length === 0 ? (
               <p className="text-neutral-500">You haven&apos;t saved any coupons yet — grab one below.</p>
             ) : (
@@ -115,7 +115,7 @@ export default function CouponsPage() {
           </section>
 
           <section>
-            <h2 className="text-[13px] tracking-[0.08em] font-editorial mb-3">Available coupons</h2>
+            <h2 className="font-editorial text-2xl mb-3">Available coupons</h2>
             {available.length === 0 ? (
               <p className="text-neutral-500">No coupons available right now — check back soon.</p>
             ) : (

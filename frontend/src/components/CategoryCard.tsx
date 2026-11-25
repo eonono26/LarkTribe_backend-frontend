@@ -8,7 +8,7 @@ export default function CategoryCard({ category, accent }: { category: Category;
   return (
     <Link
       href={`/categories/${category.slug}`}
-      className="group bg-white border border-[var(--color-line)] rounded-none overflow-hidden hover: transition-all duration-300 hover:-translate-y-1 border-b-4"
+      className="group bg-white border border-[var(--color-line)] rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-b-4"
       style={accent ? { borderBottomColor: accent } : undefined}
     >
       <div className="relative aspect-square w-full bg-[var(--color-mist)] overflow-hidden">
@@ -27,8 +27,8 @@ export default function CategoryCard({ category, accent }: { category: Category;
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
-          <p className="text-sm font-semibold text-black drop- leading-tight break-words sm:truncate">{category.name}</p>
-          {/* <p className="text-xs text-white/80 drop-">{category.product_count} products</p> */}
+          <p className="text-sm font-semibold text-black drop-shadow-md leading-tight break-words sm:truncate">{category.name}</p>
+          {/* <p className="text-xs text-white/80 drop-shadow-md">{category.product_count} products</p> */}
         </div> 
       </div>
     </Link>

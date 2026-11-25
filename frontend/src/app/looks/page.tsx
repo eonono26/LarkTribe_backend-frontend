@@ -73,7 +73,7 @@ export default function TheLookPage() {
     <main className="relative min-h-[calc(100vh-var(--header-h,72px))] bg-white overflow-hidden">
       <div className="container-shell pt-8 pb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[13px] tracking-[0.08em] font-editorial ">Try the Look.</h1>
+          <h1 className="font-editorial text-4xl sm:text-5xl tracking-tight">Try the Look.</h1>
           <p className="text-sm text-stone-500 mt-2">Pick a look, see the whole outfit, and bag it in one tap.</p>
         </div>
         <div className="flex gap-1 bg-white p-1 shadow-sm">

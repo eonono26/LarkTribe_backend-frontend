@@ -42,12 +42,12 @@ export default function CouponField({
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="e.g. WELCOME10"
           disabled={status === "applied"}
-          className="flex-1 bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none text-sm disabled:opacity-60"
+          className="flex-1 bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none text-sm disabled:opacity-60"
         />
         <button
           onClick={apply}
           disabled={status === "checking" || status === "applied"}
-          className="border border-[var(--color-ink)] rounded-none px-4 text-xs font-semibold uppercase disabled:opacity-40"
+          className="border border-[var(--color-ink)] rounded-lg px-4 text-xs font-semibold uppercase disabled:opacity-40"
         >
           {status === "applied" ? "Applied" : "Apply"}
         </button>

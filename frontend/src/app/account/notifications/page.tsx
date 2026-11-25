@@ -54,7 +54,7 @@ export default function NotificationsPage() {
   return (
     <main className="account-page">
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
-      <h1 className="text-[13px] tracking-[0.08em] mb-2 font-editorial ">Notifications</h1>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Notifications</h1>
       <p className="mb-6 text-sm text-neutral-500">Stay up to date with orders, offers, and account activity.</p>
       <AccountNav />
       {error && <p role="alert" className="mb-5 border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
@@ -84,7 +84,7 @@ export default function NotificationsPage() {
 
       {prefs && (
         <div className="border border-stone-200 bg-white p-4 sm:p-5">
-          <h2 className="text-[13px] tracking-[0.08em] mb-4 font-editorial ">Preferences</h2>
+          <h2 className="mb-4 font-editorial text-2xl">Preferences</h2>
           <div className="space-y-3">
             {Object.entries(prefs).map(([key, value]) => (
               <label key={key} className="flex min-h-11 items-center justify-between gap-4 border-b border-stone-100 pb-2 text-sm last:border-0">

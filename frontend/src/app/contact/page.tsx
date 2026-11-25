@@ -31,7 +31,7 @@ export default function ContactPage() {
 
   return (
     <main className="container-shell py-12">
-      <h1 className="text-[13px] tracking-[0.08em] font-display mb-2">Contact us</h1>
+      <h1 className="font-display text-3xl font-black mb-2">Contact us</h1>
       <p className="text-sm text-neutral-500 mb-8 max-w-xl">
         Have a question about an order, a vendor, or the platform? Send us a message and we'll get back to you.
       </p>
@@ -42,14 +42,14 @@ export default function ContactPage() {
             placeholder="Your name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
           />
           <input
             type="email"
             placeholder="Email address"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none"
             required
           />
           <textarea
@@ -57,7 +57,7 @@ export default function ContactPage() {
             rows={5}
             value={form.message}
             onChange={(e) => setForm({ ...form, message: e.target.value })}
-            className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3 outline-none resize-none"
+            className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3 outline-none resize-none"
             required
           />
           {status === "sent" && <p className="text-sm text-green-700">Thanks — we've got your message.</p>}

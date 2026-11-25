@@ -4,4 +4,4 @@
  * Change it here and every listing follows.
  */
 export const PRODUCT_GRID =
-  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-[2px] gap-y-10";
+  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-3 gap-y-8";

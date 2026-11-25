@@ -107,20 +107,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   return (
     <main className="bg-white text-black font-sans">
-      <div className="pt-2 pb-16">
+      <div className="container-shell pt-2 pb-16">
         {/* Breadcrumb — minimal */}
-        <div className="mb-4 px-4 sm:px-6 lg:px-8">
-          <Link href="/shop" className="zara-link text-stone-500 hover:text-black">
-            ← Shop
+        <div className="mb-6 container-shellheader">
+          <Link href="/shop" className="text-2xl tracking-widest text-stone-500 hover:text-black transition">
+            Shop<span className="text-black text-2xl ml-2">+</span>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start px-0 lg:px-8">
+        <div className="grid container-shellheader grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           {/* ================= INFO — LEFT on desktop, sticky ================= */}
-          <div className="lg:col-span-4 lg:order-2 lg:sticky lg:top-20 px-4 sm:px-6 lg:px-0 lg:max-h-[calc(100svh-6rem)] lg:overflow-y-auto no-scrollbar">
+          <div className="lg:col-span-5 lg:order-1 lg:sticky lg:top-24">
             <div className="flex flex-col gap-5">
               <div>
-                <h1 className="text-[13px] tracking-[0.06em] leading-snug">
+                <h1 className="text-2xl lg:text-[28px] font-medium tracking-tight leading-tight">
                   {product.name}
                 </h1>
                 <div className="mt-2 flex items-baseline gap-3">
@@ -268,8 +268,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
           {/* ================= GALLERY — RIGHT on desktop, capped size ================= */}
          
-          <div className="lg:col-span-8 lg:order-1">
-            <div className="w-full">
+          <div className="lg:col-span-7 lg:order-2 flex lg:justify-center">
+            <div className="w-full max-w-[420px] lg:max-w-[460px]">
               <ProductMedia product={product} images={images} color={color} />
             </div>
           </div>
@@ -277,8 +277,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         </div>
 
         {/* Reviews */}
-        <section className="mt-20 px-4 sm:px-6 lg:px-8 pt-12 border-t border-stone-200 max-w-2xl">
-          <h2 className="text-[13px] tracking-[0.08em] mb-6">Reviews</h2>
+        <section className="mt-20 container-shellheader pt-12 border-t border-stone-200 max-w-2xl">
+          <h2 className="font-editorial text-xl mb-6">Reviews</h2>
           {reviews.length > 0 ? (
             <div className="space-y-6 mb-10">
               {reviews.map(r => (

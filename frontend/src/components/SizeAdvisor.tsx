@@ -76,7 +76,7 @@ export default function SizeAdvisor({
             <div className="bg-stone-50 border border-stone-200 p-3 text-sm space-y-2">
               {rec.size ? (
                 <>
-                  <p className="text-[13px] tracking-[0.08em] font-editorial text-lg">Your best size is <strong className="font-medium">{rec.size}</strong></p>
+                  <p className="font-editorial text-lg">Your best size is <strong className="font-medium">{rec.size}</strong></p>
                   <p className="text-xs text-stone-600">{rec.reason}</p>
                   {rec.in_stock === false && <p className="text-xs text-red-700">This size may be out of stock for this product.</p>}
                   {rec.alternatives && rec.alternatives.length > 0 && <p className="text-xs text-stone-500">Next closest: {rec.alternatives.join(", ")}. {rec.tip}</p>}

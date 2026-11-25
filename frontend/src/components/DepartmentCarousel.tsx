@@ -26,13 +26,13 @@ export default function DepartmentCarousel({
       <div className="py-6 sm:py-8">
         <div className="mb-4 sm:mb-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-accent)]">Browse</span>
-          <h2 className="text-[13px] tracking-[0.08em] font-display text-[var(--color-ink)] mt-1">
+          <h2 className="font-display text-xl sm:text-3xl font-semibold text-[var(--color-ink)] mt-1">
             Shop by Department
           </h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="rounded-none bg-[var(--color-mist)] aspect-[4/5] animate-pulse" />
+            <div key={i} className="rounded-2xl bg-[var(--color-mist)] aspect-[4/5] animate-pulse" />
           ))}
         </div>
       </div>
@@ -43,7 +43,7 @@ export default function DepartmentCarousel({
     <div className="py-6 sm:py-8">
       <div className="mb-4 sm:mb-6">
         <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-accent)]">Browse</span>
-        <h2 className="text-[13px] tracking-[0.08em] font-display text-[var(--color-ink)] mt-1">
+        <h2 className="font-display text-xl sm:text-3xl font-semibold text-[var(--color-ink)] mt-1">
           Shop by Department
         </h2>
       </div>

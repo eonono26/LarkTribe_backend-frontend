@@ -46,7 +46,7 @@ export default function VendorApplyPage() {
   if (done) {
     return (
       <main className="container-shell py-16 max-w-md mx-auto text-center">
-        <h1 className="text-[13px] tracking-[0.08em] font-display mb-3">Application submitted 🎉</h1>
+        <h1 className="font-display text-2xl font-black mb-3">Application submitted 🎉</h1>
         <p className="text-neutral-600 mb-6">
           We&apos;ll review your store and notify you once it&apos;s approved. You can already sign in to your
           vendor dashboard — it&apos;ll show &ldquo;pending approval&rdquo; until then.
@@ -60,8 +60,8 @@ export default function VendorApplyPage() {
 
   return (
     <main className="container-shell py-16 max-w-md mx-auto">
-      <h1 className="text-[13px] tracking-[0.08em] font-display mb-1">Become a duka vendor</h1>
-      <p className="text-sm text-neutral-500 mb-6">List Baby, Kids, Women or Men products to shoppers across Kenya.</p>
+      <h1 className="font-display text-2xl font-black mb-1">Become a duka vendor</h1>
+      <p className="text-sm text-neutral-500 mb-6">List Women, Kids, Beauty, Maternity, or Home & Lifestyle products to shoppers across Kenya.</p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {needsAccount && (
@@ -71,21 +71,21 @@ export default function VendorApplyPage() {
               placeholder="Username"
               value={account.username}
               onChange={(e) => setAccount({ ...account, username: e.target.value })}
-              className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+              className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
             />
             <input
               type="email"
               placeholder="Email"
               value={account.email}
               onChange={(e) => setAccount({ ...account, email: e.target.value })}
-              className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+              className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
             />
             <input
               type="password"
               placeholder="Password"
               value={account.password}
               onChange={(e) => setAccount({ ...account, password: e.target.value })}
-              className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+              className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
             />
           </>
         )}
@@ -95,20 +95,20 @@ export default function VendorApplyPage() {
           placeholder="Store name"
           value={store.store_name}
           onChange={(e) => setStore({ ...store, store_name: e.target.value, slug: slugify(e.target.value) })}
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
         />
         <input
           placeholder="Store URL slug"
           value={store.slug}
           onChange={(e) => setStore({ ...store, slug: slugify(e.target.value) })}
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
         />
         <textarea
           placeholder="Tell shoppers what you sell…"
           value={store.description}
           onChange={(e) => setStore({ ...store, description: e.target.value })}
           rows={3}
-          className="w-full bg-[var(--color-mist)] rounded-none px-4 py-3.5 outline-none"
+          className="w-full bg-[var(--color-mist)] rounded-lg px-4 py-3.5 outline-none"
         />
         <div>
           <label className="text-sm font-semibold block mb-1">Store logo</label>

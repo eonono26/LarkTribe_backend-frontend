@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, TrendingUp, Clock } from "lucide-react";
 import { api } from "@/lib/api";
 
-const TRENDING = ["Baby bodysuits", "Kids sneakers", "Activewear", "Shorts"];
+const TRENDING = ["Ankara dresses", "Baby diapers", "Skincare set", "Maternity wear", "Kids sneakers"];
 
 export default function SearchBar({ className = "" }: { className?: string }) {
   const [query, setQuery] = useState("");
@@ -52,7 +52,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
   return (
     <div ref={boxRef} className={`relative ${className}`}>
       <form onSubmit={(e) => { e.preventDefault(); runSearch(query); }}
-        className="flex items-center gap-2 bg-[var(--color-mist)] rounded-none px-4 py-2.5">
+        className="flex items-center gap-2 bg-[var(--color-mist)] rounded-full px-4 py-2.5">
         <Search size={18} className="text-neutral-500 shrink-0" />
         <input
           value={query}
@@ -64,7 +64,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
       </form>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-[var(--color-paper)] border border-[var(--color-line)] rounded-none overflow-hidden z-50">
+        <div className="absolute left-0 right-0 top-full mt-2 bg-[var(--color-paper)] border border-[var(--color-line)] rounded-2xl shadow-lg overflow-hidden z-50">
           {query.trim() && suggestions.length > 0 && (
             <ul className="py-2">
               {suggestions.map((s) => (

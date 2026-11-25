@@ -31,7 +31,7 @@ export default function VendorDashboardLayout({ children }: { children: React.Re
   return (
     <main className="container-shell py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[13px] tracking-[0.08em] font-display ">Vendor dashboard</h1>
+        <h1 className="font-display text-2xl font-black">Vendor dashboard</h1>
         <button
           onClick={() => {
             clearToken();

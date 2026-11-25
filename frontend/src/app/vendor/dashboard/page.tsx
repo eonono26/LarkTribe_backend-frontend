@@ -57,12 +57,12 @@ export default function VendorOverviewPage() {
       {pricing.length > 0 && (
         <div>
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-[13px] tracking-[0.08em] font-display ">AI sales insights</h2>
+            <h2 className="font-display font-bold">AI sales insights</h2>
             <span className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold">Pricing suggestions</span>
           </div>
           <div className="space-y-2">
             {pricing.slice(0, 5).map((s) => (
-              <div key={s.product_id} className="border border-[var(--color-line)] rounded-none p-3 text-sm">
+              <div key={s.product_id} className="border border-[var(--color-line)] rounded-lg p-3 text-sm">
                 <div className="flex justify-between font-semibold">
                   <span>{productName(s.product_id)}</span>
                   <span className={s.change_percent > 0 ? "text-[var(--dept-maternity)]" : "text-[var(--color-flag)]"}>
@@ -82,7 +82,7 @@ export default function VendorOverviewPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-[var(--color-line)] rounded-none p-4">
+    <div className="border border-[var(--color-line)] rounded-lg p-4">
       <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
       <p className="text-2xl font-bold mt-1">{value}</p>
     </div>

@@ -36,7 +36,7 @@ export default async function AgeGroupPage({
     <main className="container-shell py-10">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-[13px] tracking-[0.08em] font-display ">
+          <h1 className="font-display text-3xl font-black">
             {ageGroup?.name ?? slug.replace(/-/g, " ")}
           </h1>
         </div>
@@ -79,11 +79,11 @@ export default async function AgeGroupPage({
             <a
               key={g.id}
               href={`/shop/age/${g.slug}${filters.gender ? `?gender=${filters.gender}` : ""}`}
-              className={`flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold rounded-none px-4 py-2 transition-colors ${
- g.slug === slug
- ? "bg-[var(--color-ink)] text-[var(--color-paper)]"
- : "border border-[var(--color-line)] hover:bg-[var(--color-mist)]"
- }`}
+              className={`flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold rounded-full px-4 py-2 transition-colors ${
+                g.slug === slug
+                  ? "bg-[var(--color-ink)] text-[var(--color-paper)]"
+                  : "border border-[var(--color-line)] hover:bg-[var(--color-mist)]"
+              }`}
             >
               <span>{g.name}</span>
             </a>
@@ -92,7 +92,7 @@ export default async function AgeGroupPage({
       )}
 
       {products.results.length === 0 ? (
-        <div className="text-center py-12 bg-[var(--color-mist)] rounded-none">
+        <div className="text-center py-12 bg-[var(--color-mist)] rounded-2xl">
           <p className="text-neutral-500">No products tagged for this age group yet.</p>
         </div>
       ) : (

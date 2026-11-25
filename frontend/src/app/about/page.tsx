@@ -1,13 +1,13 @@
 export default function AboutPage() {
   return (
     <main className="container-shell py-12 max-w-3xl">
-      <h1 className="text-[13px] tracking-[0.08em] font-display mb-2">About LarkTribe</h1>
+      <h1 className="font-display text-3xl font-black mb-2">About LarkTribe</h1>
       <p className="text-sm text-neutral-500 mb-8">Built in Nairobi, for Kenya.</p>
 
       <div className="space-y-6 text-sm leading-relaxed text-neutral-700">
         <p>
-          LarkTribe is a multi-vendor marketplace bringing together independent sellers across Baby, Kids,
-          Women and Men fashion into one place to shop. We built it because Kenyan
+          LarkTribe is a multi-vendor marketplace bringing together independent sellers across Women's fashion,
+          Kids & Baby, Beauty, Maternity, and Home & Lifestyle into one place to shop. We built it because Kenyan
           shoppers deserve a discovery experience as good as anywhere else in the world — fast search, smart
           recommendations, and checkout that just works with M-Pesa.
         </p>
@@ -18,15 +18,15 @@ export default function AboutPage() {
         </p>
         <div className="grid sm:grid-cols-3 gap-4 pt-4">
           <div className="surface-card p-5">
-            <p className="text-[13px] tracking-[0.08em] font-display ">100+</p>
+            <p className="font-display text-2xl font-black">100+</p>
             <p className="text-xs text-neutral-500 mt-1">Vendors onboarded</p>
           </div>
           <div className="surface-card p-5">
-            <p className="text-[13px] tracking-[0.08em] font-display ">6</p>
+            <p className="font-display text-2xl font-black">6</p>
             <p className="text-xs text-neutral-500 mt-1">Product departments</p>
           </div>
           <div className="surface-card p-5">
-            <p className="text-[13px] tracking-[0.08em] font-display ">Nairobi</p>
+            <p className="font-display text-2xl font-black">Nairobi</p>
             <p className="text-xs text-neutral-500 mt-1">Headquartered</p>
           </div>
         </div>
@@ -34,7 +34,7 @@ export default function AboutPage() {
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
             Case study
           </p>
-          <h2 className="text-[13px] tracking-[0.08em] font-display text-neutral-900">
+          <h2 className="font-display text-2xl font-semibold text-neutral-900">
             Zara — Agile fashion supply chain
           </h2>
           <p className="mt-3">

@@ -32,13 +32,13 @@ const SECTIONS = [
 export default function TermsPage() {
   return (
     <main className="container-shell py-12 max-w-3xl">
-      <h1 className="text-[13px] tracking-[0.08em] font-display mb-2">Terms of service</h1>
+      <h1 className="font-display text-3xl font-black mb-2">Terms of service</h1>
       <p className="text-sm text-neutral-500 mb-8">Last updated August 2026</p>
 
       <div className="space-y-6 text-sm leading-relaxed text-neutral-700">
         {SECTIONS.map((s) => (
           <section key={s.title}>
-            <h2 className="text-[13px] tracking-[0.08em] font-display text-lg text-[var(--color-ink)] mb-2">{s.title}</h2>
+            <h2 className="font-display text-lg font-bold text-[var(--color-ink)] mb-2">{s.title}</h2>
             <p>{s.body}</p>
           </section>
         ))}

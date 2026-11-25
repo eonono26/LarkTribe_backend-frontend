@@ -42,7 +42,7 @@ export default function CartPage() {
       <main className="bg-white min-h-[60vh] flex items-center justify-center">
         <div className="text-center max-w-sm px-4">
           <ShoppingBag size={32} className="mx-auto mb-4 text-stone-300" strokeWidth={1.5} />
-          <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-2">Your Bag is Empty</h1>
+          <h1 className="font-editorial text-2xl mb-2">Your Bag is Empty</h1>
           <p className="text-sm text-stone-500 mb-8">Add something you love.</p>
           <Link href="/shop" className="inline-block px-8 py-3 bg-black text-white text-[11px] uppercase tracking-widest font-medium hover:bg-stone-800 transition">Continue Shopping</Link>
         </div>
@@ -59,7 +59,7 @@ export default function CartPage() {
       <div className="container-shell py-10 lg:py-16">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-end justify-between mb-10">
-            <h1 className="text-[13px] tracking-[0.08em] font-editorial ">Shopping Bag</h1>
+            <h1 className="font-editorial text-3xl">Shopping Bag</h1>
             <span className="text-[11px] uppercase tracking-widest text-stone-500">{itemCount} {itemCount === 1 ? "Item" : "Items"}</span>
           </div>
 
@@ -109,8 +109,8 @@ export default function CartPage() {
               <span>Calculated at checkout</span>
             </div>
             <div className="flex justify-between items-baseline pt-3 border-t border-stone-200">
-              <span className="text-[13px] tracking-[0.08em] font-editorial ">Total</span>
-              <span className="text-[13px] tracking-[0.08em] font-editorial ">{formatPrice(cart.total)}</span>
+              <span className="font-editorial text-xl">Total</span>
+              <span className="font-editorial text-2xl">{formatPrice(cart.total)}</span>
             </div>
 
             <Link href="/checkout" className="w-full mt-4 inline-flex items-center justify-center px-6 py-4 bg-black text-white text-[11px] uppercase tracking-widest font-medium hover:bg-stone-800 transition">

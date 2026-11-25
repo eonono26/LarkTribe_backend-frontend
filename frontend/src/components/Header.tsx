@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Search, X, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import {
+  Menu,
+  Search,
+  X,
+  Heart,
+  ShoppingBag,
+  ChevronDown,
+  User2,
+} from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { AUTH_CHANGED_EVENT, isLoggedIn, auth, type AuthUser } from "@/lib/auth";
 import { api, mediaUrl } from "@/lib/api";
@@ -38,10 +46,14 @@ const GENDER_QUICK = (stage: string) => [
   { label: "Unisex", href: `/shop?stage=${stage}&gender=unisex` },
 ];
 
+// Session-scoped key: dismissal lasts for the tab session, then the bar
+// comes back. This avoids a single accidental dismissal hiding it forever.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "/download";
+
+const ANNOUNCEMENT_KEY = "announcementDismissed_session_v1";
 
 export default function Header() {
   const router = useRouter();
-  const pathname = usePathname();
   const { itemCount, openDrawer } = useCart();
 
   const [scrolled, setScrolled] = useState(false);
@@ -57,21 +69,21 @@ export default function Header() {
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
 
   // Hydration-safe flags: stay false during SSR + first client render.
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const [mounted, setMounted] = useState(false);
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [promoCoupon, setPromoCoupon] = useState<{ code: string; percent_off: number | null; amount_off: string | number | null } | null>(null);
 
-  // Close menus when the route changes (state adjusted during render, not in an effect)
-  const [lastPath, setLastPath] = useState(pathname);
-  if (lastPath !== pathname) {
-    setLastPath(pathname);
-    setMobileOpen(false);
-    setSearchOpen(false);
-  }
-
-  // Lock page scroll while the side menu is open
+  // Live public promo code for the top bar (hidden if none is active).
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
+    let cancelled = false;
+    api
+      .featuredCoupon()
+      .then((r) => !cancelled && setPromoCoupon(r.coupon))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -86,6 +98,25 @@ export default function Header() {
     const ro = new ResizeObserver(publish);
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // After mount, check sessionStorage for dismissal and set visibility.
+  useEffect(() => {
+    setMounted(true);
+
+    if (typeof window === "undefined") return;
+
+    try {
+      // Clean up any stale localStorage key from earlier versions so it
+      // can't keep the bar hidden.
+      localStorage.removeItem("announcementDismissedV2");
+
+      const dismissed = sessionStorage.getItem(ANNOUNCEMENT_KEY);
+      setShowAnnouncement(dismissed !== "1");
+    } catch {
+      // Storage unavailable → default to showing the bar.
+      setShowAnnouncement(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -164,9 +195,8 @@ export default function Header() {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
-    onScroll();
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -334,197 +364,512 @@ export default function Header() {
     router.push(`/product/${product.slug}`);
   }
 
-  const isHome = pathname === "/";
-  // Zara: on the home page the header floats transparent over the full-bleed hero,
-  // then turns solid white once you scroll or open a menu.
-  const overlay = isHome && !scrolled && !mobileOpen && !searchOpen;
-  const ink = overlay ? "text-white" : "text-black";
-  const navItem = `zara-link ${ink} transition-colors`;
+  function dismissAnnouncement() {
+    setShowAnnouncement(false);
+
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem(ANNOUNCEMENT_KEY, "1");
+      } catch {
+        /* ignore storage errors */
+      }
+    }
+  }
 
   return (
     <>
-      <header
-        ref={headerRef}
-        className={`${isHome ? "fixed" : "sticky"} top-0 left-0 right-0 z-40 transition-colors duration-300 ${
-          overlay ? "bg-gradient-to-b from-black/35 to-transparent" : "bg-white"
+      {/* App banner (Zara-style). Lives in normal flow ABOVE the pinned header, so it scrolls
+          away with the page like Zara's and the header alone stays on screen.
+          Gated on `mounted` to avoid a hydration mismatch. */}
+      {mounted && showAnnouncement && (
+        <div className="relative z-40 bg-white">
+          <div className="border-b border-stone-300">
+            <div className="max-w-[1600px] mx-auto flex items-center gap-3 px-3 py-2 sm:px-5 lg:py-1.5">
+              <button
+                aria-label="Dismiss announcement"
+                onClick={dismissAnnouncement}
+                className="shrink-0 p-1.5 -ml-1 text-stone-900 hover:text-stone-500 transition lg:hidden"
+              >
+                <X className="w-5 h-5" strokeWidth={1.5} />
+              </button>
+
+              <div className="shrink-0 flex lg:hidden h-11 w-11 items-center justify-center rounded-[6px] border border-stone-200 bg-white p-1">
+                <img src="/Asset_2_1.svg" alt="Larktribe" className="w-full h-auto object-contain" />
+              </div>
+
+              <div className="min-w-0 flex-1 lg:flex-none lg:text-right text-[12px] sm:text-[13px] leading-snug text-stone-900">
+                <p className="font-medium">A better experience.</p>
+                <p className="text-stone-600">Discover it in the app.</p>
+              </div>
+
+              {/* Desktop: promo code on the left of the bar */}
+              {promoCoupon ? (
+                <span className="hidden lg:flex lg:order-first shrink-0 items-center gap-1.5 text-xs text-stone-900">
+                  Code: <strong className="font-semibold tracking-wide">{promoCoupon.code}</strong>
+                  {promoCoupon.percent_off
+                    ? ` for ${promoCoupon.percent_off}% off`
+                    : promoCoupon.amount_off
+                    ? ` for KES ${Number(promoCoupon.amount_off).toLocaleString()} off`
+                    : ""}
+                </span>
+              ) : (
+                <span className="hidden lg:block lg:order-first w-0" aria-hidden />
+              )}
+
+              {/* Desktop: promo copy centered in this same bar */}
+              <p className="hidden lg:block lg:order-first flex-1 text-center text-xs text-stone-900">
+                Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
+                <Link href="/register" className="font-semibold underline underline-offset-2 hover:text-stone-600 transition">
+                  sign up
+                </Link>
+              </p>
+
+              <Link
+                href={APP_URL}
+                className="shrink-0 bg-black px-4 py-2.5 sm:px-6 lg:py-2 text-[11px] sm:text-xs uppercase tracking-wide text-white hover:bg-stone-800 transition"
+              >
+                Open app
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile promo bar under the app banner (desktop shows it inside the banner above). */}
+      <p
+        className={`lg:hidden bg-[#F6C7A8] text-stone-900 text-center text-[11px] leading-snug tracking-[0.02em] px-4 py-1.5 ${
+          mounted && showAnnouncement ? "" : "hidden"
         }`}
       >
-        <div className="relative flex items-center h-14 lg:h-16 px-4 sm:px-6 lg:px-8">
-          {/* Left: menu + desktop categories */}
-          <div className="flex items-center gap-5 lg:gap-7 flex-1 min-w-0">
+        Free delivery on orders over KES 5,000 <span className="mx-1">·</span> Get 5% off your first order when you{" "}
+        <Link
+          href="/register"
+          className="font-semibold underline underline-offset-2 hover:text-stone-600 transition"
+        >
+          sign up
+        </Link>
+        {promoCoupon && (
+          <span className="block mt-0.5">
+            Code: <strong className="font-semibold tracking-wide">{promoCoupon.code}</strong>
+            {promoCoupon.percent_off
+              ? ` for ${promoCoupon.percent_off}% off`
+              : promoCoupon.amount_off
+              ? ` for KES ${Number(promoCoupon.amount_off).toLocaleString()} off`
+              : ""}
+          </span>
+        )}
+      </p>
+
+      <header ref={headerRef} className="sticky top-0 left-0 right-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-colors duration-200">
+        <div className="container-shellheader">
+          <div className="relative flex items-center h-16 lg:h-20">
+            {/* Mobile hamburger */}
             <button
-              aria-label="Open menu"
+              aria-label="Menu"
               onClick={() => setMobileOpen(true)}
-              className={`flex flex-col justify-center gap-[5px] w-6 h-6 ${ink}`}
+              className="p-2 -ml-2 lg:hidden"
             >
-              <span className="block h-px w-5 bg-current" />
-              <span className="block h-px w-5 bg-current" />
-              <span className="block h-px w-5 bg-current" />
+              <Menu className="w-5 h-5" strokeWidth={1.5} />
             </button>
 
-            <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+            {/* Desktop navigation */}
+            <nav className="hidden lg:flex items-center gap-5 xl:gap-7 flex-1">
               {NAV_LINKS.map((link) => {
                 const menu = menus[link.label];
+
                 if (menu && menu.nodes.length > 0) {
                   return (
-                    <div key={link.label} className="group py-5 -my-5" onMouseLeave={() => setClosedMenu(null)}>
-                      <Link href={link.href} onClick={() => setClosedMenu(link.label)} className={navItem}>
+                    <div
+                      key={link.label}
+                      className="group py-6 -my-6"
+                      onMouseLeave={() => setClosedMenu(null)}
+                    >
+                      <Link
+                        href={link.href}
+                        onClick={() => setClosedMenu(link.label)}
+                        className="flex items-center gap-1 text-[11px] tracking-[0.12em] uppercase font-medium text-stone-600 hover:text-black transition border-b border-transparent group-hover:border-black pb-0.5"
+                      >
                         {link.label}
+
+                        <ChevronDown
+                          className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:rotate-180 transition"
+                          strokeWidth={1.5}
+                        />
                       </Link>
+
+                      {/* Full-width hover background; padded inner content */}
                       <div
-                        className={`absolute left-0 top-full w-screen bg-white text-black border-t border-stone-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 ${
+                        className={`absolute left-1/2 top-full w-screen -translate-x-1/2 bg-white border-t border-stone-100 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.18)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 ${
                           closedMenu === link.label ? "hidden" : ""
                         }`}
                       >
                         <div className="px-5 sm:px-8 lg:px-12 xl:px-16">
-                          <MegaPanel label={link.label} href={link.href} data={menu} onNavigate={() => setClosedMenu(link.label)} />
+                          <MegaPanel
+                            label={link.label}
+                            href={link.href}
+                            data={menu}
+                            onNavigate={() => setClosedMenu(link.label)}
+                          />
                         </div>
                       </div>
                     </div>
                   );
                 }
+
                 return (
-                  <Link key={link.label} href={link.href} className={navItem}>
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className="text-[11px] tracking-[0.12em] uppercase font-medium text-stone-600 hover:text-black transition border-b border-transparent hover:border-black pb-0.5"
+                  >
                     {link.label}
                   </Link>
                 );
               })}
             </nav>
-          </div>
 
-          {/* Center: wordmark */}
-          <Link href="/" aria-label="LarkTribe home" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <img
-              src="/Asset_2_1.svg"
-              alt="LarkTribe"
-              className={`h-4 lg:h-5 w-auto object-contain transition ${overlay ? "brightness-0 invert" : ""}`}
-            />
-          </Link>
+            {/* Centered logo */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <Link
+                href="/"
+                className="flex flex-col items-center"
+              >
+                <img
+                  src="/Asset_2_1.svg"
+                  alt="Larktribe — Curated Kids & Baby Fashion"
+                  className="h-4 lg:h-4 w-auto object-contain"
+                />
+              </Link>
+            </div>
 
-          {/* Right: Zara text utilities */}
-          <div className="flex items-center justify-end gap-4 sm:gap-6 flex-1">
-            <button onClick={() => setSearchOpen(true)} aria-label="Search" className={`${navItem} flex items-center gap-1.5`}>
-              <Search className="w-4 h-4 lg:hidden" strokeWidth={1.5} />
-              <span className="hidden lg:inline">Search</span>
-            </button>
-            <Link href={user ? "/account" : "/login"} className={`${navItem} hidden sm:inline`}>
-              {user ? (user.first_name || "Account") : "Log in"}
-            </Link>
-            <Link href="/account/wishlist" className={`${navItem} hidden md:inline`}>
-              Saved{mounted && wishlistCount > 0 ? ` (${wishlistCount})` : ""}
-            </Link>
-            <button onClick={openDrawer} aria-label="Shopping bag" className={navItem}>
-              Bag{mounted && itemCount > 0 ? ` (${itemCount})` : ""}
-            </button>
+            {/* Right utilities */}
+            <div className="ml-auto flex items-center gap-1 sm:gap-3">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="hidden lg:block text-[11px] tracking-[0.12em] uppercase font-medium text-stone-600 hover:text-black transition px-2 py-2"
+              >
+                Search
+              </button>
+
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="lg:hidden p-2"
+              >
+                <Search className="w-5 h-5" strokeWidth={1.5} />
+              </button>
+
+              {/* Account dropdown */}
+              <div className="hidden sm:block group/account relative py-5 -my-5">
+                {user ? (
+                  <button aria-label="Open account menu" className="flex items-center gap-2 rounded-full px-2 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400">
+                    {user.profile_picture_url ? (
+                      <img
+                        src={user.profile_picture_url}
+                        alt=""
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-stone-200"
+                      />
+                    ) : (
+                      <span className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">
+                        <User2
+                          className="w-3.5 h-3.5 text-black [-webkit-text-stroke-width:1.5px] [-webkit-text-stroke-color:white]"
+                          strokeWidth={1.5}
+                        />
+                      </span>
+                    )}
+                    <ChevronDown className="h-3.5 w-3.5 text-stone-400 transition-transform duration-200 group-hover/account:rotate-180" />
+                  </button>
+                ) : (
+                  <button aria-label="Open account menu" className="flex items-center gap-2 rounded-full px-2 py-1.5 text-stone-600 transition hover:bg-stone-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400">
+                    <span className="hidden xl:inline text-[11px] tracking-[0.12em] uppercase">Account</span><ChevronDown className="hidden xl:block h-3.5 w-3.5 text-stone-400 transition-transform duration-200 group-hover/account:rotate-180" />
+                    <span className="w-8 h-8 rounded-full bg-stone-100 text-stone-800 flex items-center justify-center">
+                      <User2
+                        className="w-3.5 h-3.5"
+                        strokeWidth={1.5}
+                      />
+                    </span>
+                  </button>
+                )}
+
+                <div className="absolute top-full right-0 pt-2.5 opacity-0 invisible translate-y-1 group-hover/account:opacity-100 group-hover/account:visible group-hover/account:translate-y-0 group-focus-within/account:opacity-100 group-focus-within/account:visible group-focus-within/account:translate-y-0 transition-all duration-150 z-40">
+                  <div className="w-56 overflow-hidden rounded-md bg-white border border-stone-200 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.28)] text-[13px]">
+                    {user ? (
+                      <>
+                        <div className="px-4 py-3.5 border-b border-stone-100 bg-stone-50/70">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400">
+                            Signed in as
+                          </p>
+                          <p className="font-medium truncate">
+                            {user.first_name || user.username}
+                          </p>
+                        </div>
+
+                        <Link
+                          href="/account"
+                          className="block px-4 py-2.5 text-stone-700 hover:bg-stone-50 hover:text-black transition"
+                        >
+                          Profile
+                        </Link>
+                        <Link
+                          href="/account/orders"
+                          className="block px-4 py-2.5 hover:bg-stone-50 transition"
+                        >
+                          Orders
+                        </Link>
+                        <Link
+                          href="/account/wishlist"
+                          className="block px-4 py-2.5 hover:bg-stone-50 transition"
+                        >
+                          Wishlist
+                        </Link>
+
+                        <button
+                          onClick={() => {
+                            auth.logout();
+                            router.push("/");
+                          }}
+                          className="block w-full text-left px-4 py-3 text-stone-500 hover:text-black hover:bg-stone-50 transition border-t border-stone-100"
+                        >
+                          Sign Out
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/login"
+                          className="block px-4 py-2.5 hover:bg-stone-50 transition"
+                        >
+                          Sign In
+                        </Link>
+                        <Link
+                          href="/register"
+                          className="block px-4 py-2.5 hover:bg-stone-50 transition"
+                        >
+                          Register
+                        </Link>
+                        <Link
+                          href="/delivery"
+                          className="block px-4 py-2.5 hover:bg-stone-50 transition border-t border-stone-100"
+                        >
+                          Delivery &amp; Tracking
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Wishlist count badge — gated on `mounted` */}
+              <Link
+                href="/account/wishlist"
+                aria-label={mounted && wishlistCount > 0 ? `Wishlist, ${wishlistCount} saved items` : "Wishlist"}
+                className="p-2 relative hover:text-black transition"
+              >
+                <Heart className="w-5 h-5" strokeWidth={1.4} />
+                {mounted && wishlistCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FFE400] text-stone-900 text-[10px] font-bold leading-[17px] text-center ring-1 ring-white">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Cart count badge — gated on `mounted` */}
+              <button
+                onClick={openDrawer}
+                aria-label={mounted && itemCount > 0 ? `Shopping bag, ${itemCount} items` : "Shopping bag"}
+                className="p-2 relative hover:text-black transition"
+              >
+                <ShoppingBag className="w-5 h-5" strokeWidth={1.4} />
+                {mounted && itemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FFE400] text-stone-900 text-[10px] font-bold leading-[17px] text-center ring-1 ring-white">
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Search overlay — full-width, Zara style */}
+      {/* Search overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[100] bg-white overflow-y-auto" ref={searchBoxRef}>
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-4 h-14 lg:h-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200">
-            <Search className="w-4 h-4" strokeWidth={1.5} />
-            <input
-              autoFocus
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] uppercase tracking-[0.06em] outline-none placeholder:text-stone-400"
-              placeholder="Search"
-            />
-            <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }}>
-              <X className="w-5 h-5" strokeWidth={1.5} />
-            </button>
-          </form>
-          <div className="px-4 sm:px-6 lg:px-8 py-6">
-            {searchQuery.trim() ? (
-              searching ? (
-                <p className="zara-label text-stone-400">Searching…</p>
-              ) : suggestions.length === 0 ? (
-                <p className="zara-label text-stone-400">No results</p>
+        <div className="fixed inset-0 z-[100]">
+          <div
+            ref={searchBoxRef}
+            className="absolute left-1/2 -translate-x-1/2 top-16 lg:top-20 w-full max-w-2xl bg-white border-b border-stone-200 shadow-xl"
+          >
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex items-center gap-3 h-14 px-5 border-b border-stone-100"
+            >
+              <Search
+                className="w-4 h-4 text-stone-400"
+                strokeWidth={1.5}
+              />
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400"
+                placeholder="Search products, categories..."
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }}
+              >
+                <X className="w-4 h-4 text-stone-400 hover:text-black" />
+              </button>
+            </form>
+
+            <div className="max-h-[70vh] overflow-y-auto p-5">
+              {searchQuery.trim() ? (
+                searching ? (
+                  <p className="text-xs text-stone-400 py-4">Searching…</p>
+                ) : suggestions.length === 0 ? (
+                  <p className="text-xs text-stone-400 py-4">No results.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {suggestions.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => goToSuggestion(p)}
+                        className="text-left group"
+                      >
+                        <div className="aspect-[3/4] bg-stone-50 overflow-hidden mb-2">
+                          {p.image ? (
+                            <img
+                              src={mediaUrl(p.image)}
+                              alt={p.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-stone-100" />
+                          )}
+                        </div>
+                        <p className="text-[12px] text-stone-800 line-clamp-2">
+                          {p.name}
+                        </p>
+                        <p className="text-[12px] text-stone-500 mt-0.5">
+                          KES {parseFloat(p.price).toLocaleString("en-KE")}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-[2px]">
-                  {suggestions.map((p) => (
-                    <button key={p.id} onClick={() => goToSuggestion(p)} className="text-left group">
-                      <div className="aspect-[3/4] bg-stone-100 overflow-hidden">
-                        {p.image ? (
-                          <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition duration-700" />
-                        ) : null}
-                      </div>
-                      <p className="mt-2 px-1 text-[11px] uppercase tracking-[0.04em] line-clamp-1">{p.name}</p>
-                      <p className="px-1 text-[11px] text-stone-500">KES {parseFloat(p.price).toLocaleString("en-KE")}</p>
-                    </button>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div className="space-y-3">
-                <p className="zara-label text-stone-400">Trending</p>
-                {["Linen shirts", "Baby bodysuits", "Activewear", "Shorts"].map((t) => (
-                  <button key={t} onClick={() => setSearchQuery(t)} className="block text-[13px] uppercase tracking-[0.06em] hover:underline underline-offset-4">
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
+                <p className="text-2xl text-stone-400">Type to search…</p>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Side menu — all screen sizes, like Zara */}
+      {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-[90]">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <div className="side-menu absolute inset-y-0 left-0 w-full sm:w-[420px] bg-white text-black flex flex-col">
-            <div className="flex items-center justify-between h-14 lg:h-16 px-4 sm:px-6">
-              <button aria-label="Close menu" onClick={() => setMobileOpen(false)}>
-                <X className="w-6 h-6" strokeWidth={1.25} />
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setMobileOpen(false)}
+          />
+
+          <div className="absolute inset-y-0 left-0 w-[85vw] max-w-sm bg-white flex flex-col">
+            <div className="flex items-center justify-between p-1 pl-5 border-stone-200">
+              <img
+                src="/Asset_2_1.svg"
+                alt="Larktribe"
+                className="h-8 w-auto object-contain pl-20"
+              />
+              <button onClick={() => setMobileOpen(false)}>
+                <X className="w-8 h-8" strokeWidth={2.5} />
               </button>
-              <img src="/Asset_2_1.svg" alt="LarkTribe" className="h-4 w-auto" />
-              <span className="w-6" />
             </div>
 
-            <nav className="flex-1 overflow-y-auto pb-6">
+            <nav className="flex-1 overflow-y-auto py-2">
               {NAV_LINKS.map((link) => {
                 const menu = menus[link.label];
+
                 if (menu && menu.nodes.length > 0) {
                   const open = mobileExpanded === link.label;
+
                   return (
                     <div key={link.label}>
                       <button
-                        onClick={() => setMobileExpanded(open ? null : link.label)}
-                        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-[15px] uppercase tracking-[0.04em]"
+                        onClick={() =>
+                          setMobileExpanded(open ? null : link.label)
+                        }
+                        className="w-full flex items-center justify-between px-5 py-3.5 text-sm uppercase tracking-wide border-b border-stone-50"
                       >
                         <span>{link.label}</span>
-                        <ChevronDown className={`w-4 h-4 transition ${open ? "rotate-180" : ""}`} strokeWidth={1.25} />
+                        <ChevronDown
+                          className={`w-4 h-4 transition ${
+                            open ? "rotate-180" : ""
+                          }`}
+                        />
                       </button>
+
                       {open && (
-                        <MobileMenuBody data={menu} href={link.href} label={link.label} onNavigate={() => setMobileOpen(false)} />
+                        <MobileMenuBody
+                          data={menu}
+                          href={link.href}
+                          label={link.label}
+                          onNavigate={() => setMobileOpen(false)}
+                        />
                       )}
                     </div>
                   );
                 }
+
                 return (
-                  <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} className="block px-4 sm:px-6 py-4 text-[15px] uppercase tracking-[0.04em]">
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-5 py-3.5 text-sm uppercase tracking-wide border-b border-stone-50"
+                  >
                     {link.label}
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="border-t border-stone-200 px-4 sm:px-6 py-5 flex flex-col gap-3">
-              <Link href={user ? "/account" : "/login"} onClick={() => setMobileOpen(false)} className="zara-label">
-                {user ? `${user.first_name || user.username} — Account` : "Log in"}
-              </Link>
-              {!user && <Link href="/register" onClick={() => setMobileOpen(false)} className="zara-label">Register</Link>}
-              <Link href="/account/wishlist" onClick={() => setMobileOpen(false)} className="zara-label">Saved</Link>
-              <Link href="/account/orders" onClick={() => setMobileOpen(false)} className="zara-label">Orders</Link>
-              <Link href="/help" onClick={() => setMobileOpen(false)} className="zara-label">Help</Link>
-              {user && (
-                <button onClick={() => { auth.logout(); setMobileOpen(false); router.push("/"); }} className="zara-label text-left text-stone-500">
-                  Log out
-                </button>
+            <div className="border-t border-stone-200 p-5 space-y-3 text-sm">
+              {user ? (
+                <Link
+                  href="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="block font-medium"
+                >
+                  {user.first_name || user.username} — Account
+                </Link>
+              ) : (
+                <div className="flex gap-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <span className="text-stone-300">/</span>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="font-medium"
+                  >
+                    Register
+                  </Link>
+                </div>
               )}
+
+              <Link
+                href="/account/wishlist"
+                onClick={() => setMobileOpen(false)}
+                className="block text-stone-500"
+              >
+                Wishlist
+              </Link>
             </div>
           </div>
         </div>

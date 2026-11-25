@@ -24,7 +24,7 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
 
   if (allMedia.length === 0) {
     return (
-      <div className={`bg-[var(--color-mist)] rounded-none flex items-center justify-center p-8 ${className}`}>
+      <div className={`bg-[var(--color-mist)] rounded-2xl flex items-center justify-center p-8 ${className}`}>
         <span className="text-neutral-400 text-sm">No media available</span>
       </div>
     );
@@ -35,7 +35,7 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
 
     return (
       <div
-        className={`relative bg-[var(--color-mist)] rounded-none overflow-hidden cursor-pointer ${isMain ? 'aspect-video' : 'aspect-square'}`}
+        className={`relative bg-[var(--color-mist)] rounded-2xl overflow-hidden cursor-pointer ${isMain ? 'aspect-video' : 'aspect-square'}`}
         onClick={() => setSelectedMedia(item)}
       >
         {item.media_type === 'video' ? (
@@ -58,7 +58,7 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
 
         {item.media_type === 'video' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center ">
+            <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
               <Play size={18} className="text-[var(--color-ink)] ml-0.5" fill="currentColor" />
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
         {secondMedia ? (
           renderMediaItem(secondMedia)
         ) : (
-          <div className="bg-[var(--color-mist)] rounded-none flex items-center justify-center aspect-video">
+          <div className="bg-[var(--color-mist)] rounded-2xl flex items-center justify-center aspect-video">
             <span className="text-neutral-400 text-sm">No media</span>
           </div>
         )}
@@ -89,12 +89,12 @@ export default function MediaGallery({ media, className = '' }: MediaGalleryProp
               key={item.id}
               onClick={() => setSelectedMedia(item)}
               className={`
- relative aspect-square rounded-none overflow-hidden border-2 transition-all duration-200
- ${selectedMedia?.id === item.id
- ? 'border-[var(--color-ink)]'
- : 'border-transparent hover:border-[var(--color-line)] hover:scale-105'
- }
- `}
+                relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200
+                ${selectedMedia?.id === item.id
+                  ? 'border-[var(--color-ink)]'
+                  : 'border-transparent hover:border-[var(--color-line)] hover:scale-105'
+                }
+              `}
             >
               {item.media_type === 'video' ? (
                 <div className="w-full h-full bg-[var(--color-ink)] flex items-center justify-center">

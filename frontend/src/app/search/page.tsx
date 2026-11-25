@@ -23,7 +23,7 @@ function SearchResults() {
 
   return (
     <div className="container-shell py-10 min-h-[50vh]">
-      <h1 className="text-[13px] tracking-[0.08em] font-editorial mb-2">Search</h1>
+      <h1 className="font-editorial text-3xl mb-2">Search</h1>
       {q && <p className="text-sm text-stone-500 mb-10">Results for &ldquo;{q}&rdquo;</p>}
       {loading ? (
         <p className="text-stone-400 text-sm">Searching…</p>

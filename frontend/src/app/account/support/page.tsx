@@ -47,7 +47,7 @@ function NewTicketForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form onSubmit={submit} className="space-y-4 border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="text-[13px] tracking-[0.08em] font-display ">Contact support</h2>
+      <h2 className="font-display font-bold">Contact support</h2>
       <input
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
@@ -99,7 +99,7 @@ function TicketThread({ ticket, onReplied }: { ticket: SupportTicket; onReplied:
     <div className="border border-stone-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="min-w-0 font-semibold">{ticket.subject}</p>
-        <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-none bg-[var(--color-mist)]">
+        <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-[var(--color-mist)]">
           {STATUS_LABEL[ticket.status] ?? ticket.status}
         </span>
       </div>
@@ -167,7 +167,7 @@ export default function SupportPage() {
   return (
     <main className="account-page">
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Your account</span>
-      <h1 className="text-[13px] tracking-[0.08em] mb-2 font-editorial ">Help & support</h1>
+      <h1 className="mb-2 font-editorial text-3xl sm:text-4xl">Help & support</h1>
       <p className="mb-6 text-sm text-neutral-500">Send our team a message and follow the conversation here.</p>
       <AccountNav />
 
@@ -175,7 +175,7 @@ export default function SupportPage() {
         <NewTicketForm onCreated={load} />
 
         <div className="min-w-0">
-          <h2 className="text-[13px] tracking-[0.08em] mb-3 font-editorial ">Your tickets</h2>
+          <h2 className="mb-3 font-editorial text-2xl">Your tickets</h2>
           {loading ? (
             <p className="text-sm text-neutral-500">Loading…</p>
           ) : loadError ? (
