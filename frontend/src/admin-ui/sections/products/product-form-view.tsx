@@ -401,6 +401,7 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
   const [busy, setBusy] = useState(false);
   const [color, setColor] = useState('');
   const [view, setView] = useState<ProductImage['view']>('front');
+  const [repositoryPath, setRepositoryPath] = useState('');
   const isNew = productId === undefined;
   const previews = useMemo(() => pending.map((p) => URL.createObjectURL(p.file)), [pending]);
   useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
@@ -447,6 +448,16 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
       setImages(await adminApi.products.uploadImages(productId!, list, { color: color.trim(), view }));
       toast.success(`${list.length} photo${list.length > 1 ? 's' : ''} added${color.trim() ? ` to ${color.trim()}` : ''}.`);
     } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); if (input.current) input.current.value = ''; }
+  };
+
+  const importRepositoryImage = async () => {
+    if (!productId || !repositoryPath.trim()) return;
+    setBusy(true);
+    try {
+      setImages(await adminApi.products.importImage(productId, repositoryPath.trim(), { color: color.trim(), view }));
+      setRepositoryPath('');
+      toast.success('Repository image attached to this product.');
+    } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
   };
 
   const act = async (fn: () => Promise<ProductImage[]>, ok?: string) => {
@@ -498,6 +509,30 @@ function ImagesCard({ productId, images, variants, pendingVariants, setImages, p
             Add photos
           </Button>
         </Box>
+
+        {!isNew && (
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 3, flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
+              fullWidth
+              label="Existing image in ml_dataset"
+              value={repositoryPath}
+              onChange={(e) => setRepositoryPath(e.target.value)}
+              placeholder="products/your-image-name.jpeg"
+              helperText="Attach a file already uploaded to the GitHub media repository without uploading it again."
+              sx={{ flex: '1 1 320px' }}
+            />
+            <Button
+              variant="outlined"
+              color="inherit"
+              disabled={busy || !repositoryPath.trim()}
+              onClick={importRepositoryImage}
+              sx={{ height: 40, whiteSpace: 'nowrap' }}
+            >
+              Attach repository image
+            </Button>
+          </Box>
+        )}
 
         {groups.map((g) => (
           <Box key={g.color || '__general'} sx={{ mb: 3 }}>
