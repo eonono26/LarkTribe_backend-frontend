@@ -33,7 +33,7 @@ from catalog.models import (
 )
 from orders.models import Order, OrderItem
 from vendors.models import Vendor
-from catalog.meshy import start_product_generation, refresh_product_generation, import_completed_meshy_task
+from catalog.meshy import start_product_generation, refresh_product_generation, queue_completed_meshy_import
 
 logger = logging.getLogger(__name__)
 
@@ -349,21 +349,16 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         product = self.get_object()
         task_id = (request.data.get("task_id") or "").strip()
         try:
-            result = import_completed_meshy_task(product, task_id)
+            result = queue_completed_meshy_import(product, task_id)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except RuntimeError as exc:
-            logger.exception("Meshy task import failed for product %s", product.pk)
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         except Exception:
-            # Storage SDK, malformed provider responses, and unexpected file
-            # handling errors must not escape as opaque Django 500 pages.
-            logger.exception("Unexpected Meshy task import error for product %s", product.pk)
+            logger.exception("Could not queue Meshy task import for product %s", product.pk)
             return Response(
-                {"detail": "The Meshy task was found, but its model files could not be attached. Check backend logs for the storage error."},
+                {"detail": "Could not start the Meshy model import. Check backend logs."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["get"], url_path="3d-status")
     def three_d_status(self, request, pk=None):
