@@ -254,6 +254,12 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               className="absolute inset-0 z-0"
             />
 
+            {product.model_3d_url && (
+              <span className="absolute bottom-2.5 left-2.5 z-[1] inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white">
+                <span aria-hidden>◈</span> 3D · AR
+              </span>
+            )}
+
             {!isInStock && (
               <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
                 <span className="text-espresso text-xs uppercase tracking-widest">Sold out</span>
