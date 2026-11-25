@@ -4,8 +4,6 @@ Only server-side code reads MESHY_API_KEY. Generated files are copied into
 Django's configured media storage because Meshy's task URLs expire.
 """
 import os
-from urllib.parse import urlparse
-
 import requests
 from django.core.files.base import ContentFile
 from django.utils import timezone
