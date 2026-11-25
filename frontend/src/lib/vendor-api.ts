@@ -112,6 +112,15 @@ export const vendorApi = {
     if (isPrimary) fd.append("is_primary", "true");
     return authedRequest<VendorProductImage>(`/catalog/my-products/${productId}/images/`, { method: "POST", body: fd });
   },
+  generateProduct3D: (productId: number) =>
+    authedRequest<{ status: string; task_id?: string; detail?: string }>(
+      `/catalog/my-products/${productId}/generate-3d/`,
+      { method: "POST" }
+    ),
+  product3DStatus: (productId: number) =>
+    authedRequest<{ status: string; progress?: number; model_3d_url?: string | null; model_3d_ios_url?: string | null; detail?: string }>(
+      `/catalog/my-products/${productId}/3d-status/`
+    ),
   deleteProductImage: (productId: number, imageId: number) =>
     authedRequest<void>(`/catalog/my-products/${productId}/images/${imageId}/`, { method: "DELETE" }),
   myOrderItems: () => authedRequest<VendorOrderItem[]>("/orders/vendor-items/"),
