@@ -247,6 +247,11 @@ def _refresh_product_generation(product):
         }
 
     if not product.ar_generation_task_id:
+        if product.ar_generation_status == Product.ARGenerationStatus.FAILED:
+            return {
+                "status": product.ar_generation_status,
+                "detail": product.ar_generation_error or "Meshy generation failed before a task ID was saved.",
+            }
         if product.ar_generation_status == Product.ARGenerationStatus.PROCESSING:
             age = (
                 (timezone.now() - product.ar_generation_updated_at).total_seconds()
