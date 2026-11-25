@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { api, mediaUrl } from "@/lib/api";
 import type { Department } from "@/lib/types";
