@@ -92,6 +92,7 @@ export const adminApi = {
     stats: () => call<Record<'total' | 'active' | 'pending' | 'draft' | 'rejected' | 'out_of_stock' | 'low_stock', number>>(`${AP}/products/stats/`),
     generate3d: (id: number) => call<{ status: string }>(`${AP}/products/${id}/generate-3d/`, { method: 'POST' }),
     product3DStatus: (id: number) => call<{ status: string }>(`${AP}/products/${id}/3d-status/`),
+    importMeshyTask: (id: number, taskId: string) => call<{ status: string }>(`${AP}/products/${id}/import-meshy-task/`, json('POST', { task_id: taskId })),
     approve: (id: number) => call<T.AdminProduct>(`${AP}/products/${id}/approve/`, { method: 'POST' }),
     reject: (id: number, reason: string) => call<T.AdminProduct>(`${AP}/products/${id}/reject/`, json('POST', { reason })),
     requestChanges: (id: number, feedback: string) => call<T.AdminProduct>(`${AP}/products/${id}/request-changes/`, json('POST', { feedback })),
