@@ -148,6 +148,9 @@ export function ProductFormView({ productId }: { productId?: number }) {
         for (const ph of pending) {
           try { await adminApi.products.uploadImages(created.id, [ph.file], { color: ph.color, view: ph.view }); } catch { photosFailed += 1; }
         }
+        if (pending.length > 0 && photosFailed === 0) {
+          try { await adminApi.products.generate3d(created.id); } catch { /* Product is saved; the editor can retry generation later. */ }
+        }
         if (variantsFailed || photosFailed) {
           toast.error(`Product created, but ${[variantsFailed && `${variantsFailed} variant(s)`, photosFailed && `${photosFailed} photo(s)`].filter(Boolean).join(' and ')} could not be saved. Add them on the next screen.`);
         } else toast.success('Product created.');
