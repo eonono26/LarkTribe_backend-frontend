@@ -160,6 +160,11 @@ class AdminProductSerializer(serializers.ModelSerializer):
     images = AdminProductImageSerializer(many=True, read_only=True)
     variants = AdminProductVariantSerializer(many=True, read_only=True)
     discount_percent = serializers.SerializerMethodField()
+    model_3d = serializers.SerializerMethodField()
+    model_3d_ios = serializers.SerializerMethodField()
+    model_3d_poster = serializers.SerializerMethodField()
+    ar_generation_status = serializers.CharField(read_only=True)
+    ar_generation_error = serializers.CharField(read_only=True)
 
     class Meta:
         model = Product
@@ -169,8 +174,12 @@ class AdminProductSerializer(serializers.ModelSerializer):
             "features", "materials", "care_instructions", "price", "compare_at_price",
             "discount_percent", "stock", "sku", "status", "is_featured", "rating_avg",
             "rating_count", "created_at", "updated_at", "primary_image", "images", "variants",
+            "model_3d", "model_3d_ios", "model_3d_poster", "ar_generation_status", "ar_generation_error",
         ]
-        read_only_fields = ["rating_avg", "rating_count", "created_at", "updated_at"]
+        read_only_fields = [
+            "rating_avg", "rating_count", "created_at", "updated_at",
+            "model_3d", "model_3d_ios", "model_3d_poster", "ar_generation_status", "ar_generation_error",
+        ]
         extra_kwargs = {
             "slug": {"required": False, "allow_blank": True},
             "age_groups": {"required": False},
@@ -179,6 +188,15 @@ class AdminProductSerializer(serializers.ModelSerializer):
     def get_primary_image(self, obj):
         images = list(obj.images.all())
         return _abs(self.context.get("request"), images[0].image) if images else None
+
+    def get_model_3d(self, obj):
+        return _abs(self.context.get("request"), obj.model_3d)
+
+    def get_model_3d_ios(self, obj):
+        return _abs(self.context.get("request"), obj.model_3d_ios)
+
+    def get_model_3d_poster(self, obj):
+        return _abs(self.context.get("request"), obj.model_3d_poster)
 
     def get_discount_percent(self, obj):
         if obj.compare_at_price and obj.compare_at_price > obj.price:
