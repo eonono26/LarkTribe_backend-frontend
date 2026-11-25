@@ -3,12 +3,13 @@
 Only server-side code reads MESHY_API_KEY. Generated files are copied into
 Django's configured media storage because Meshy's task URLs expire.
 """
+import base64
 import logging
+import mimetypes
 import os
 import requests
 from django.core.files.base import ContentFile
 from django.utils import timezone
-from django.conf import settings
 
 from .models import Product, ProductImage
 
@@ -39,19 +40,32 @@ def _source_images(product, request):
     rank = {"front": 0, "back": 1, "side": 2, "detail": 3, "other": 4}
     group.sort(key=lambda item: (rank.get(item.view, 5), not item.is_primary, item.order, item.id))
     chosen = group[:4]
-    urls = []
+    # Send image bytes as data URIs instead of public /media/ URLs. Render's
+    # local filesystem may not be publicly reachable (or may be ephemeral),
+    # and Meshy must be able to read every source image during task submission.
+    data_uris = []
     for item in chosen:
-        url = item.image.url
-        if not url.startswith(("http://", "https://")):
-            # Prefer the public Render URL so Meshy never receives an internal
-            # or proxy-derived URL for a product image.
-            base_url = getattr(settings, "PUBLIC_BACKEND_URL", "").rstrip("/")
-            if base_url:
-                url = f"{base_url}/{url.lstrip('/')}"
-            elif request:
-                url = request.build_absolute_uri(url)
-        urls.append(url)
-    return urls
+        try:
+            item.image.open("rb")
+            try:
+                image_bytes = item.image.read()
+            finally:
+                item.image.close()
+        except (OSError, ValueError) as exc:
+            raise ValueError(
+                f"Could not read product image '{item.image.name}'. Re-upload this image and try again."
+            ) from exc
+
+        if not image_bytes:
+            raise ValueError(
+                f"Product image '{item.image.name}' is empty. Re-upload it and try again."
+            )
+
+        mime_type = mimetypes.guess_type(item.image.name)[0] or "image/jpeg"
+        encoded = base64.b64encode(image_bytes).decode("ascii")
+        data_uris.append(f"data:{mime_type};base64,{encoded}")
+
+    return data_uris
 
 
 def start_product_generation(product, request=None):
