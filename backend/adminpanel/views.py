@@ -689,3 +689,103 @@ class AdminLookupsView(views.APIView):
             "payment_methods": [{"value": v, "label": l} for v, l in Order.PaymentMethod.choices],
             "roles": [{"value": v, "label": l} for v, l in User.Role.choices],
         })
+
+
+class AdminMediaMigrationView(views.APIView):
+    """Copy legacy GitHub media into R2 in small admin-triggered batches."""
+    permission_classes = [IsPlatformAdmin]
+
+    def post(self, request):
+        import os
+        from django.apps import apps
+        from rest_framework.exceptions import APIException
+
+        required = (
+            "AR_STORAGE_BUCKET_NAME", "AR_STORAGE_ENDPOINT_URL",
+            "AR_STORAGE_ACCESS_KEY_ID", "AR_STORAGE_SECRET_ACCESS_KEY",
+            "GITHUB_MEDIA_TOKEN",
+        )
+        missing = [key for key in required if not os.environ.get(key, "").strip()]
+        if missing:
+            return Response(
+                {"detail": "Media migration is not configured on the server.", "missing": missing},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            from storages.backends.s3 import S3Storage
+            from catalog.github_storage import GitHubMediaStorage
+            from catalog.storage import Product3DStorage
+            source = GitHubMediaStorage()
+            destination = S3Storage(
+                bucket_name=os.environ["AR_STORAGE_BUCKET_NAME"].strip(),
+                access_key=os.environ["AR_STORAGE_ACCESS_KEY_ID"].strip(),
+                secret_key=os.environ["AR_STORAGE_SECRET_ACCESS_KEY"].strip(),
+                endpoint_url=os.environ["AR_STORAGE_ENDPOINT_URL"].strip(),
+                region_name=os.environ.get("AR_STORAGE_REGION_NAME", "auto"),
+                default_acl=None, querystring_auth=False, file_overwrite=True,
+                addressing_style="path",
+            )
+        except Exception:
+            logger.exception("Could not initialize media migration storage")
+            return Response({"detail": "Could not connect to configured media storage."},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            offset = max(0, int(request.data.get("offset", 0)))
+            limit = max(1, min(10, int(request.data.get("limit", 5))))
+        except (TypeError, ValueError):
+            return Response({"detail": "offset and limit must be integers."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Build a stable, de-duplicated sequence from database references.
+        names = []
+        seen = set()
+        for model in apps.get_models():
+            for field in model._meta.get_fields():
+                if not getattr(field, "concrete", False):
+                    continue
+                if field.get_internal_type() not in ("FileField", "ImageField"):
+                    continue
+                if isinstance(getattr(field, "storage", None), Product3DStorage):
+                    continue
+                try:
+                    qs = model._default_manager.exclude(**{field.name: ""}).exclude(
+                        **{f"{field.name}__isnull": True}
+                    ).order_by("pk")
+                    for record in qs.iterator(chunk_size=200):
+                        value = getattr(record, field.name, None)
+                        name = getattr(value, "name", "") if value else ""
+                        if name and name not in seen:
+                            seen.add(name)
+                            names.append(name)
+                except Exception:
+                    logger.exception("Could not enumerate media field %s.%s", model._meta.label, field.name)
+                    return Response({"detail": "Could not enumerate all media records; migration stopped safely."},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        batch = names[offset:offset + limit]
+        copied = skipped = failed = 0
+        errors = []
+        for name in batch:
+            try:
+                if destination.exists(name):
+                    skipped += 1
+                    continue
+                with source.open(name, "rb") as file_obj:
+                    destination.save(name, file_obj)
+                if not destination.exists(name):
+                    raise RuntimeError("R2 verification failed after upload.")
+                copied += 1
+            except Exception as exc:
+                failed += 1
+                logger.exception("Media migration failed for %s", name)
+                errors.append({"file": name, "error": str(exc)[:240]})
+
+        next_offset = offset + len(batch)
+        return Response({
+            "processed": len(batch), "copied": copied, "already_in_r2": skipped,
+            "failed": failed, "errors": errors, "offset": next_offset,
+            "total": len(names), "has_more": next_offset < len(names),
+            "complete": next_offset >= len(names) and failed == 0,
+        }, status=status.HTTP_200_OK)
