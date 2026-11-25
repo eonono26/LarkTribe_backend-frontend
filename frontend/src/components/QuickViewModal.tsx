@@ -30,6 +30,7 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const arGenerationStatus = product?.ar_generation_status;
 
   // Load the full product detail — the list card only has summary data,
   // so quick view needs its own fetch for sizes/colors/description.
@@ -63,7 +64,7 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
   // While a model is processing, let this product view refresh the provider task
   // and pick up the completed GLB/USDZ without requiring the vendor dashboard.
   useEffect(() => {
-    if (!product || !["queued", "processing"].includes(product.ar_generation_status || "")) return;
+    if (!["queued", "processing"].includes(arGenerationStatus || "")) return;
     let active = true;
     let busy = false;
     const poll = async () => {
@@ -81,7 +82,7 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
     };
     const timer = window.setInterval(() => { void poll(); }, 15000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [product?.ar_generation_status, slug]);
+  }, [arGenerationStatus, slug]);
 
   // Lock page scroll while the modal is open, and let Escape close it.
   useEffect(() => {
