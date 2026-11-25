@@ -29,14 +29,17 @@ class GitHubMediaStorage(Storage):
     def configured(self):
         return bool(self.owner and self.repo and self.branch and self.token)
 
-    def _headers(self, raw=False):
-        if not self.token:
-            raise RuntimeError("GITHUB_MEDIA_TOKEN is not configured on the backend.")
+    def _headers(self, raw=False, require_auth=False):
+        # Public repositories can be read without a token. Writes and deletes
+        # always require a token with Contents: read/write permission.
+        if require_auth and not self.token:
+            raise RuntimeError("GITHUB_MEDIA_TOKEN is required to write generated media to the repository.")
         headers = {
-            "Authorization": f"Bearer {self.token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
         if raw:
             headers["Accept"] = "application/vnd.github.raw+json"
         return headers
@@ -75,7 +78,7 @@ class GitHubMediaStorage(Storage):
         }
         response = requests.put(
             self._api_url(name),
-            headers=self._headers(),
+            headers=self._headers(require_auth=True),
             json=payload,
             timeout=TIMEOUT,
         )
@@ -99,7 +102,7 @@ class GitHubMediaStorage(Storage):
             raise RuntimeError(f"GitHub did not return a blob SHA for {name}.")
         deleted = requests.delete(
             self._api_url(name),
-            headers=self._headers(),
+            headers=self._headers(require_auth=True),
             json={"message": f"Delete test media: {name}", "sha": sha, "branch": self.branch},
             timeout=TIMEOUT,
         )
@@ -135,8 +138,6 @@ class GitHubMediaStorage(Storage):
 
 def github_media(request, path):
     """Public product-media delivery; the GitHub token stays server-side."""
-    if not os.environ.get("GITHUB_MEDIA_TOKEN", "").strip():
-        raise Http404
     storage = GitHubMediaStorage()
     try:
         file_obj = storage.open(path, "rb")
