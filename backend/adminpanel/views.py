@@ -31,6 +31,7 @@ from catalog.models import (
 )
 from orders.models import Order, OrderItem
 from vendors.models import Vendor
+from catalog.meshy import start_product_generation, refresh_product_generation
 
 from .pagination import AdminPagination
 from .permissions import IsPlatformAdmin
@@ -296,6 +297,27 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
                 product.status = new_status
                 product.save(update_fields=["status", "updated_at"])
         return Response({"updated": len(products)})
+
+    # --- Meshy image-to-3D generation ---
+    @action(detail=True, methods=["post"], url_path="generate-3d")
+    def generate_3d(self, request, pk=None):
+        product = self.get_object()
+        try:
+            result = start_product_generation(product, request=request)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(result, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=["get"], url_path="3d-status")
+    def three_d_status(self, request, pk=None):
+        product = self.get_object()
+        try:
+            result = refresh_product_generation(product)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(result)
 
     # --- images ---
     @action(detail=True, methods=["post"], url_path="images", parser_classes=[parsers.MultiPartParser, parsers.FormParser])
