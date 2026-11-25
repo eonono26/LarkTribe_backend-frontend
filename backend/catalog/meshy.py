@@ -258,6 +258,17 @@ def start_product_generation(product, request=None):
     return {"status": Product.ARGenerationStatus.PROCESSING, "detail": "3D generation request queued."}
 
 
+def _safe_file_url(field):
+    """Resolve a generated asset URL without letting a stale remote object 500 status polling."""
+    if not field:
+        return None
+    try:
+        return field.url
+    except Exception:
+        logger.exception("Unable to resolve generated 3D asset URL for %r", getattr(field, "name", None))
+        return None
+
+
 def _download_to_field(field, url, filename):
     if not url:
         return False
@@ -271,8 +282,8 @@ def _refresh_product_generation(product):
     if product.ar_generation_status == Product.ARGenerationStatus.SUCCEEDED:
         return {
             "status": product.ar_generation_status,
-            "model_3d_url": product.model_3d.url if product.model_3d else None,
-            "model_3d_ios_url": product.model_3d_ios.url if product.model_3d_ios else None,
+            "model_3d_url": _safe_file_url(product.model_3d),
+            "model_3d_ios_url": _safe_file_url(product.model_3d_ios),
         }
 
     if not product.ar_generation_task_id:
@@ -353,8 +364,8 @@ def _refresh_product_generation(product):
         product.save()
         return {
             "status": product.ar_generation_status,
-            "model_3d_url": product.model_3d.url if product.model_3d else None,
-            "model_3d_ios_url": product.model_3d_ios.url if product.model_3d_ios else None,
+            "model_3d_url": _safe_file_url(product.model_3d),
+            "model_3d_ios_url": _safe_file_url(product.model_3d_ios),
         }
 
     if state in ("FAILED", "CANCELED"):
