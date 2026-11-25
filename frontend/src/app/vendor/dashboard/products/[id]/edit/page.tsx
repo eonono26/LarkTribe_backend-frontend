@@ -48,7 +48,7 @@ export default function EditProductPage() {
           setImages(product.images ?? []);
           setSelectedAgeGroups(
             Array.isArray(product.age_groups)
-              ? product.age_groups.map((ag: any) => (typeof ag === "number" ? ag : ag.id))
+              ? product.age_groups.map((ag: number | VendorAgeGroup) => (typeof ag === "number" ? ag : ag.id))
               : []
           );
         }
