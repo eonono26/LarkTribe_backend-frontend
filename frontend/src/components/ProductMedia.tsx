@@ -44,7 +44,7 @@ export default function ProductMedia({
       )}
       {tab === "360" && has360 && <Viewer360 frames={frames} color={color} alt={product.name} />}
       {tab === "3d" && has3d && (
-        <Model3DViewer src={product.model_3d_url!} poster={product.model_3d_poster_url ? product.model_3d_poster_url : (images[0] ? mediaUrl(images[0].image) : null)} alt={product.name} />
+        <Model3DViewer src={product.model_3d_url!} iosSrc={product.model_3d_ios_url} poster={product.model_3d_poster_url ? product.model_3d_poster_url : (images[0] ? mediaUrl(images[0].image) : null)} alt={product.name} />
       )}
     </div>
   );
