@@ -1,9 +1,10 @@
 """Copy database-referenced media from legacy GitHub storage into Cloudflare R2.
 
-Run once before switching Django's default media storage to R2:
+Run after the R2 media-storage deployment:
     python manage.py migrate_media_to_r2
 
-Safe to re-run: objects already present in R2 are skipped.
+Safe to re-run: objects already present in R2 are skipped. Legacy GitHub
+URLs continue to work until each object has been copied.
 """
 import os
 
