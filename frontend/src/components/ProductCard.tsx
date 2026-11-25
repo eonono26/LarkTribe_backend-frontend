@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
 import { api, apiErrorMessage } from "@/lib/api";
 import QuickViewModal from "@/components/QuickViewModal";
+import Model3DViewer from "@/components/Model3DViewer";
 import ColorSwatch from "@/components/ColorSwatch";
 import { API_BASE_URL } from "@/lib/config";
 import { isLoggedIn } from "@/lib/auth";
@@ -156,7 +157,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const hasCurrentImageError = imageErrors[currentImageKey] || false;
   const modelPoster = model_3d_poster_url ? buildFullUrl(model_3d_poster_url) : null;
   // Prefer the generated Meshy render on storefront cards whenever a 3D model exists.
-  const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : (model_3d_url && modelPoster) ? modelPoster : activeImage?.url || PLACEHOLDER_IMAGE;
+  const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : activeImage?.url || PLACEHOLDER_IMAGE;
 
   // Whether the currently selected color can be added straight to the bag
   // (a resolvable variant, and no size to pick), vs. needing Quick View.
@@ -234,7 +235,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           <div
             className="absolute inset-0 overflow-hidden bg-transparent shadow-none"
           >
-            {!hasCurrentImageError ? (
+            {model_3d_url ? (
+              <div className="absolute inset-0 z-[1]">
+                <Model3DViewer src={model_3d_url} iosSrc={product.model_3d_ios_url} poster={modelPoster || activeImage?.url || null} alt={name} compact />
+              </div>
+            ) : !hasCurrentImageError ? (
               <Image
                 key={currentImageKey}
                 src={finalImage}
@@ -251,12 +256,12 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 <span className="text-xs">No image</span>
               </div>
             )}
-            <Link
+            {!model_3d_url && <Link
               href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
               aria-label={`View ${name}`}
               onClick={() => api.track("click", { product: id })}
               className="absolute inset-0 z-0"
-            />
+            />}
 
             {product.model_3d_url && (
               <span className="absolute bottom-2.5 left-2.5 z-[1] inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white">
