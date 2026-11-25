@@ -77,6 +77,7 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
             <li key={p.id} className="w-52 shrink-0 snap-start">
               <Link href={`/product/${p.slug}`} className="block">
                 <div className="relative aspect-[3/4] bg-[#f7f5f0]">
+                  {p.model_3d_url && <span className="absolute bottom-2 left-2 z-10 bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>}
                   <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="160px" className="object-contain p-3" />
                 </div>
                 <p className="mt-2 line-clamp-1 text-xs normal-case">{sentenceCase(p.name)}</p>
