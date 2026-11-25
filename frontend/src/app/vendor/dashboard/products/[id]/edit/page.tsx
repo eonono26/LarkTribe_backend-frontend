@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
-import { vendorApi, VendorProduct, VendorProductImage, VendorAgeGroup } from "@/lib/vendor-api";
+import { vendorApi, VendorProduct, VendorProductImage, VendorAgeGroup, VendorProductImageView } from "@/lib/vendor-api";
 import { mediaUrl } from "@/lib/api";
 import Model3DViewer from "@/components/Model3DViewer";
 
@@ -12,6 +12,27 @@ interface CategoryOption {
   id: number;
   name: string;
   department: { name: string };
+}
+
+type PendingPhoto = { file: File; color: string; view: VendorProductImageView };
+
+const VIEW_OPTIONS: { value: VendorProductImageView; label: string }[] = [
+  { value: "front", label: "Front" },
+  { value: "back", label: "Back" },
+  { value: "side", label: "Side" },
+  { value: "detail", label: "Detail" },
+  { value: "other", label: "Other" },
+];
+
+function hasFrontBackPhotos(photos: Array<{ color: string; view: string }>): boolean {
+  const groups = new Map<string, Set<string>>();
+  photos.forEach((photo) => {
+    const key = (photo.color || "").trim().toLowerCase();
+    const views = groups.get(key) ?? new Set<string>();
+    views.add(photo.view);
+    groups.set(key, views);
+  });
+  return [...groups.values()].some((views) => views.has("front") && views.has("back"));
 }
 
 const GENDER_OPTIONS = [
@@ -29,7 +50,9 @@ export default function EditProductPage() {
   const [ageGroups, setAgeGroups] = useState<VendorAgeGroup[]>([]);
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<number[]>([]);
   const [images, setImages] = useState<VendorProductImage[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
+  const [newImages, setNewImages] = useState<PendingPhoto[]>([]);
+  const [photoColor, setPhotoColor] = useState("");
+  const [photoView, setPhotoView] = useState<VendorProductImageView>("front");
   const [form, setForm] = useState<Partial<VendorProduct> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -79,12 +102,22 @@ export default function EditProductPage() {
         gender: form.gender,
         age_groups: selectedAgeGroups,
       });
+      const uploaded: VendorProductImage[] = [];
       for (let i = 0; i < newImages.length; i++) {
-        await vendorApi.uploadProductImage(productId, newImages[i], images.length === 0 && i === 0);
+        const photo = newImages[i];
+        uploaded.push(await vendorApi.uploadProductImage(productId, photo.file, images.length === 0 && i === 0, {
+          color: photo.color,
+          view: photo.view,
+        }));
       }
-      if (newImages.length > 0) {
-        // Only new photos can change the generated geometry; queue after upload completes.
-        try { await vendorApi.generateProduct3D(productId); } catch { /* Product remains saved; generation can be retried. */ }
+      const allPhotos = [...images, ...uploaded];
+      if (uploaded.length) setImages(allPhotos);
+      if (uploaded.length && hasFrontBackPhotos(allPhotos)) {
+        // A matching front/back pair is enough to start Meshy without blocking the seller.
+        try {
+          await vendorApi.generateProduct3D(productId);
+          setForm((current) => current ? { ...current, ar_generation_status: "queued" } : current);
+        } catch { /* Product remains saved; generation can be retried from the 3D panel. */ }
       }
       router.push("/vendor/dashboard/products");
     } catch {
@@ -260,15 +293,55 @@ export default function EditProductPage() {
           </div>
         )}
 
-        <div>
-          <label className="text-sm font-semibold block mb-1">Add more photos</label>
+        <div className="space-y-2 rounded-xl border border-[var(--color-line)] p-3">
+          <label className="text-sm font-semibold block">Add more photos for 3D &amp; AR</label>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={photoColor}
+              onChange={(e) => setPhotoColor(e.target.value)}
+              placeholder="Colour (e.g. Brown)"
+              className="w-full min-w-0 bg-[var(--color-mist)] rounded-lg px-3 py-2.5 outline-none"
+            />
+            <select
+              value={photoView}
+              onChange={(e) => setPhotoView(e.target.value as VendorProductImageView)}
+              className="w-full min-w-0 bg-[var(--color-mist)] rounded-lg px-3 py-2.5 outline-none"
+            >
+              {VIEW_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
-            onChange={(e) => setNewImages(Array.from(e.target.files ?? []))}
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              const tooLarge = files.find((file) => file.size > 5 * 1024 * 1024);
+              if (tooLarge) {
+                setError(`\u201c${tooLarge.name}\u201d is larger than 5 MB.`);
+              } else {
+                setNewImages((current) => [...current, ...files.map((file) => ({
+                  file, color: photoColor.trim(), view: photoView,
+                }))]);
+                setError("");
+              }
+              e.currentTarget.value = "";
+            }}
             className="text-sm"
           />
+          {newImages.length > 0 && (
+            <ul className="space-y-1 text-xs text-neutral-500">
+              {newImages.map((photo, index) => (
+                <li key={`${photo.file.name}-${index}`} className="flex justify-between gap-2">
+                  <span className="truncate">{photo.file.name} · {photo.color || "General"} · {photo.view}</span>
+                  <button type="button" onClick={() => setNewImages((current) => current.filter((_, i) => i !== index))} className="font-semibold">Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-neutral-400">
+            Use the same colour for Front and Back. Saving both views automatically starts 3D generation in the background. JPG/PNG/WebP, up to 5 MB each.
+          </p>
         </div>
 
         {error && <p className="text-sm text-[var(--color-flag)]">{error}</p>}
