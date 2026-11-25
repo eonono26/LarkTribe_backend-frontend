@@ -790,6 +790,25 @@ class Product(models.Model):
         help_text="Static fallback image shown while the 3D model loads, or on devices that cannot render it.",
     )
 
+    model_3d_ios = models.FileField(
+        upload_to="products/3d/", null=True, blank=True,
+        help_text="Generated USDZ model for iOS AR Quick Look.",
+    )
+    class ARGenerationStatus(models.TextChoices):
+        NOT_STARTED = "not_started", "Not started"
+        QUEUED = "queued", "Queued"
+        PROCESSING = "processing", "Processing"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    ar_generation_status = models.CharField(
+        max_length=20, choices=ARGenerationStatus.choices,
+        default=ARGenerationStatus.NOT_STARTED, db_index=True,
+    )
+    ar_generation_task_id = models.CharField(max_length=100, blank=True, default="")
+    ar_generation_error = models.TextField(blank=True, default="")
+    ar_generation_updated_at = models.DateTimeField(null=True, blank=True)
+
     size_guide = models.ForeignKey(
         "SizeGuide",
         on_delete=models.SET_NULL,
