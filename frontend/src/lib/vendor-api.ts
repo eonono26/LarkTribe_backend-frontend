@@ -54,6 +54,8 @@ export interface VendorProduct {
   stock: number;
   sku: string;
   status: string;
+  ar_generation_status?: "not_started" | "queued" | "processing" | "succeeded" | "failed";
+  ar_generation_error?: string;
   images?: VendorProductImage[];
   // Shopping flow: Kids -> Baby -> Boys/Girls -> Age -> Category.
   // Gender and age_groups are filters on the product itself — never
