@@ -187,6 +187,9 @@ export default function EditorialProductCard({
               {badge}
             </span>
           )}
+          {product.model_3d_url && (
+            <span className="absolute bottom-2 left-2 z-[1] bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>
+          )}
 
           {/* Quick add / Quick view — fades in on hover, like the reference */}
           {isInStock && (
