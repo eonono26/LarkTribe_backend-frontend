@@ -72,6 +72,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [generating3d, setGenerating3d] = useState(false);
 
   useEffect(() => {
     if (product.data) {
@@ -246,21 +247,33 @@ export function ProductFormView({ productId }: { productId?: number }) {
                       alt={current.name}
                     />
                   ) : (
-                    <Alert severity={current.ar_generation_status === 'failed' ? 'warning' : 'info'}>
-                      {current.ar_generation_status === 'failed' ? '3D generation failed. Review the source photos and retry.' : current.ar_generation_status === 'queued' || current.ar_generation_status === 'processing' ? 'The 3D model is being generated.' : 'Generate an interactive 3D model from the uploaded product photos.'}
+                    <Alert severity={current.ar_generation_status === 'failed' ? 'error' : 'info'}>
+                      {current.ar_generation_status === 'failed'
+                        ? current.ar_generation_error || '3D generation failed. Check the source photos and retry.'
+                        : current.ar_generation_status === 'queued' || current.ar_generation_status === 'processing'
+                          ? 'Meshy is generating the 3D model. This can take a few minutes; this panel will update automatically.'
+                          : 'Generate an interactive 3D model from the uploaded product photos.'}
                     </Alert>
                   )}
-                  {!current.model_3d && (
-                    <Button sx={{ mt: 2 }} variant="outlined" onClick={async () => {
+                  {!current.model_3d && !['queued', 'processing'].includes(current.ar_generation_status) && (
+                    <Button sx={{ mt: 2 }} variant="outlined" disabled={generating3d} onClick={async () => {
+                      setGenerating3d(true);
                       try {
                         await adminApi.products.generate3d(productId!);
                         const refreshed = await adminApi.products.get(productId!);
                         product.setData(refreshed);
-                        toast.success('3D generation started.');
+                        toast.success('3D generation submitted to Meshy.');
                       } catch (error) { toast.error(errorMessage(error)); }
+                      finally { setGenerating3d(false); }
                     }}>
-                      Generate 3D preview
+                      {generating3d ? 'Submitting…' : current.ar_generation_status === 'failed' ? 'Retry 3D generation' : 'Generate 3D preview'}
                     </Button>
+                  )}
+                  {['queued', 'processing'].includes(current.ar_generation_status) && (
+                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={18} />
+                      <Typography variant="body2" color="text.secondary">Generation in progress — please keep this product page available.</Typography>
+                    </Box>
                   )}
                 </Box>
               </Card>
