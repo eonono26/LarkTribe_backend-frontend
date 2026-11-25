@@ -8,7 +8,7 @@ databases:
 
 services:
   # ---------------------------------------------------------------------------
-  # Backend Web Service: Django REST Framework API (Python 3.12 + SQLite)
+  # Backend Web Service: Django REST Framework API (Python 3.12 + PostgreSQL)
   # ---------------------------------------------------------------------------
   - type: web
     name: duka-backend
@@ -50,15 +50,6 @@ services:
         value: "True"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com"
-    # To persist SQLite and media uploads permanently across redeploys on Render:
-    # Upgrade plan to 'starter' and uncomment the persistent disk below:
-    # disk:
-    #   name: duka-data
-    #   mountPath: /var/data
-    #   sizeGB: 1
-    # envVars:
-    #   - key: DATA_DIR
-    #     value: /var/data
 
   # ---------------------------------------------------------------------------
   # Meshy Background Worker
