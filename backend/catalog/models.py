@@ -787,12 +787,12 @@ class Product(models.Model):
         help_text="Optional .glb / .gltf 3D model shown in the interactive 3D viewer.",
     )
     model_3d_poster = models.ImageField(
-        upload_to="products/3d/", null=True, blank=True,
+        upload_to="products/3d/", storage=Product3DStorage(), null=True, blank=True,
         help_text="Static fallback image shown while the 3D model loads, or on devices that cannot render it.",
     )
 
     model_3d_ios = models.FileField(
-        upload_to="products/3d/", null=True, blank=True,
+        upload_to="products/3d/", storage=Product3DStorage(), null=True, blank=True,
         help_text="Generated USDZ model for iOS AR Quick Look.",
     )
     class ARGenerationStatus(models.TextChoices):
