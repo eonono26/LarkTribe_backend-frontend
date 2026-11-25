@@ -122,12 +122,40 @@ else:
     DEFAULT_DB_PATH = BASE_DIR / "db.sqlite3"
     DEFAULT_MEDIA_ROOT = BASE_DIR / "media"
 
-DATABASES = {
-    "default": {
-        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.environ.get("DB_NAME", str(DEFAULT_DB_PATH)),
+# Render provides DATABASE_URL for PostgreSQL shared by the API and worker.
+# Local development continues to use SQLite when DATABASE_URL is absent.
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if DATABASE_URL:
+    import dj_database_url
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
+            "NAME": os.environ.get("DB_NAME", str(DEFAULT_DB_PATH)),
+        }
     }
-}
+
+# Optional shared S3-compatible media storage (AWS S3 / Cloudflare R2).
+# Configure identical bucket credentials on the web service and worker.
+if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
+    INSTALLED_APPS.append("storages")
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": os.environ["AWS_STORAGE_BUCKET_NAME"],
+                "access_key": os.environ.get("AWS_ACCESS_KEY_ID", ""),
+                "secret_key": os.environ.get("AWS_SECRET_ACCESS_KEY", ""),
+                "endpoint_url": os.environ.get("AWS_S3_ENDPOINT_URL") or None,
+                "region_name": os.environ.get("AWS_S3_REGION_NAME", "auto"),
+                "default_acl": None,
+                "querystring_auth": False,
+                "file_overwrite": False,
+            },
+        },
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
 
 AUTH_USER_MODEL = "accounts.User"
 
