@@ -210,14 +210,14 @@ export default function EditProductPage() {
           />
         </div>
 
-        {(form.model_3d_url || form.ar_generation_status === "queued" || form.ar_generation_status === "processing" || form.ar_generation_status === "failed") && (
+        {(form.model_3d_url || form.ar_generation_status) && images.length > 0 && (
           <section className="space-y-2 border border-[var(--color-line)] rounded-xl p-3">
             <h3 className="text-sm font-semibold">3D &amp; AR product preview</h3>
             {form.model_3d_url ? (
               <Model3DViewer src={form.model_3d_url} iosSrc={form.model_3d_ios_url} poster={form.model_3d_poster_url || undefined} alt={form.name || "Product"} />
             ) : (
               <p className="text-xs text-neutral-500">
-                {form.ar_generation_status === "failed" ? "3D generation failed. Add clearer product photos and retry." : "Your 3D model is being generated. Your product photos remain available."}
+                {form.ar_generation_status === "failed" ? "3D generation failed. Add clearer product photos and retry." : form.ar_generation_status === "queued" || form.ar_generation_status === "processing" ? "Your 3D model is being generated. Your product photos remain available." : "Your product photos are ready. Generate the interactive 3D and AR preview when you're ready."}
               </p>
             )}
             {form.model_3d_url ? <p className="text-xs text-emerald-700">3D model ready for shoppers and AR-supported devices.</p> : (
