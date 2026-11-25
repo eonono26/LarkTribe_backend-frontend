@@ -48,6 +48,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const arGenerationStatus = product?.ar_generation_status;
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +80,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   }, [slug]);
 
   useEffect(() => {
-    if (!product || !["queued", "processing"].includes(product.ar_generation_status || "")) return;
+    if (!["queued", "processing"].includes(arGenerationStatus || "")) return;
     let active = true;
     let busy = false;
     const poll = async () => {
@@ -97,7 +98,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     };
     const timer = window.setInterval(() => { void poll(); }, 15000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [product?.ar_generation_status, slug]);
+  }, [arGenerationStatus, slug]);
 
   if (missing) notFound();
   if (loading || !product) {
