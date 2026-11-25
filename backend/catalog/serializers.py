@@ -425,6 +425,18 @@ class BrandSerializer(serializers.ModelSerializer):
             return obj.logo.url
         return None
 
+def _safe_media_url(field, request=None):
+    """Resolve a storage URL without letting missing remote media break API responses."""
+    if not field:
+        return None
+    try:
+        url = field.url
+        return request.build_absolute_uri(url) if request else url
+    except Exception:
+        logger.exception("Unable to resolve media URL for %r", getattr(field, "name", None))
+        return None
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     view_display = serializers.CharField(source="get_view_display", read_only=True)
@@ -437,13 +449,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
         ]
 
     def get_image_url(self, obj):
-        """Get the absolute URL of the product image"""
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+        """Get the image URL safely; unavailable remote media must not break serialization."""
+        return _safe_media_url(obj.image, self.context.get("request"))
 
 
 # ------------------------------------------------------------
@@ -460,10 +467,8 @@ def _gallery_order(img):
 
 
 def serialize_product_image(img, request=None):
-    """One photo as the storefront receives it. ``image`` is an absolute URL."""
-    url = img.image.url
-    if request:
-        url = request.build_absolute_uri(url)
+    """One photo as the storefront receives it. Unavailable files have a null URL."""
+    url = _safe_media_url(img.image, request)
 
     return {
         "id": img.id,
@@ -688,37 +693,16 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         first = obj.images.first()
-
-        if first and first.image:
-            return first.image.url
-
-        return None
+        return _safe_media_url(first.image) if first and first.image else None
 
     def get_image_url(self, obj):
         first = obj.images.first()
-
-        if first and first.image:
-            request = self.context.get("request")
-
-            if request:
-                return request.build_absolute_uri(
-                    first.image.url
-                )
-
-            return first.image.url
-
-        return None
+        return _safe_media_url(
+            first.image, self.context.get("request")
+        ) if first and first.image else None
 
     def _media_abs(self, field):
-        if not field:
-            return None
-        try:
-            url = field.url
-            request = self.context.get("request")
-            return request.build_absolute_uri(url) if request else url
-        except Exception:
-            logger.exception("Unable to resolve product media URL for %r", getattr(field, "name", None))
-            return None
+        return _safe_media_url(field, self.context.get("request"))
 
     def get_model_3d_url(self, obj):
         return self._media_abs(obj.model_3d)
@@ -1033,11 +1017,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     model_3d_poster_url = serializers.SerializerMethodField()
 
     def _media_abs(self, field):
-        if not field:
-            return None
-        url = field.url
-        request = self.context.get("request")
-        return request.build_absolute_uri(url) if request else url
+        return _safe_media_url(field, self.context.get("request"))
 
     def get_model_3d_url(self, obj):
         return self._media_abs(obj.model_3d)
