@@ -26,9 +26,5 @@ PyJWT>=2.8
 requests>=2.31
 
 
-# Render PostgreSQL support
-dj-database-url>=2.2
-psycopg[binary]>=3.2
-
 # Optional shared S3-compatible media storage
 django-storages[s3]>=1.14

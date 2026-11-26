@@ -144,7 +144,6 @@ export function DashboardView() {
   const t = data?.totals;
   const attention = [
     { label: 'Products awaiting approval', n: t?.pending_products, href: '/admin/products?status=pending', icon: 'solar:box-bold-duotone' as IconifyName },
-    { label: 'Vendors awaiting approval', n: t?.pending_vendors, href: '/admin/vendors', icon: 'solar:shop-2-bold-duotone' as IconifyName },
     { label: 'Open support tickets', n: t?.open_tickets, href: '/admin/support', icon: 'solar:chat-round-dots-bold-duotone' as IconifyName },
   ];
 
@@ -242,10 +241,6 @@ export function DashboardView() {
               <Box sx={{ px: 2, pb: 1, display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="caption" color="text.secondary">Customers</Typography>
                 <Typography variant="caption">{t?.customers ?? '—'}</Typography>
-              </Box>
-              <Box sx={{ px: 2, display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption" color="text.secondary">Approved vendors</Typography>
-                <Typography variant="caption">{t?.vendors ?? '—'}</Typography>
               </Box>
             </Box>
           </Card>

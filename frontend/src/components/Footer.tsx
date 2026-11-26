@@ -17,7 +17,6 @@ const COLS = [
     links: [
       { href: "/about", label: "About" },
       { href: "/contact", label: "Contact" },
-      { href: "/vendor/apply", label: "Become a Vendor" },
     ],
   },
   {

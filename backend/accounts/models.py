@@ -9,7 +9,6 @@ from datetime import timedelta
 class User(AbstractUser):
     class Role(models.TextChoices):
         CUSTOMER = "customer", "Customer"
-        VENDOR = "vendor", "Vendor"
         DRIVER = "driver", "Driver"
         ADMIN = "admin", "Admin"
 

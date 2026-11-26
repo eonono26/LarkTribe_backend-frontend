@@ -4,7 +4,7 @@ from django.utils import timezone
 
 
 class Campaign(models.Model):
-    """Admin/vendor marketing campaign — homepage banners, category pushes, etc.
+    """Admin marketing campaign — homepage banners, category pushes, etc.
     Feeds the admin 'Promotions' module and the AI 'automated marketing recommendations' feature."""
 
     class Placement(models.TextChoices):

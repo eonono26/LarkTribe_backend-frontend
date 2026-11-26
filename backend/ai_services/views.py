@@ -20,12 +20,6 @@ class IsAdminUser(permissions.BasePermission):
         return u.is_authenticated and (u.is_staff or getattr(u, "role", None) == "admin")
 
 
-class IsVendorOrAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        u = request.user
-        return u.is_authenticated and (u.is_staff or getattr(u, "role", None) in ("admin", "vendor"))
-
-
 # ---------- Customer-facing AI ----------
 
 class RecommendedForYouView(views.APIView):
@@ -149,42 +143,32 @@ class ChatbotView(views.APIView):
         })
 
 
-# ---------- Vendor-facing AI ----------
+# ---------- Shop-owner AI insights (admin) ----------
 
-class VendorPricingSuggestionsView(views.APIView):
-    """AI Sales Insights: dynamic pricing suggestions for a vendor's own catalog."""
-    permission_classes = [IsVendorOrAdmin]
+class PricingSuggestionsView(views.APIView):
+    """AI Sales Insights: dynamic pricing suggestions across the LarkTribe catalogue."""
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
-        if not hasattr(request.user, "vendor_profile"):
-            return Response([])
-        products = Product.objects.filter(vendor=request.user.vendor_profile, status=Product.Status.ACTIVE)
+        products = Product.objects.filter(status=Product.Status.ACTIVE)
         return Response([pricing.suggest_price(p) for p in products])
 
 
-class VendorDemandForecastView(views.APIView):
-    """AI Sales Insights: sales/inventory forecasting for a vendor's own catalog."""
-    permission_classes = [IsVendorOrAdmin]
+class DemandForecastView(views.APIView):
+    """AI Sales Insights: sales/inventory forecasting across the catalogue."""
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
-        if not hasattr(request.user, "vendor_profile"):
-            return Response([])
-        products = Product.objects.filter(vendor=request.user.vendor_profile, status=Product.Status.ACTIVE)
+        products = Product.objects.filter(status=Product.Status.ACTIVE)
         return Response([forecasting.forecast_product_demand(p) for p in products])
 
 
-class ApplyVendorPricingView(views.APIView):
-    """Apply an AI-generated suggested price to one of the vendor's own products."""
-    permission_classes = [IsVendorOrAdmin]
+class ApplyPricingView(views.APIView):
+    """Apply an AI-generated suggested price to a product."""
+    permission_classes = [IsAdminUser]
 
     def post(self, request, product_id):
-        if not hasattr(request.user, "vendor_profile"):
-            return Response({"detail": "Vendor profile is required."}, status=status.HTTP_403_FORBIDDEN)
-        product = get_object_or_404(
-            Product,
-            id=product_id,
-            vendor=request.user.vendor_profile,
-        )
+        product = get_object_or_404(Product, id=product_id)
         result = pricing.suggest_price(product)
         product.price = result["suggested_price"]
         product.save(update_fields=["price"])
@@ -197,18 +181,12 @@ class ApplyVendorPricingView(views.APIView):
         })
 
 
-class RequestVendorReorderView(views.APIView):
-    """Create a real replenishment support request from an AI demand forecast."""
-    permission_classes = [IsVendorOrAdmin]
+class RequestReorderView(views.APIView):
+    """Create a replenishment ticket from an AI demand forecast."""
+    permission_classes = [IsAdminUser]
 
     def post(self, request, product_id):
-        if not hasattr(request.user, "vendor_profile"):
-            return Response({"detail": "Vendor profile is required."}, status=status.HTTP_403_FORBIDDEN)
-        product = get_object_or_404(
-            Product,
-            id=product_id,
-            vendor=request.user.vendor_profile,
-        )
+        product = get_object_or_404(Product, id=product_id)
         forecast = forecasting.forecast_product_demand(product)
         if not forecast["reorder_recommended"]:
             return Response({
@@ -229,7 +207,7 @@ class RequestVendorReorderView(views.APIView):
             "ticket_id": ticket.id,
             "product_id": product.id,
             "reorder_quantity": forecast["reorder_quantity"],
-            "detail": "Replenishment request submitted to LarkTribe operations.",
+            "detail": "Replenishment request logged.",
         }, status=status.HTTP_201_CREATED)
 
 

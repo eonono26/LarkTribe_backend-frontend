@@ -3,7 +3,6 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.core.validators import FileExtensionValidator
 from django.utils.text import slugify
-from vendors.models import Vendor
 from catalog.storage import Product3DStorage
 
 
@@ -691,12 +690,6 @@ class Product(models.Model):
         GIRLS = "girls", "Girls"
         BOYS = "boys", "Boys"
         UNISEX = "unisex", "Unisex"
-
-    vendor = models.ForeignKey(
-        Vendor,
-        on_delete=models.CASCADE,
-        related_name="products",
-    )
 
     category = models.ForeignKey(
         Category,

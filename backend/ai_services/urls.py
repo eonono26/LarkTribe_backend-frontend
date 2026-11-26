@@ -11,11 +11,11 @@ urlpatterns = [
     path("size-recommendation/", views.SizeRecommendationView.as_view(), name="ai-size-recommendation"),
     path("chatbot/", views.ChatbotView.as_view(), name="ai-chatbot"),
 
-    # vendor-facing (AI Sales Insights)
-    path("vendor/pricing-suggestions/", views.VendorPricingSuggestionsView.as_view(), name="ai-vendor-pricing"),
-    path("vendor/demand-forecast/", views.VendorDemandForecastView.as_view(), name="ai-vendor-forecast"),
-    path("vendor/pricing-suggestions/<int:product_id>/apply/", views.ApplyVendorPricingView.as_view(), name="ai-vendor-pricing-apply"),
-    path("vendor/demand-forecast/<int:product_id>/request-reorder/", views.RequestVendorReorderView.as_view(), name="ai-vendor-reorder-request"),
+    # shop-owner insights (admin only)
+    path("admin/pricing-suggestions/", views.PricingSuggestionsView.as_view(), name="ai-pricing"),
+    path("admin/demand-forecast/", views.DemandForecastView.as_view(), name="ai-forecast"),
+    path("admin/pricing-suggestions/<int:product_id>/apply/", views.ApplyPricingView.as_view(), name="ai-pricing-apply"),
+    path("admin/demand-forecast/<int:product_id>/request-reorder/", views.RequestReorderView.as_view(), name="ai-reorder-request"),
 
     # admin-facing (AI Dashboard)
     path("admin/dashboard/", views.AdminAIDashboardView.as_view(), name="ai-admin-dashboard"),

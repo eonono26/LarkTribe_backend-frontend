@@ -441,7 +441,7 @@ def _color_key(color):
 
 
 def _gallery_order(img):
-    """Primary photo first, then the vendor's display order (id breaks ties)."""
+    """Primary photo first, then the shop's display order (id breaks ties)."""
     return (0 if img.is_primary else 1, img.order, img.id)
 
 
@@ -579,11 +579,6 @@ class ProductListSerializer(serializers.ModelSerializer):
     color_variant_ids = serializers.SerializerMethodField()
     needs_size = serializers.SerializerMethodField()
 
-    vendor_name = serializers.CharField(
-        source="vendor.store_name",
-        read_only=True
-    )
-
     category_name = serializers.CharField(
         source="category.name",
         read_only=True
@@ -649,7 +644,6 @@ class ProductListSerializer(serializers.ModelSerializer):
             "color_variant_ids",
             "needs_size",
 
-            "vendor_name",
 
             "category_name",
             "category_slug",
@@ -774,16 +768,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    vendor_name = serializers.CharField(
-        source="vendor.store_name",
-        read_only=True
-    )
-
-    vendor_id = serializers.IntegerField(
-        source="vendor.id",
-        read_only=True
-    )
-
     department = serializers.SerializerMethodField()
 
     price_display = serializers.SerializerMethodField()
@@ -855,8 +839,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "category",
             "brand",
 
-            "vendor_name",
-            "vendor_id",
 
             "department",
 
@@ -890,13 +872,16 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             return None
 
     def get_spin_frames(self, obj):
-        # The current Product model has no spin-frame relation. Keep the
-        # response contract stable without querying a non-existent relation.
-        return []
+        # 360-degree turntable frames, ordered per colour. Blank colour = all colours.
+        frames = []
+        for f in obj.spin_frames.all():
+            url = self._abs(f.image)
+            if url:
+                frames.append({"id": f.id, "color": f.color, "order": f.order, "url": url})
+        return frames
 
     def get_has_360(self, obj):
-        # A generated 3D model is the supported interactive product view.
-        return bool(obj.model_3d)
+        return obj.spin_frames.exists()
 
     def get_model_3d_url(self, obj):
         return self._abs(obj.model_3d)
@@ -992,7 +977,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class ProductWriteSerializer(serializers.ModelSerializer):
-    """Vendor product serializer with read-only URLs for generated AR assets."""
+    """Product write serializer with read-only URLs for generated AR assets."""
     model_3d_url = serializers.SerializerMethodField()
     model_3d_ios_url = serializers.SerializerMethodField()
     model_3d_poster_url = serializers.SerializerMethodField()
@@ -1058,11 +1043,8 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         ]
 
     def validate_status(self, value):
-        """
-        Vendors cannot self-approve products.
-        """
-
-        return Product.Status.PENDING
+        """Single-shop catalogue: admin chooses the status directly."""
+        return value
 
     def validate_price(self, value):
 
@@ -1121,7 +1103,6 @@ class WishlistSerializer(serializers.ModelSerializer):
 # Additional serializers for admin and bulk operations
 class ProductAdminSerializer(serializers.ModelSerializer):
     """Serializer for admin panel with full access"""
-    vendor_name = serializers.CharField(source="vendor.store_name", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
     image_count = serializers.SerializerMethodField()
     

@@ -4,7 +4,6 @@ from datetime import timedelta
 from rest_framework import generics, permissions, views
 from rest_framework.response import Response
 from orders.models import Order, OrderItem
-from vendors.models import Vendor
 from catalog.models import Product
 from accounts.models import User
 from .models import BehaviorEvent, DailyMetric
@@ -36,7 +35,7 @@ class IsAdminUser(permissions.BasePermission):
 
 
 class AdminReportsView(views.APIView):
-    """Admin 'Reports & Analytics': orders, revenue, users, vendors, top products, funnel."""
+    """Admin 'Reports & Analytics': orders, revenue, users, top products, funnel."""
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -66,8 +65,6 @@ class AdminReportsView(views.APIView):
             "orders": orders_qs.count(),
             "revenue": revenue,
             "new_users": User.objects.filter(date_joined__gte=since).count(),
-            "active_vendors": Vendor.objects.filter(status="approved").count(),
-            "pending_vendors": Vendor.objects.filter(status="pending").count(),
             "products_pending_moderation": Product.objects.filter(status="pending").count(),
             "top_products": list(top_products),
             "conversion_funnel": funnel,

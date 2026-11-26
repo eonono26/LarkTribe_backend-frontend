@@ -159,7 +159,6 @@ class AdminProductVariantSerializer(serializers.ModelSerializer):
 
 
 class AdminProductSerializer(serializers.ModelSerializer):
-    vendor_name = serializers.CharField(source="vendor.store_name", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
     department_name = serializers.CharField(source="category.department.name", read_only=True)
     brand_name = serializers.CharField(source="brand.name", read_only=True, default=None)
@@ -176,7 +175,7 @@ class AdminProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "vendor", "vendor_name", "category", "category_name", "department_name",
+            "id", "category", "category_name", "department_name",
             "brand", "brand_name", "age_groups", "gender", "name", "slug", "description",
             "features", "materials", "care_instructions", "price", "compare_at_price",
             "discount_percent", "stock", "sku", "status", "is_featured", "rating_avg",
@@ -319,7 +318,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password", None)
         for k, v in validated_data.items():
             setattr(instance, k, v)
-        # Several older endpoints (AI, vendors) check Django's is_staff, so keep it in step with the role.
+        # Several older endpoints (AI) check Django's is_staff, so keep it in step with the role.
         if validated_data.get("role") == "admin":
             instance.is_staff = True
         if password:

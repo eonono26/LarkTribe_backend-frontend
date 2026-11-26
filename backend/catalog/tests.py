@@ -9,7 +9,6 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from vendors.models import Vendor
 
 from .models import Category, Department, Product, ProductImage, ProductVariant
 
@@ -30,14 +29,11 @@ class ColorGalleryTests(TestCase):
         shutil.rmtree(TMP_MEDIA, ignore_errors=True)
 
     def setUp(self):
-        self.user = User.objects.create_user("vendor1", password="pw12345!", role="vendor")
-        self.vendor = Vendor.objects.create(
-            user=self.user, store_name="Test Store", slug="test-store", status="approved"
-        )
+        self.user = User.objects.create_user("admin1", password="pw12345!", role="admin", is_staff=True)
         dept = Department.objects.create(name="Test Dept")
         cat = Category.objects.create(department=dept, name="Test Dresses")
         self.product = Product.objects.create(
-            vendor=self.vendor, category=cat, name="Linen Dress", price=1000,
+            category=cat, name="Linen Dress", price=1000,
             sku="LD-1", status=Product.Status.ACTIVE, stock=10,
         )
         for color in ("Black", "Blue"):
@@ -167,50 +163,6 @@ class ColorGalleryTests(TestCase):
         self.assertEqual(set(data["variants"][0]), {"id", "size", "color", "stock", "sku_suffix"})
         self.assertEqual(data["available_sizes"], ["S", "M"])
         self.assertTrue(data["is_in_stock"])
-
-    # ---------------- vendor upload ----------------
-
-    def test_vendor_upload_with_color_view_order_and_primary(self):
-        c = APIClient()
-        c.force_authenticate(self.user)
-        url = f"/api/catalog/my-products/{self.product.id}/images/"
-
-        r1 = c.post(url, {"image": png("a.png"), "color": "Black", "view": "front"}, format="multipart")
-        r2 = c.post(url, {"image": png("b.png"), "color": "Black", "view": "back"}, format="multipart")
-        self.assertEqual(r1.status_code, 201, r1.content)
-        self.assertEqual(r1.json()["color"], "Black")
-        self.assertTrue(r1.json()["is_primary"])      # first of its color
-        self.assertEqual(r2.json()["order"], 1)       # appended to the color's gallery
-        self.assertFalse(r2.json()["is_primary"])
-
-        r3 = c.post(url, {"image": png("c.png"), "color": "Black", "view": "side", "is_primary": "true"}, format="multipart")
-        self.assertTrue(r3.json()["is_primary"])
-        self.assertEqual(r3.json()["order"], 0)
-        gallery = [g for g in self._detail()["color_galleries"] if g["color"] == "Black"][0]
-        self.assertEqual([i["view"] for i in gallery["images"]], ["side", "front", "back"])
-
-    def test_vendor_upload_rejects_unknown_view(self):
-        c = APIClient()
-        c.force_authenticate(self.user)
-        r = c.post(f"/api/catalog/my-products/{self.product.id}/images/",
-                   {"image": png(), "view": "inside-out"}, format="multipart")
-        self.assertEqual(r.status_code, 400)
-
-    def test_vendor_set_primary_is_scoped_to_one_color(self):
-        a = self.img("Black", "front", 0)
-        b = self.img("Black", "back", 1)
-        blue = self.img("Blue", "front", 0)
-        blue2 = self.img("Blue", "back", 1)
-        c = APIClient()
-        c.force_authenticate(self.user)
-        r = c.post(f"/api/catalog/my-products/{self.product.id}/images/{b.id}/set-primary/")
-        self.assertEqual(r.status_code, 200)
-        for i in (a, b, blue, blue2):
-            i.refresh_from_db()
-        self.assertTrue(b.is_primary and b.order == 0)
-        self.assertEqual(a.order, 1)
-        self.assertEqual((blue.order, blue2.order), (0, 1))  # other color untouched
-        self.assertTrue(blue.is_primary)
 
     # ---------------- admin panel API ----------------
 

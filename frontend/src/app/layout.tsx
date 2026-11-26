@@ -4,7 +4,7 @@ import RootShell from "@/components/RootShell";
 
 export const metadata: Metadata = {
   title: "LarkTribe — Baby, Kids, Women & Men | Kenya",
-  description: "Kenya's family fashion marketplace. Minimal, editorial, effortless.",
+  description: "Kenya's family fashion shop. Minimal, editorial, effortless.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -61,7 +61,7 @@ export default function QuickViewModal({ slug, onClose, initialColor: initialCol
   }, [slug]);
 
   // While a model is processing, let this product view refresh the provider task
-  // and pick up the completed GLB/USDZ without requiring the vendor dashboard.
+  // and pick up the completed GLB/USDZ without any extra step.
   useEffect(() => {
     if (!["queued", "processing"].includes(arGenerationStatus || "")) return;
     let active = true;

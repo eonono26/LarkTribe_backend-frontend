@@ -1,5 +1,5 @@
 /**
- * Turns the color NAME a vendor typed on a product variant ("White",
+ * Turns the color NAME typed on a product variant ("White",
  * "Off White", "Navy Blue", "Black / Grey") into something a swatch can paint.
  *
  * Raw names only work as CSS when they happen to be a CSS keyword, so "Off

@@ -31,7 +31,6 @@ from django.db.models import ProtectedError
 from django.utils.text import slugify
 
 from accounts.models import User
-from vendors.models import Vendor
 from catalog.models import (
     Department,
     Category,
@@ -181,16 +180,15 @@ class Command(BaseCommand):
                 if options["flush"]:
                     self.flush_catalog()
 
-                vendors = self.seed_vendors()
                 departments = self.seed_departments()
                 baby_leaves, kids_leaves, women_leaves, men_leaves = self.seed_categories(departments)
                 age_groups = self.seed_age_groups()
                 brands = self.seed_brands()
 
-                self.seed_baby_products(per_leaf, vendors, baby_leaves, age_groups, brands)
-                self.seed_kids_products(per_leaf, vendors, kids_leaves, age_groups, brands)
-                self.seed_adult_products("Women", per_leaf, vendors, women_leaves, brands)
-                self.seed_adult_products("Men", per_leaf, vendors, men_leaves, brands)
+                self.seed_baby_products(per_leaf, baby_leaves, age_groups, brands)
+                self.seed_kids_products(per_leaf, kids_leaves, age_groups, brands)
+                self.seed_adult_products("Women", per_leaf, women_leaves, brands)
+                self.seed_adult_products("Men", per_leaf, men_leaves, brands)
         except ProtectedError:
             raise CommandError(
                 "Aborted without changing anything: --flush would delete a "
@@ -220,34 +218,6 @@ class Command(BaseCommand):
         Department.objects.all().delete()
         AgeGroup.objects.all().delete()
         Brand.objects.all().delete()
-
-    # ------------------------------------------------------------------
-    # VENDORS (products need an owning vendor)
-    # ------------------------------------------------------------------
-
-    def seed_vendors(self):
-        self.stdout.write("Seeding demo vendors...")
-        vendor_specs = [
-            ("duka_demo_vendor1", "Duka Kids Store"),
-            ("duka_demo_vendor2", "Little Wardrobe"),
-            ("duka_demo_vendor3", "Nairobi Baby Co"),
-        ]
-        vendors = []
-        for username, store_name in vendor_specs:
-            user, _ = User.objects.get_or_create(
-                username=username,
-                defaults={"email": f"{username}@example.com", "role": User.Role.VENDOR},
-            )
-            vendor, _ = Vendor.objects.get_or_create(
-                user=user,
-                defaults={
-                    "store_name": store_name,
-                    "slug": slugify(store_name),
-                    "status": Vendor.Status.APPROVED,
-                },
-            )
-            vendors.append(vendor)
-        return vendors
 
     # ------------------------------------------------------------------
     # DEPARTMENTS
@@ -348,7 +318,7 @@ class Command(BaseCommand):
     # PRODUCTS — BABY
     # ------------------------------------------------------------------
 
-    def seed_baby_products(self, per_leaf, vendors, baby_leaves, age_groups, brands):
+    def seed_baby_products(self, per_leaf, baby_leaves, age_groups, brands):
         self.stdout.write(f"Seeding Baby products ({per_leaf} per age group)...")
         baby_age_group = age_groups.get("baby", [None])[0]
         genders = ["girls", "boys", "unisex"]
@@ -361,7 +331,6 @@ class Command(BaseCommand):
                     department_name="Baby",
                     category=category,
                     gender=gender,
-                    vendors=vendors,
                     brands=brands,
                     label_source=category.name,
                     sizes=sizes,
@@ -373,7 +342,7 @@ class Command(BaseCommand):
     # PRODUCTS — KIDS
     # ------------------------------------------------------------------
 
-    def seed_kids_products(self, per_leaf, vendors, kids_leaves, age_groups, brands):
+    def seed_kids_products(self, per_leaf, kids_leaves, age_groups, brands):
         self.stdout.write(f"Seeding Kids products ({per_leaf} per subcategory)...")
         kids_age_groups = age_groups.get("kids", [])
         sizes = ["2T", "3T", "4T", "5-6Y", "7-8Y"]
@@ -384,7 +353,6 @@ class Command(BaseCommand):
                     department_name="Kids",
                     category=category,
                     gender=gender,
-                    vendors=vendors,
                     brands=brands,
                     label_source=category.name,
                     sizes=sizes,
@@ -398,7 +366,7 @@ class Command(BaseCommand):
     # PRODUCTS — WOMEN / MEN
     # ------------------------------------------------------------------
 
-    def seed_adult_products(self, department_name, per_leaf, vendors, leaves, brands):
+    def seed_adult_products(self, department_name, per_leaf, leaves, brands):
         self.stdout.write(f"Seeding {department_name} products ({per_leaf} per leaf category)...")
         sizes = ["XS", "S", "M", "L", "XL"]
 
@@ -408,7 +376,6 @@ class Command(BaseCommand):
                     department_name=department_name,
                     category=category,
                     gender="unisex",
-                    vendors=vendors,
                     brands=brands,
                     label_source=category.name,
                     sizes=sizes,
@@ -418,7 +385,7 @@ class Command(BaseCommand):
     # SHARED PRODUCT CREATION
     # ------------------------------------------------------------------
 
-    def _create_product(self, department_name, category, gender, vendors, brands, label_source, sizes):
+    def _create_product(self, department_name, category, gender, brands, label_source, sizes):
         price_lo, price_hi = PRICE_RANGES[department_name]
         price = round(random.uniform(price_lo, price_hi), 2)
         on_sale = random.random() < 0.3
@@ -430,14 +397,12 @@ class Command(BaseCommand):
 
         sku = f"{slugify(department_name)[:3].upper()}-{slugify(category.slug)[:8].upper()}-{Product.objects.count() + random.randint(1000, 999999)}"
 
-        vendor = random.choice(vendors)
         brand = random.choice(brands) if random.random() < 0.85 else None
         stock = random.choice([0, 0] + list(range(5, 120)))
         status = Product.Status.ACTIVE if random.random() < 0.92 else Product.Status.PENDING
         is_featured = random.random() < 0.1
 
         product = Product.objects.create(
-            vendor=vendor,
             category=category,
             brand=brand,
             gender=gender,

@@ -21,7 +21,7 @@ export default function ReturnsPage() {
           <ol className="list-decimal list-inside space-y-1.5">
             <li>Go to <Link href="/account/orders" className="font-semibold underline">My account → Orders</Link> and find the order.</li>
             <li>Open a support ticket referencing the order number and reason for return.</li>
-            <li>Our team or the vendor will confirm pickup or drop-off instructions.</li>
+            <li>Our team will confirm pickup or drop-off instructions.</li>
             <li>Once the item is received and inspected, your refund is processed to your original payment method.</li>
           </ol>
         </section>

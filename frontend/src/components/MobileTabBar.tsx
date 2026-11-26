@@ -17,7 +17,7 @@ export default function MobileTabBar() {
   const pathname = usePathname();
   const { itemCount } = useCart();
 
-  if (pathname.startsWith("/admin") || pathname.startsWith("/vendor") || pathname.startsWith("/driver")) return null;
+  if (pathname.startsWith("/admin") || pathname.startsWith("/driver")) return null;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 pb-[env(safe-area-inset-bottom,0px)]">

@@ -16,7 +16,6 @@ from .serializers import (
     DepartmentMediaSerializer, CategoryMediaSerializer, AgeGroupSerializer,
     AgeGroupMediaSerializer, BrandMediaSerializer
 )
-from .permissions import IsOwnerVendorOrReadOnly
 from .filters import ProductFilter, CategoryFilter, BrandFilter
 from .pagination import LargePageNumberPagination
 from .utils import category_subtree_ids
@@ -63,7 +62,7 @@ def home_data(request):
     products = Product.objects.filter(
         status=Product.Status.ACTIVE
     ).select_related(
-        'vendor', 'category', 'category__department', 'brand'
+        'category', 'category__department', 'brand'
     ).prefetch_related(
         'images', 'variants', 'reviews', 'age_groups'
     ).order_by('-created_at')[:12]
@@ -337,7 +336,6 @@ class AgeGroupViewSet(viewsets.ReadOnlyModelViewSet):
                 status=Product.Status.ACTIVE,
             )
             .select_related(
-                "vendor",
                 "category",
                 "category__department",
                 "brand",
@@ -605,7 +603,6 @@ class CategoryViewSet(
                 status=Product.Status.ACTIVE,
             )
             .select_related(
-                "vendor",
                 "category",
                 "category__department",
                 "brand",
@@ -968,7 +965,6 @@ class ProductViewSet(
                 status=Product.Status.ACTIVE
             )
             .select_related(
-                "vendor",
                 "category",
                 "category__department",
                 "brand",
@@ -1118,8 +1114,7 @@ class ProductViewSet(
             "destroy",
         ]:
             return [
-                permissions.IsAuthenticated(),
-                IsOwnerVendorOrReadOnly(),
+                IsAdminUser(),
             ]
 
         return [
@@ -1347,160 +1342,6 @@ class BrandMediaViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Primary media set successfully'})
 
 
-class MyProductsViewSet(viewsets.ModelViewSet):
-    """Vendor-only CRUD over their own catalog, any status."""
-    serializer_class = ProductWriteSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerVendorOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-
-    def get_queryset(self):
-        if not hasattr(self.request.user, "vendor_profile"):
-            return Product.objects.none()
-        return Product.objects.filter(vendor=self.request.user.vendor_profile).select_related(
-            "category", "category__department", "brand"
-        ).prefetch_related("images", "variants", "age_groups").annotate(
-            discount_pct=Case(
-                When(
-                    compare_at_price__isnull=False,
-                    compare_at_price__gt=F('price'),
-                    then=Round(
-                        (F('compare_at_price') - F('price')) * 100.0 / F('compare_at_price'),
-                        0
-                    )
-                ),
-                default=Value(0),
-                output_field=DecimalField(max_digits=5, decimal_places=0)
-            )
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(
-            vendor=self.request.user.vendor_profile,
-            status=Product.Status.PENDING
-        )
-
-    @action(detail=False, methods=['get'], url_path='stats')
-    def get_stats(self, request):
-        """Get statistics for vendor's products"""
-        vendor = request.user.vendor_profile
-        products = Product.objects.filter(vendor=vendor)
-        
-        stats = {
-            'total': products.count(),
-            'active': products.filter(status=Product.Status.ACTIVE).count(),
-            'pending': products.filter(status=Product.Status.PENDING).count(),
-            'draft': products.filter(status=Product.Status.DRAFT).count(),
-            'rejected': products.filter(status=Product.Status.REJECTED).count(),
-            'total_stock': products.aggregate(total=models.Sum('stock'))['total'] or 0,
-            'total_value': products.aggregate(total=models.Sum('price'))['total'] or 0,
-        }
-        return Response(stats)
-
-    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser], url_path="images")
-    def upload_image(self, request, pk=None):
-        """Vendor Product Management: attach a photo to one of the vendor's own products."""
-        product = self.get_object()
-        image_file = request.FILES.get("image")
-        
-        if not image_file:
-            return Response({"detail": "image file is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if image_file.size > 5 * 1024 * 1024:
-            return Response({"detail": "Image size should not exceed 5MB"}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-        
-        color = (request.data.get("color") or "").strip()
-        view = request.data.get("view") or ProductImage.View.FRONT
-        if view not in ProductImage.View.values:
-            return Response(
-                {"detail": f"view must be one of: {', '.join(ProductImage.View.values)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        make_primary = request.data.get("is_primary") in ("true", "True", "1", True)
-        group = ProductImage.group(product.id, color)
-        order = request.data.get("order")
-        order = int(order) if str(order or "").isdigit() else group.count()
-
-        # A changed source photo invalidates the previous generated geometry.
-        if product.model_3d:
-            product.model_3d.delete(save=False)
-        if product.model_3d_ios:
-            product.model_3d_ios.delete(save=False)
-        product.ar_generation_status = Product.ARGenerationStatus.NOT_STARTED
-        product.ar_generation_task_id = ""
-        product.ar_generation_error = ""
-        product.ar_generation_updated_at = None
-        product.save(update_fields=[
-            "model_3d", "model_3d_ios", "ar_generation_status",
-            "ar_generation_task_id", "ar_generation_error", "ar_generation_updated_at",
-        ])
-
-        image = ProductImage.objects.create(
-            product=product,
-            image=image_file,
-            color=color,
-            view=view,
-            alt_text=request.data.get("alt_text", "") or product.name,
-            order=order,
-        )
-        if make_primary:
-            ProductImage.set_primary(image)
-            image.refresh_from_db()
-        serializer = ProductImageSerializer(image, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=["post"], url_path="generate-3d")
-    def generate_3d(self, request, pk=None):
-        """Queue one Meshy generation using this product's existing photos."""
-        product = self.get_object()
-        try:
-            result = start_product_generation(product, request)
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except RuntimeError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        return Response(result, status=status.HTTP_202_ACCEPTED)
-
-    @action(detail=True, methods=["get"], url_path="3d-status")
-    def three_d_status(self, request, pk=None):
-        """Refresh Meshy task status and persist completed GLB/USDZ assets."""
-        product = self.get_object()
-        try:
-            result = refresh_product_generation(product)
-        except RuntimeError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
-        return Response(result)
-
-    @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>\d+)")
-    def delete_image(self, request, pk=None, image_id=None):
-        product = self.get_object()
-        image = get_object_or_404(product.images, id=image_id)
-        image.delete()
-        if product.model_3d:
-            product.model_3d.delete(save=False)
-        if product.model_3d_ios:
-            product.model_3d_ios.delete(save=False)
-        product.ar_generation_status = Product.ARGenerationStatus.NOT_STARTED
-        product.ar_generation_task_id = ""
-        product.ar_generation_error = ""
-        product.ar_generation_updated_at = None
-        product.save(update_fields=[
-            "model_3d", "model_3d_ios", "ar_generation_status",
-            "ar_generation_task_id", "ar_generation_error", "ar_generation_updated_at",
-        ])
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=["post"], url_path=r"images/(?P<image_id>\d+)/set-primary")
-    def set_primary_image(self, request, pk=None, image_id=None):
-        """Set an image as primary"""
-        product = self.get_object()
-        image = get_object_or_404(product.images, id=image_id)
-        ProductImage.set_primary(image)
-
-        return Response({'message': 'Primary image set successfully'}, status=status.HTTP_200_OK)
-
-
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -1537,13 +1378,13 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
 
 class AdminProductModerationViewSet(viewsets.ModelViewSet):
-    """Admin 'Product Moderation' module: review vendor submissions, approve/reject."""
-    queryset = Product.objects.select_related("vendor", "category", "category__department", "brand").prefetch_related("images", "age_groups")
+    """Admin 'Product Moderation' module: approve/reject/hide products."""
+    queryset = Product.objects.select_related("category", "category__department", "brand").prefetch_related("images", "age_groups")
     serializer_class = ProductAdminSerializer
     permission_classes = [IsAdminUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["status", "vendor", "category", "age_groups"]
-    search_fields = ["name", "sku", "vendor__store_name"]
+    filterset_fields = ["status", "category", "age_groups"]
+    search_fields = ["name", "sku"]
     ordering_fields = ["created_at", "price", "name"]
     ordering = ["-created_at"]
 
@@ -1589,7 +1430,6 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         product = self.get_object()
         product.status = Product.Status.ACTIVE
         product.save(update_fields=["status"])
-        self._notify(product, "Product Approved", f"Your product '{product.name}' has been approved and is now live on the storefront.")
         return Response(ProductDetailSerializer(product, context={'request': request}).data)
 
     @action(detail=True, methods=["post"])
@@ -1598,7 +1438,6 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         reason = request.data.get('reason', 'No reason provided')
         product.status = Product.Status.REJECTED
         product.save(update_fields=["status"])
-        self._notify(product, "Product Rejected", f"Your product '{product.name}' was rejected. Reason: {reason}")
         return Response(ProductDetailSerializer(product, context={'request': request}).data)
 
     @action(detail=True, methods=["post"])
@@ -1608,20 +1447,10 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         feedback = request.data.get('feedback', '')
         product.status = Product.Status.PENDING
         product.save(update_fields=["status"])
-        self._notify(product, "Changes Requested", f"Changes requested for '{product.name}'. Feedback: {feedback}")
         return Response({
             'message': 'Changes requested successfully',
             'product': ProductDetailSerializer(product, context={'request': request}).data
         })
-
-    def _notify(self, product, title, body):
-        """Send notification to vendor"""
-        try:
-            from notifications.utils import notify
-            from notifications.models import Notification
-            notify(product.vendor.user, title, body, Notification.Category.VENDOR)
-        except ImportError:
-            pass
 
     @action(detail=False, methods=['get'], url_path='pending-count')
     def pending_count(self, request):
@@ -1639,9 +1468,6 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         products = Product.objects.filter(id__in=product_ids)
         count = products.update(status=Product.Status.ACTIVE)
         
-        for product in products:
-            self._notify(product, "Product Approved", f"Your product '{product.name}' has been approved.")
-        
         return Response({'message': f'{count} products approved successfully'})
 
     @action(detail=False, methods=['post'], url_path='bulk-reject')
@@ -1656,8 +1482,5 @@ class AdminProductModerationViewSet(viewsets.ModelViewSet):
         
         products = Product.objects.filter(id__in=product_ids)
         count = products.update(status=Product.Status.REJECTED)
-        
-        for product in products:
-            self._notify(product, "Product Rejected", f"Your product '{product.name}' was rejected. Reason: {reason}")
         
         return Response({'message': f'{count} products rejected successfully'})

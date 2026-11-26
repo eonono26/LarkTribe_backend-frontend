@@ -58,7 +58,7 @@ const STATUS_HEADLINE: Record<string, string> = {
 
 const STATUS_SUBCOPY: Record<string, string> = {
   pending_payment: "We're waiting to confirm your payment before we begin preparing your order.",
-  paid: "Thank you — we've received your order and it now moves to our vendors for preparation.",
+  paid: "Thank you — we've received your order and we're preparing it now.",
   processing: "Your pieces are being pulled, checked, and packed for dispatch.",
   shipped: "A courier has your order and is on the way to your delivery address.",
   delivered: "Your order was delivered. We hope you and your family love it.",

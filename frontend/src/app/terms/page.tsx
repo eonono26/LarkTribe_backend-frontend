@@ -1,11 +1,11 @@
 const SECTIONS = [
   {
     title: "1. Using LarkTribe",
-    body: "LarkTribe is a marketplace connecting shoppers with independent vendors. By creating an account or placing an order, you agree to use the platform lawfully and provide accurate information at checkout.",
+    body: "LarkTribe is an online fashion shop operated by LarkTribe. By creating an account or placing an order, you agree to use the platform lawfully and provide accurate information at checkout.",
   },
   {
-    title: "2. Vendors & listings",
-    body: "Vendors are independent sellers responsible for the accuracy of their listings, product quality, and fulfillment. LarkTribe moderates listings and can suspend vendors who violate our policies, but individual sale contracts are between buyer and vendor.",
+    title: "2. Products & listings",
+    body: "LarkTribe is responsible for the accuracy of its listings, product quality, and fulfillment. Colours and fit may vary slightly from photos, 3D views and virtual try-on previews, which are guides only.",
   },
   {
     title: "3. Orders & payments",
@@ -21,7 +21,7 @@ const SECTIONS = [
   },
   {
     title: "6. Prohibited use",
-    body: "You may not use LarkTribe to sell counterfeit goods, engage in fraud, scrape the platform, or violate the rights of vendors, shoppers, or other third parties.",
+    body: "You may not use LarkTribe to sell counterfeit goods, engage in fraud, scrape the platform, or violate the rights of LarkTribe, other shoppers, or third parties.",
   },
   {
     title: "7. Changes to these terms",

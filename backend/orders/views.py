@@ -125,7 +125,7 @@ class CheckoutView(views.APIView):
                 shipping_lng=data.get("shipping_lng"),
                 coupon_code=coupon_code,
             )
-            for item in cart.items.select_related("product", "product__vendor", "variant").select_for_update():
+            for item in cart.items.select_related("product", "variant").select_for_update():
                 # Re-check and decrement inventory under a row lock so two
                 # simultaneous checkouts cannot sell the same last item.
                 if item.variant_id:
@@ -141,7 +141,6 @@ class CheckoutView(views.APIView):
 
                 OrderItem.objects.create(
                     order=order,
-                    vendor=item.product.vendor,
                     product=item.product,
                     variant=item.variant,
                     variant_label=(
@@ -410,39 +409,3 @@ class OrderDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     queryset = Order.objects.all()
     lookup_field = "order_number"
-
-
-class VendorOrderItemsView(generics.ListAPIView):
-    """Vendor dashboard: order items belonging to that vendor's products."""
-    serializer_class = None
-    permission_classes = [permissions.IsAuthenticated]
-
-    def list(self, request, *args, **kwargs):
-        from .serializers import VendorOrderItemSerializer
-        if not hasattr(request.user, "vendor_profile"):
-            return Response([])
-        from .models import OrderItem
-        items = OrderItem.objects.filter(vendor=request.user.vendor_profile).select_related("order").order_by("-order__created_at")
-        return Response(VendorOrderItemSerializer(items, many=True).data)
-
-
-class VendorOrderItemUpdateView(generics.UpdateAPIView):
-    """Vendor dashboard: update fulfillment_status on one of the vendor's own order items."""
-    from .serializers import VendorOrderItemSerializer
-    serializer_class = VendorOrderItemSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        if not hasattr(self.request.user, "vendor_profile"):
-            return OrderItem.objects.none()
-        return OrderItem.objects.filter(vendor=self.request.user.vendor_profile)
-
-    def patch(self, request, *args, **kwargs):
-        item = self.get_object()
-        new_status = request.data.get("fulfillment_status")
-        valid = {c[0] for c in OrderItem.FulfillmentStatus.choices}
-        if new_status not in valid:
-            return Response({"detail": f"fulfillment_status must be one of {sorted(valid)}"}, status=status.HTTP_400_BAD_REQUEST)
-        item.fulfillment_status = new_status
-        item.save(update_fields=["fulfillment_status"])
-        return Response(self.get_serializer(item).data)

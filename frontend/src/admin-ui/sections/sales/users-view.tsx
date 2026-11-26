@@ -34,7 +34,7 @@ import type { Column } from '@/admin-ui/components/data-table';
 
 // ----------------------------------------------------------------------
 
-const ROLE_COLOR = { admin: 'error', vendor: 'info', driver: 'warning', customer: 'default' } as const;
+const ROLE_COLOR = { admin: 'error', driver: 'warning', customer: 'default' } as const;
 
 export function UsersView() {
   const toast = useToast();
@@ -97,7 +97,7 @@ export function UsersView() {
         <TableToolbar search={search} onSearch={setSearch} placeholder="Name, username, email, phone…">
           <TextField select size="small" label="Role" value={role} onChange={(e) => setRole(e.target.value)} sx={{ minWidth: 150 }}>
             <MenuItem value="">All roles</MenuItem>
-            {['customer', 'vendor', 'driver', 'admin'].map((r) => <MenuItem key={r} value={r} sx={{ textTransform: 'capitalize' }}>{r}</MenuItem>)}
+            {['customer', 'driver', 'admin'].map((r) => <MenuItem key={r} value={r} sx={{ textTransform: 'capitalize' }}>{r}</MenuItem>)}
           </TextField>
           <TextField select size="small" label="Status" value={active} onChange={(e) => setActive(e.target.value)} sx={{ minWidth: 150 }}>
             <MenuItem value="">Any</MenuItem><MenuItem value="true">Active</MenuItem><MenuItem value="false">Deactivated</MenuItem>
@@ -159,7 +159,7 @@ function UserDialog({ user, isSelf, onClose }: { user: AdminUser | null; isSelf:
           <TextField label="Phone" value={f.phone} onChange={(e) => set('phone', e.target.value)} {...fieldProps('phone')} />
           <TextField select label="Role" value={f.role} onChange={(e) => set('role', e.target.value)} disabled={isSelf}
             helperText={errors.role || (isSelf ? "You can't change your own role." : f.role === 'admin' ? 'Admins can manage everything in this panel.' : ' ')} error={!!errors.role}>
-            {['customer', 'vendor', 'driver', 'admin'].map((r) => <MenuItem key={r} value={r} sx={{ textTransform: 'capitalize' }}>{r}</MenuItem>)}
+            {['customer', 'driver', 'admin'].map((r) => <MenuItem key={r} value={r} sx={{ textTransform: 'capitalize' }}>{r}</MenuItem>)}
           </TextField>
           <TextField type="password" required={!user} label={user ? 'New password' : 'Password'} value={f.password} onChange={(e) => set('password', e.target.value)}
             autoComplete="new-password" helperText={errors.password || (user ? 'Leave blank to keep the current password.' : 'At least 8 characters.')} error={!!errors.password} />
@@ -167,7 +167,6 @@ function UserDialog({ user, isSelf, onClose }: { user: AdminUser | null; isSelf:
             <FormControlLabel control={<Switch checked={f.is_active} disabled={isSelf} onChange={(e) => set('is_active', e.target.checked)} />} label="Account active (can sign in)" />
           </Box>
         </Box>
-        {f.role === 'vendor' && !user && <Alert severity="info" sx={{ mt: 2 }}>Vendor accounts also need a store profile — they create it when they apply as a vendor.</Alert>}
         {f.role === 'driver' && <Alert severity="info" sx={{ mt: 2 }}>Drivers need a driver profile to appear in Dispatch; they set it up in the driver app.</Alert>}
       </DialogContent>
       <DialogActions>

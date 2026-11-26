@@ -11,7 +11,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   order: "Order",
   promotion: "Promotion",
   recommendation: "For you",
-  vendor: "Vendor",
   system: "System",
   support: "Support",
 };

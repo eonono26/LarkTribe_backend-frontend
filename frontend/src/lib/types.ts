@@ -97,7 +97,6 @@ export interface ProductListItem {
   rating_avg: string;
   rating_count: number;
   image: string | null;
-  vendor_name: string;
   is_featured: boolean;
   images: ProductImage[];
   // colors: distinct variant colors for this product, in creation order.
@@ -176,7 +175,7 @@ export interface ProductDetail extends Omit<ProductListItem, "image"> {
   description: string;
   features?: string[];
   // Material composition shown under "Materials & Care" on the product
-  // page, e.g. "Nylon, Rubber" — set by the vendor/admin per product.
+  // page, e.g. "Nylon, Rubber" — set by the admin per product.
   materials?: string;
   care_instructions?: string;
   size_guide?: SizeGuide | null;
@@ -243,7 +242,7 @@ export interface Wishlist {
 export interface Notification {
   id: number;
   channel: "push" | "email" | "in_app";
-  category: "order" | "promotion" | "recommendation" | "vendor" | "system" | "support";
+  category: "order" | "promotion" | "recommendation" | "system" | "support";
   title: string;
   body: string;
   link: string;
@@ -362,25 +361,11 @@ export interface Campaign {
   created_at: string;
 }
 
-export interface AdminVendor {
-  id: number;
-  username: string;
-  store_name: string;
-  slug: string;
-  description: string;
-  logo: string | null;
-  status: "pending" | "approved" | "suspended";
-  commission_rate: string;
-  created_at: string;
-}
-
 export interface AdminReports {
   range_days: number;
   orders: number;
   revenue: number;
   new_users: number;
-  active_vendors: number;
-  pending_vendors: number;
   products_pending_moderation: number;
   top_products: { product__id: number; product__name: string; units_sold: number; revenue: number }[];
   conversion_funnel: Record<string, number>;
@@ -542,7 +527,7 @@ export interface User {
   first_name: string;
   last_name: string;
   phone: string;
-  role: 'customer' | 'vendor' | 'driver' | 'admin';
+  role: 'customer' | 'driver' | 'admin';
   date_joined: string;
   preferred_currency: string;
   preferred_language: string;
@@ -569,7 +554,7 @@ export interface RegisterData {
   first_name?: string;
   last_name?: string;
   phone?: string;
-  role?: 'customer' | 'vendor' | 'driver';
+  role?: 'customer' | 'driver';
   profile_picture?: File | null;
 }
 

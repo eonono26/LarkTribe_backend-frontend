@@ -3,9 +3,8 @@ from django.db import models
 from django.utils import timezone
 from orders.models import Order
 
-# Default dispatch hub (Nairobi CBD) used as the pickup point until vendors
-# have their own store coordinates. Kept as a constant so it's easy to swap
-# for a real geocoded vendor address later.
+# Default dispatch hub (Nairobi CBD) used as the pickup point for the single
+# LarkTribe shop. Kept as a constant so it's easy to swap for the real store address.
 DEFAULT_PICKUP_LABEL = "LarkTribe Hub, Nairobi"
 DEFAULT_PICKUP_LAT = -1.286389
 DEFAULT_PICKUP_LNG = 36.817223

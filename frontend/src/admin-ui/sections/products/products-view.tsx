@@ -94,7 +94,7 @@ export function ProductsView() {
     try {
       if (rejecting.length === 1) await adminApi.products.reject(rejecting[0], reason);
       else await adminApi.products.bulkStatus(rejecting, 'rejected', reason);
-      toast.success(`${rejecting.length === 1 ? 'Product' : `${rejecting.length} products`} rejected. The vendor was notified.`);
+      toast.success(`${rejecting.length === 1 ? 'Product' : `${rejecting.length} products`} rejected.`);
       setRejecting(null); setReason(''); setSelected([]);
       refresh();
     } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(false); }
@@ -122,7 +122,6 @@ export function ProductsView() {
         </Box>
       ),
     },
-    { id: 'vendor', label: 'Vendor', render: (p) => p.vendor_name },
     {
       id: 'category', label: 'Category',
       render: (p) => (<><Typography variant="body2">{p.category_name}</Typography><Typography variant="caption" color="text.secondary">{p.department_name}</Typography></>),
@@ -177,7 +176,7 @@ export function ProductsView() {
         <TableToolbar
           search={search}
           onSearch={setSearch}
-          placeholder="Search name, SKU, vendor, brand…"
+          placeholder="Search name, SKU, brand…"
           left={
             ids.length ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
@@ -221,7 +220,7 @@ export function ProductsView() {
       <Dialog open={!!rejecting} onClose={() => setRejecting(null)} maxWidth="sm" fullWidth>
         <DialogTitle>Reject {rejecting && rejecting.length > 1 ? `${rejecting.length} products` : 'product'}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>The vendor is notified with your reason, so be specific about what to fix.</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Add a short internal reason so the team knows what to fix.</Typography>
           <TextField autoFocus fullWidth multiline minRows={3} label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} />
         </DialogContent>
         <DialogActions>

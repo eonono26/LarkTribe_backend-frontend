@@ -25,11 +25,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const layoutQuery = 'lg' as const;
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
 
-  // Sidebar counters (pending products / vendors, open tickets) come from the overview endpoint.
+  // Sidebar counters (pending products, open tickets) come from the overview endpoint.
   const { data } = useAsync(() => adminApi.overview(7), []);
   const badges: NavBadges = {
     pending_products: data?.totals.pending_products,
-    pending_vendors: data?.totals.pending_vendors,
     open_tickets: data?.totals.open_tickets,
   };
 

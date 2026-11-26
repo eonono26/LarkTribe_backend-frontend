@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react";
 const FAQS = [
   {
     q: "How do I track my order?",
-    a: "Go to My account → Orders, or use the order number and email from your confirmation on the Order tracking page. You'll see live status updates as your vendor prepares, ships, and delivers your items.",
+    a: "Go to My account → Orders, or use the order number and email from your confirmation on the Order tracking page. You'll see live status updates as we prepare, ship, and deliver your items.",
   },
   {
     q: "What payment methods do you accept?",
@@ -18,11 +18,7 @@ const FAQS = [
   },
   {
     q: "How long does delivery take?",
-    a: "Delivery times vary by vendor and location, but most orders within Nairobi arrive in 1–3 business days. Upcountry deliveries typically take 3–5 business days.",
-  },
-  {
-    q: "Can I become a vendor on LarkTribe?",
-    a: "Yes! Head to the 'Sell on LarkTribe' page to apply. Once approved, you'll get access to a full vendor dashboard with inventory, order, and AI sales insight tools.",
+    a: "Delivery times vary by location, but most orders within Nairobi arrive in 1–3 business days. Upcountry deliveries typically take 3–5 business days.",
   },
   {
     q: "Is my payment information safe?",

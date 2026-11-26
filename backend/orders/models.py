@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.db import models
 from catalog.models import Product
-from vendors.models import Vendor
 
 
 class Order(models.Model):
@@ -62,7 +61,6 @@ class OrderItem(models.Model):
         CANCELLED = "cancelled", "Cancelled"
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
-    vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT, related_name="order_items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     variant = models.ForeignKey(
         "catalog.ProductVariant",

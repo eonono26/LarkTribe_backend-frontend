@@ -31,10 +31,6 @@ STORE_ANSWERS = (
         "Your profile, order history, saved addresses, payment methods, coupons, wishlist, and notification settings are available from Account. Sign in first, then choose the section you need.",
     ),
     (
-        re.compile(r"\b(vendor|seller|sell on|selling|merchant)\b", re.I),
-        "Independent sellers can apply from /vendor/apply. After approval, vendors manage products, orders, promotions, and sales insights in the Vendor Dashboard.",
-    ),
-    (
         re.compile(r"\b(app|download|mobile|website|site|browse|shop|department|category|brand|size guide)\b", re.I),
         "Browse Baby, Kids, Women, and Men from Shop, or search by product, category, or brand. Product pages show available sizes, colours, stock, and any size guide. The mobile app is available from /download.",
     ),
@@ -44,7 +40,7 @@ STORE_ANSWERS = (
     ),
     (
         re.compile(r"\b(about|who are you|what is lark ?tribe|company|kenya)\b", re.I),
-        "LarkTribe is a Kenya-based marketplace for family fashion and lifestyle products from independent vendors. Read more at /about.",
+        "LarkTribe is a Kenya-based fashion shop for Baby, Kids, Women and Men. Read more at /about.",
     ),
 )
 

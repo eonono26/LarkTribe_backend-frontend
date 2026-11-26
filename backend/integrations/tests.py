@@ -16,7 +16,6 @@ from catalog.models import Category, Department, Product, ProductImage
 from catalog.models import ProductVariant, SizeGuide
 from orders import gateways
 from orders.models import Order
-from vendors.models import Vendor
 
 TMP_MEDIA = tempfile.mkdtemp()
 
@@ -39,11 +38,9 @@ class BaseCase(TestCase):
         shutil.rmtree(TMP_MEDIA, ignore_errors=True)
 
     def setUp(self):
-        self.vu = User.objects.create_user("v1", password="pw12345!", role="vendor")
-        self.vendor = Vendor.objects.create(user=self.vu, store_name="S", slug="s", status="approved")
         dept = Department.objects.create(name="D")
         cat = Category.objects.create(department=dept, name="Dresses")
-        self.product = Product.objects.create(vendor=self.vendor, category=cat, name="Red Summer Dress", price=2000,
+        self.product = Product.objects.create(category=cat, name="Red Summer Dress", price=2000,
                                               sku="RSD", status=Product.Status.ACTIVE, stock=10, description="light cotton")
         ProductVariant.objects.create(product=self.product, color="Red", size="M", stock=3)
         ProductVariant.objects.create(product=self.product, color="Red", size="L", stock=3)

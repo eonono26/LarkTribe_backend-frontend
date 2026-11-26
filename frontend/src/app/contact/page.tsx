@@ -33,7 +33,7 @@ export default function ContactPage() {
     <main className="container-shell py-12">
       <h1 className="font-display text-3xl font-black mb-2">Contact us</h1>
       <p className="text-sm text-neutral-500 mb-8 max-w-xl">
-        Have a question about an order, a vendor, or the platform? Send us a message and we'll get back to you.
+        Have a question about an order, a product, or your account? Send us a message and we'll get back to you.
       </p>
 
       <div className="grid md:grid-cols-2 gap-10">

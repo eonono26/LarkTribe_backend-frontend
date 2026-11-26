@@ -2,14 +2,14 @@
 Admin-panel API (/api/admin-panel/).
 
 Everything the existing endpoints don't already cover for a full back-office:
-  * products   – full CRUD + image & variant management (admin picks the vendor)
+  * products   – full CRUD + image & variant management 
   * departments / categories / brands / age-groups – CRUD + media upload
   * orders     – list / detail / status changes
   * users      – list / create / edit / (de)activate
   * overview   – dashboard numbers & chart series
   * lookups    – one call that feeds every dropdown in the admin forms
 
-Vendor approval, product moderation, coupons/campaigns/videos, support tickets,
+Product moderation, coupons/campaigns/videos, support tickets,
 dispatch, analytics and the AI dashboard keep using their existing endpoints.
 """
 from datetime import timedelta
@@ -32,7 +32,6 @@ from catalog.models import (
     DepartmentMedia, Product, ProductImage, ProductVariant,
 )
 from orders.models import Order, OrderItem
-from vendors.models import Vendor
 from catalog.meshy import start_product_generation, refresh_product_generation, queue_completed_meshy_import
 
 logger = logging.getLogger(__name__)
@@ -199,13 +198,13 @@ class AdminAgeGroupViewSet(AdminBase, MediaActionsMixin, viewsets.ModelViewSet):
 class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
     serializer_class = AdminProductSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["status", "vendor", "category", "brand", "gender", "is_featured"]
-    search_fields = ["name", "sku", "vendor__store_name", "brand__name", "category__name"]
+    filterset_fields = ["status", "category", "brand", "gender", "is_featured"]
+    search_fields = ["name", "sku", "brand__name", "category__name"]
     ordering_fields = ["created_at", "price", "name", "stock", "status"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        qs = Product.objects.select_related("vendor", "category", "category__department", "brand").prefetch_related(
+        qs = Product.objects.select_related("category", "category__department", "brand").prefetch_related(
             "images", "variants", "age_groups"
         )
         p = self.request.query_params
@@ -273,19 +272,10 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
             "ar_generation_error", "ar_generation_updated_at",
         ])
 
-    # --- moderation (same effect + vendor notification as /catalog/admin/products/<id>/approve|reject) ---
-    def _notify_vendor(self, product, title, body):
-        try:
-            from notifications.models import Notification
-            from notifications.utils import notify
-            notify(product.vendor.user, title, body, Notification.Category.VENDOR)
-        except Exception:  # a notification problem must never block a moderation decision
-            pass
-
+    # --- moderation  ---
     def _moderate(self, product, new_status, title, body):
         product.status = new_status
         product.save(update_fields=["status", "updated_at"])
-        self._notify_vendor(product, title, body)
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
@@ -319,7 +309,7 @@ class AdminProductViewSet(AdminBase, viewsets.ModelViewSet):
         if new_status not in Product.Status.values:
             return Response({"detail": f"status must be one of: {', '.join(Product.Status.values)}"}, status=status.HTTP_400_BAD_REQUEST)
         reason = request.data.get("reason") or "No reason provided"
-        products = list(Product.objects.filter(pk__in=ids).select_related("vendor__user"))
+        products = list(Product.objects.filter(pk__in=ids))
         for product in products:
             if new_status == Product.Status.ACTIVE:
                 self._moderate(product, new_status, "Product Approved", f"Your product '{product.name}' has been approved.")
@@ -661,8 +651,6 @@ class AdminOverviewView(views.APIView):
                 "active_products": Product.objects.filter(status="active").count(),
                 "pending_products": Product.objects.filter(status="pending").count(),
                 "customers": User.objects.filter(role="customer").count(),
-                "vendors": Vendor.objects.filter(status="approved").count(),
-                "pending_vendors": Vendor.objects.filter(status="pending").count(),
                 "open_tickets": SupportTicket.objects.filter(status__in=["open", "in_progress"]).count(),
             },
         })
@@ -686,7 +674,6 @@ class AdminLookupsView(views.APIView):
             return " › ".join(parts)
 
         return Response({
-            "vendors": list(Vendor.objects.order_by("store_name").values("id", "store_name", "status")),
             "departments": list(Department.objects.order_by("order", "name").values("id", "name")),
             "categories": [
                 {"id": c.id, "name": c.name, "label": label(c), "department": c.department_id, "parent": c.parent_id}

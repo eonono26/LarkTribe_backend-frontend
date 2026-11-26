@@ -22,7 +22,7 @@ import type { Breakpoint } from '@mui/material/styles';
 
 // ----------------------------------------------------------------------
 
-export type NavBadges = Partial<Record<'pending_products' | 'pending_vendors' | 'open_tickets', number>>;
+export type NavBadges = Partial<Record<'pending_products' | 'open_tickets', number>>;
 
 function NavContent({ badges }: { badges: NavBadges }) {
   const pathname = usePathname();

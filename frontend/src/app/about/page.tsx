@@ -6,24 +6,22 @@ export default function AboutPage() {
 
       <div className="space-y-6 text-sm leading-relaxed text-neutral-700">
         <p>
-          LarkTribe is a multi-vendor marketplace bringing together independent sellers across Women's fashion,
-          Kids & Baby, Beauty, Maternity, and Home & Lifestyle into one place to shop. We built it because Kenyan
-          shoppers deserve a discovery experience as good as anywhere else in the world — fast search, smart
-          recommendations, and checkout that just works with M-Pesa.
+          LarkTribe is a Nairobi fashion shop for Baby, Kids, Women and Men. We built it because Kenyan
+          shoppers deserve a shopping experience as good as anywhere else in the world — virtual try-on,
+          interactive 3D and 360° views, smart search, and checkout that just works with M-Pesa and cards.
         </p>
         <p>
-          Every product on LarkTribe is listed and fulfilled by an independent vendor. We handle the platform,
-          payments, and delivery coordination so vendors can focus on what they do best — and shoppers get a wide,
-          curated selection with buyer protection built in.
+          Every product on LarkTribe is chosen, stocked and delivered by us. One shop, one standard of quality,
+          with delivery across Nairobi and the rest of Kenya.
         </p>
         <div className="grid sm:grid-cols-3 gap-4 pt-4">
           <div className="surface-card p-5">
-            <p className="font-display text-2xl font-black">100+</p>
-            <p className="text-xs text-neutral-500 mt-1">Vendors onboarded</p>
+            <p className="font-display text-2xl font-black">1</p>
+            <p className="text-xs text-neutral-500 mt-1">Shop, one standard</p>
           </div>
           <div className="surface-card p-5">
-            <p className="font-display text-2xl font-black">6</p>
-            <p className="text-xs text-neutral-500 mt-1">Product departments</p>
+            <p className="font-display text-2xl font-black">4</p>
+            <p className="text-xs text-neutral-500 mt-1">Departments</p>
           </div>
           <div className="surface-card p-5">
             <p className="font-display text-2xl font-black">Nairobi</p>
@@ -39,7 +37,7 @@ export default function AboutPage() {
           </h2>
           <p className="mt-3">
             Zara’s fast-fashion model requires rapid response to consumer trends. At LarkTribe,
-            we apply the same principle through connected demand signals, vendor operations, and
+            we apply the same principle through connected demand signals, stock planning, and
             real-time commerce insights.
           </p>
 
@@ -57,7 +55,7 @@ export default function AboutPage() {
                 <div>
                   <dt className="font-semibold text-neutral-800">Inventory adjustment</dt>
                   <dd className="mt-1 text-neutral-600">
-                    Recommend restocking, vendor replenishment, or markdown strategies in near
+                    Recommend restocking or markdown strategies in near
                     real time.
                   </dd>
                 </div>

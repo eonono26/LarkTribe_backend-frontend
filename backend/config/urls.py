@@ -9,7 +9,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     re_path(r"^api/catalog/github-media/(?P<path>.*)$", github_media, name="github-test-media"),
     path("api/auth/", include("accounts.urls")),
-    path("api/vendors/", include("vendors.urls")),
     path("api/catalog/", include("catalog.urls")),
     path("api/cart/", include("cart.urls")),
     path("api/orders/", include("orders.urls")),

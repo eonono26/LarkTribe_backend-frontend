@@ -14,13 +14,13 @@ function compareSizes(a: string, b: string): number {
   const ra = sizeRank(a);
   const rb = sizeRank(b);
   if (ra !== rb) return ra - rb;
-  return 0; // keep vendor-entered order for anything else
+  return 0; // keep admin-entered order for anything else
 }
 
 const same = (a: string | undefined | null, b: string | undefined | null) =>
   (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
 
-/** Distinct colors, in the order the vendor created them. */
+/** Distinct colors, in the order the admin created them. */
 export function colorsOf(variants: ProductVariant[]): string[] {
   return [...new Set(variants.map((v) => v.color).filter(Boolean))];
 }
@@ -96,7 +96,7 @@ export function pickSize(
 
 /**
  * Photos to show for a color: that color's own shots first, then any general
- * (untagged) shots. If the vendor hasn't tagged a photo for this color yet,
+ * (untagged) shots. If no photo is tagged a photo for this color yet,
  * fall back to every photo so the gallery is never empty.
  */
 export function imagesForColor<T extends Pick<ProductImage, "color">>(

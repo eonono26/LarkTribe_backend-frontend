@@ -152,11 +152,11 @@ class ProductVariantInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'name', 'vendor', 'category', 'gender', 'price', 'stock',
+        'id', 'name', 'category', 'gender', 'price', 'stock',
         'status', 'is_featured', 'image_preview', 'rating_display'
     ]
-    list_filter = ['status', 'category__department', 'gender', 'age_groups', 'is_featured', 'vendor']
-    search_fields = ['name', 'sku', 'vendor__store_name']
+    list_filter = ['status', 'category__department', 'gender', 'age_groups', 'is_featured']
+    search_fields = ['name', 'sku']
     list_editable = ['price', 'stock', 'status', 'is_featured']
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ['created_at', 'updated_at', 'rating_avg', 'rating_count', 'photo_gallery_summary']
@@ -165,7 +165,7 @@ class ProductAdmin(admin.ModelAdmin):
     actions = ["approve_products", "reject_products"]
     fieldsets = (
         ('Basic Information', {
-            'fields': ('vendor', 'category', 'brand', 'name', 'slug', 'description', 'features'),
+            'fields': ('category', 'brand', 'name', 'slug', 'description', 'features'),
         }),
         ('3D model (optional)', {
             'fields': ('model_3d', 'model_3d_poster'),
@@ -296,43 +296,19 @@ class ProductAdmin(admin.ModelAdmin):
     def approve_products(self, request, queryset):
         """Approve and publish selected products"""
         count = queryset.update(status=Product.Status.ACTIVE)
-        self._notify(queryset, "Product Approved", "has been approved and is now live on the storefront.")
         self.message_user(request, f"{count} product(s) approved successfully.")
     approve_products.short_description = "Approve & publish selected products"
 
     def reject_products(self, request, queryset):
         """Reject selected products"""
         count = queryset.update(status=Product.Status.REJECTED)
-        self._notify(queryset, "Product Rejected", "was rejected during moderation — please check the listing details.")
         self.message_user(request, f"{count} product(s) rejected.")
     reject_products.short_description = "Reject selected products"
-
-    def _notify(self, queryset, title_prefix, body_suffix):
-        """Send notifications to vendors"""
-        try:
-            from notifications.utils import notify
-            from notifications.models import Notification
-            
-            for product in queryset.select_related("vendor__user"):
-                if product.vendor and product.vendor.user:
-                    notify(
-                        product.vendor.user,
-                        title=f"{title_prefix}: {product.name}",
-                        body=f"'{product.name}' {body_suffix}",
-                        category=Notification.Category.VENDOR,
-                        channel=Notification.Channel.IN_APP,
-                    )
-        except ImportError:
-            # Notifications app not installed - skip silently
-            pass
-        except Exception as e:
-            # Log error but don't break the admin action
-            print(f"Error sending notification: {e}")
 
     def get_queryset(self, request):
         """Optimize queryset with related fields"""
         return super().get_queryset(request).select_related(
-            'vendor', 'category', 'brand'
+            'category', 'brand'
         ).prefetch_related('images')
 
 

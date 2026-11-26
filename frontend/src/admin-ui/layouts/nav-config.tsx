@@ -1,6 +1,6 @@
 import type { IconifyName } from '@/admin-ui/components/iconify';
 
-export type NavItem = { title: string; path: string; icon: IconifyName; badgeKey?: 'pending_products' | 'pending_vendors' | 'open_tickets' };
+export type NavItem = { title: string; path: string; icon: IconifyName; badgeKey?: 'pending_products' | 'open_tickets' };
 export type NavGroup = { subheader?: string; items: NavItem[] };
 
 export const navGroups: NavGroup[] = [
@@ -24,9 +24,8 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    subheader: 'Marketplace',
+    subheader: 'Shop',
     items: [
-      { title: 'Vendors', path: '/admin/vendors', icon: 'solar:shop-2-bold-duotone', badgeKey: 'pending_vendors' },
       { title: 'Promotions', path: '/admin/promotions', icon: 'solar:tag-price-bold-duotone' },
       { title: 'Support', path: '/admin/support', icon: 'solar:chat-round-dots-bold-duotone', badgeKey: 'open_tickets' },
       { title: 'AI insights', path: '/admin/insights', icon: 'solar:magic-stick-3-bold-duotone' },

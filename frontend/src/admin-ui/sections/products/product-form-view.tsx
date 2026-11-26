@@ -40,18 +40,18 @@ import type { AdminProduct, ProductImage, ProductVariant } from '@/lib/admin-typ
 type Form = {
   name: string; sku: string; description: string; featuresText: string; materials: string; care_instructions: string;
   price: string; compare_at_price: string; stock: string; status: string; is_featured: boolean;
-  vendor: number | ''; category: number | ''; brand: number | ''; gender: string; age_groups: number[];
+  category: number | ''; brand: number | ''; gender: string; age_groups: number[];
 };
 
 const EMPTY: Form = {
   name: '', sku: '', description: '', featuresText: '', materials: '', care_instructions: '', price: '', compare_at_price: '',
-  stock: '0', status: 'active', is_featured: false, vendor: '', category: '', brand: '', gender: 'unisex', age_groups: [],
+  stock: '0', status: 'active', is_featured: false, category: '', brand: '', gender: 'unisex', age_groups: [],
 };
 
 const fromProduct = (p: AdminProduct): Form => ({
   name: p.name, sku: p.sku, description: p.description, featuresText: (p.features ?? []).join('\n'), materials: p.materials,
   care_instructions: p.care_instructions, price: p.price, compare_at_price: p.compare_at_price ?? '', stock: String(p.stock),
-  status: p.status, is_featured: p.is_featured, vendor: p.vendor, category: p.category, brand: p.brand ?? '', gender: p.gender, age_groups: p.age_groups,
+  status: p.status, is_featured: p.is_featured, category: p.category, brand: p.brand ?? '', gender: p.gender, age_groups: p.age_groups,
 });
 
 export function ProductFormView({ productId }: { productId?: number }) {
@@ -118,7 +118,6 @@ export function ProductFormView({ productId }: { productId?: number }) {
     if (!form.name.trim()) e.name = 'Give the product a name.';
     if (!form.sku.trim()) e.sku = 'SKU is required and must be unique.';
     if (!form.description.trim()) e.description = 'Add a description.';
-    if (!form.vendor) e.vendor = 'Choose which vendor sells this.';
     if (!form.category) e.category = 'Choose a category.';
     if (!(Number(form.price) > 0)) e.price = 'Enter a price above 0.';
     if (form.compare_at_price && Number(form.compare_at_price) <= Number(form.price)) e.compare_at_price = 'Must be higher than the price.';
@@ -131,7 +130,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
     name: form.name.trim(), sku: form.sku.trim(), description: form.description, materials: form.materials, care_instructions: form.care_instructions,
     features: form.featuresText.split('\n').map((s) => s.trim()).filter(Boolean),
     price: form.price, compare_at_price: form.compare_at_price || null, stock: Number(form.stock),
-    status: form.status, is_featured: form.is_featured, vendor: form.vendor, category: form.category,
+    status: form.status, is_featured: form.is_featured, category: form.category,
     brand: form.brand === '' ? null : form.brand, gender: form.gender, age_groups: form.age_groups,
   });
 
@@ -178,7 +177,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
   const moderate = async (kind: 'approve' | 'reject') => {
     try {
       const updated = kind === 'approve' ? await adminApi.products.approve(productId!) : await adminApi.products.reject(productId!, reason);
-      toast.success(kind === 'approve' ? 'Approved — the product is live.' : 'Rejected. The vendor was notified.');
+      toast.success(kind === 'approve' ? 'Approved — the product is live.' : 'Rejected.');
       setRejectOpen(false); setReason('');
       product.setData(updated);
     } catch (e) { toast.error(errorMessage(e)); }
@@ -216,7 +215,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
             <Button size="small" color="error" variant="outlined" onClick={() => setRejectOpen(true)}>Reject…</Button>
           </Box>
         }>
-          This product is waiting for review by {current.vendor_name}&apos;s moderator (you).
+          This product is waiting for review.
         </Alert>
       )}
 
@@ -358,9 +357,6 @@ export function ProductFormView({ productId }: { productId?: number }) {
             <Card>
               <CardHeader title="Organisation" />
               <Box sx={{ p: 3, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <TextField select required label="Vendor" value={form.vendor} onChange={(e) => set('vendor', Number(e.target.value))} {...err('vendor')}>
-                  {(lk?.vendors ?? []).map((v) => <MenuItem key={v.id} value={v.id}>{v.store_name}{v.status !== 'approved' ? ` (${v.status})` : ''}</MenuItem>)}
-                </TextField>
                 <Autocomplete
                   options={lk?.categories ?? []}
                   value={categoryOption}
@@ -409,7 +405,7 @@ export function ProductFormView({ productId }: { productId?: number }) {
       <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Reject product</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Reason (sent to the vendor)" value={reason} onChange={(e) => setReason(e.target.value)} sx={{ mt: 1 }} />
+          <TextField autoFocus fullWidth multiline minRows={3} label="Reason (internal note)" value={reason} onChange={(e) => setReason(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
           <Button color="inherit" onClick={() => setRejectOpen(false)}>Cancel</Button>

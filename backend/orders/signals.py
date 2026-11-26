@@ -5,7 +5,7 @@ from .models import Order
 
 @receiver(pre_save, sender=Order)
 def notify_on_status_change(sender, instance, **kwargs):
-    """Order Tracking: push/email/in-app notification whenever admin/vendor changes status."""
+    """Order Tracking: push/email/in-app notification whenever admin changes status."""
     if not instance.pk:
         return
     try:

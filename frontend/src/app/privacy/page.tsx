@@ -8,8 +8,8 @@ const SECTIONS = [
     body: "Your data helps us personalize product recommendations, improve search, prevent fraud, process orders and payments, send order and promotional notifications (which you can manage in Notification preferences), and generate aggregate business insights.",
   },
   {
-    title: "3. Sharing with vendors & partners",
-    body: "Vendors receive the order and shipping details needed to fulfill your purchase. Payment processors (M-Pesa, card gateways) receive what's required to complete transactions. We don't sell your personal data to third parties.",
+    title: "3. Sharing with partners",
+    body: "Our delivery partners receive the order and shipping details needed to deliver your purchase. Payment processors (M-Pesa, card gateways) receive what's required to complete transactions. We don't sell your personal data to third parties.",
   },
   {
     title: "4. Location data",

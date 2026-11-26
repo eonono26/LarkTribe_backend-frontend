@@ -4,7 +4,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from .views import (
     DepartmentViewSet, CategoryViewSet, BrandViewSet, ProductViewSet,
-    MyProductsViewSet, ReviewViewSet, WishlistViewSet, BrandMediaViewSet, 
+    ReviewViewSet, WishlistViewSet, BrandMediaViewSet, 
     AdminProductModerationViewSet, DepartmentMediaViewSet, CategoryMediaViewSet, 
     AgeGroupViewSet, AgeGroupMediaViewSet,home_data
 )
@@ -19,7 +19,6 @@ router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"age-groups", AgeGroupViewSet, basename="agegroup")
 router.register(r"brands", BrandViewSet, basename="brand")
 router.register(r"products", ProductViewSet, basename="product")
-router.register(r"my-products", MyProductsViewSet, basename="my-product")
 router.register(r"wishlist", WishlistViewSet, basename="wishlist")
 router.register(r"admin/products", AdminProductModerationViewSet, basename="admin-product")
 

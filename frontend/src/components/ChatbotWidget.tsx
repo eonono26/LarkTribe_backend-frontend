@@ -15,7 +15,7 @@ interface Msg {
 }
 
 function renderBotText(text: string) {
-  const parts = text.split(/(\/(?:account\/(?:orders|support)|orders\/[A-Z0-9]{8,32}|delivery|returns|contact|faq|about|download|vendor\/apply))/gi);
+  const parts = text.split(/(\/(?:account\/(?:orders|support)|orders\/[A-Z0-9]{8,32}|delivery|returns|contact|faq|about|download))/gi);
   return parts.map((part, index) =>
     part.startsWith("/") ? (
       <Link key={`${part}-${index}`} href={part} className="underline underline-offset-2">

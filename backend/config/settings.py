@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "django_filters",
     "accounts",
     "catalog",
-    "vendors",
     "cart",
     "orders",
     "notifications",
@@ -122,19 +121,15 @@ else:
     DEFAULT_DB_PATH = BASE_DIR / "db.sqlite3"
     DEFAULT_MEDIA_ROOT = BASE_DIR / "media"
 
-# Render provides DATABASE_URL for PostgreSQL shared by the API and worker.
-# Local development continues to use SQLite when DATABASE_URL is absent.
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-if DATABASE_URL:
-    import dj_database_url
-    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)}
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
-            "NAME": os.environ.get("DB_NAME", str(DEFAULT_DB_PATH)),
-        }
+# Database: SQLite only (single-shop LarkTribe). The file lives at
+# backend/db.sqlite3, or under DATA_DIR when a persistent disk is mounted.
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get("DB_NAME", str(DEFAULT_DB_PATH)),
+        "OPTIONS": {"timeout": 20},
     }
+}
 
 # Shared Cloudflare R2 media storage. New uploads use R2; the storage class
 # serves older GitHub-backed files until migrate_media_to_r2 copies them over.

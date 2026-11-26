@@ -1,4 +1,4 @@
-import type { Cart, Category, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, AdminVendor, Brand, ShowcaseVideoItem, Address, PaymentMethod, WalletCoupon, CouponClaim, AgeGroup, DeliveryTracking, DeliveryAdmin, DriverMe, DriverAdmin, User, AuthResponse, RegisterData, PhoneOTPRequest, PhoneOTPVerify, SocialAuthData } from "./types";
+import type { Cart, Category, Department, Paginated, ProductDetail, ProductListItem, Wishlist, Notification, SupportTicket, ChatReply, CustomerSegment, AdminReports, AIDashboard, Campaign, Coupon, Brand, ShowcaseVideoItem, Address, PaymentMethod, WalletCoupon, CouponClaim, AgeGroup, DeliveryTracking, DeliveryAdmin, DriverMe, DriverAdmin, User, AuthResponse, RegisterData, PhoneOTPRequest, PhoneOTPVerify, SocialAuthData } from "./types";
 import { getToken } from "./auth";
 import axios from "axios";
 
@@ -342,22 +342,6 @@ export const api = {
     request(`/notifications/support-tickets/${id}/reply/`, { method: "POST", body: JSON.stringify({ message }) }),
 
   // ==============================================================
-  // VENDOR
-  // ==============================================================
-
-  applyVendor: (payload: { store_name: string; slug: string; description?: string; logo?: File }) => {
-    const fd = new FormData();
-    fd.append("store_name", payload.store_name);
-    fd.append("slug", payload.slug);
-    if (payload.description) fd.append("description", payload.description);
-    if (payload.logo) fd.append("logo", payload.logo);
-    return request("/vendors/apply/", { method: "POST", body: fd });
-  },
-  vendorSalesDashboard: () => request("/vendors/sales-dashboard/"),
-  vendorPricingSuggestions: () => request("/ai/vendor/pricing-suggestions/"),
-  vendorDemandForecast: () => request("/ai/vendor/demand-forecast/"),
-
-  // ==============================================================
   // ADMIN
   // ==============================================================
 
@@ -387,10 +371,6 @@ export const api = {
     request(`/notifications/support-tickets/${id}/reply/`, { method: "POST", body: JSON.stringify({ message }) }),
   adminResolveTicket: (id: number) => request(`/notifications/support-tickets/${id}/resolve/`, { method: "POST" }),
 
-  adminVendors: (status?: string) =>
-    request<Paginated<AdminVendor> | AdminVendor[]>(`/vendors/admin/${status ? `?status=${status}` : ""}`),
-  adminApproveVendor: (id: number) => request<AdminVendor>(`/vendors/admin/${id}/approve/`, { method: "POST" }),
-  adminSuspendVendor: (id: number) => request<AdminVendor>(`/vendors/admin/${id}/suspend/`, { method: "POST" }),
 
   adminModerationProducts: (status = "pending") =>
     request<Paginated<ProductDetail> | ProductDetail[]>(`/catalog/admin/products/?status=${status}`),

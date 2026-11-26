@@ -40,7 +40,6 @@ class Notification(models.Model):
         ORDER = "order", "Order update"
         PROMOTION = "promotion", "Promotion"
         RECOMMENDATION = "recommendation", "AI recommendation"
-        VENDOR = "vendor", "Vendor / moderation"
         SYSTEM = "system", "System"
         SUPPORT = "support", "Customer support"
 

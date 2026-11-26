@@ -131,11 +131,6 @@ export const adminApi = {
   users: crud<T.AdminUser>(`${AP}/users`),
 
   // ---- existing endpoints reused as they are ----
-  vendors: {
-    list: (p?: Params) => call<T.Page<T.Vendor> | T.Vendor[]>(`/vendors/admin/${qs(p)}`).then(asList),
-    approve: (id: number) => call<T.Vendor>(`/vendors/admin/${id}/approve/`, { method: 'POST' }),
-    suspend: (id: number) => call<T.Vendor>(`/vendors/admin/${id}/suspend/`, { method: 'POST' }),
-  },
   coupons: { ...crud<T.Coupon>('/promotions/coupons') },
   campaigns: { ...crud<T.Campaign>('/promotions/campaigns') },
   videos: { ...crud<T.ShowcaseVideo>('/promotions/showcase-videos') },

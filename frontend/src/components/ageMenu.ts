@@ -13,7 +13,7 @@ const GENDERS = [
   { value: "girls", title: "Girl" },
   { value: "boys", title: "Boy" },
   // Product.gender is matched exactly by the backend (filters.py filter_gender),
-  // and the vendor form defaults new products to "unisex", so without this row
+  // and the admin form defaults new products to "unisex", so without this row
   // those products would never appear in the menu.
   { value: "unisex", title: "Unisex" },
 ] as const;

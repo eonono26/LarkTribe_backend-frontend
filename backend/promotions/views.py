@@ -9,25 +9,25 @@ from .serializers import (
 )
 
 
-class IsAdminOrVendor(permissions.BasePermission):
+class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
         u = request.user
-        return u.is_authenticated and (u.is_staff or getattr(u, "role", None) in ("admin", "vendor"))
+        return u.is_authenticated and (u.is_staff or getattr(u, "role", None) == "admin")
 
 
 class CouponViewSet(viewsets.ModelViewSet):
-    """Coupons & Promotions: admins/vendors create discount codes, anyone can validate one."""
+    """Coupons & Promotions: admins create discount codes, anyone can validate one."""
     queryset = Coupon.objects.all()
     serializer_class = CouponSerializer
-    permission_classes = [IsAdminOrVendor]
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class CampaignViewSet(viewsets.ModelViewSet):
     """Homepage/category banners and email/push campaigns for the admin Promotions module."""
     serializer_class = CampaignSerializer
-    permission_classes = [IsAdminOrVendor]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
         qs = Campaign.objects.all()
@@ -44,7 +44,7 @@ class ShowcaseVideoViewSet(viewsets.ModelViewSet):
     """Standalone shoppable videos for the homepage 'Watch & shop' rail — own upload,
     not derived from department/category media."""
     serializer_class = ShowcaseVideoSerializer
-    permission_classes = [IsAdminOrVendor]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
         qs = ShowcaseVideo.objects.select_related("product", "department").all()

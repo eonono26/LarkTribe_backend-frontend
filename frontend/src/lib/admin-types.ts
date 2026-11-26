@@ -6,7 +6,7 @@ export type ProductImageView = 'front' | 'back' | 'side' | 'detail' | 'other';
 export interface ProductImage { id: number; url: string | null; alt_text: string; color: string; view: ProductImageView; view_display?: string; is_primary: boolean; order: number }
 export interface ProductVariant { id: number; size: string; color: string; stock: number; sku_suffix: string }
 export interface AdminProduct {
-  id: number; vendor: number; vendor_name: string; category: number; category_name: string; department_name: string;
+  id: number; category: number; category_name: string; department_name: string;
   brand: number | null; brand_name: string | null; age_groups: number[]; gender: 'girls' | 'boys' | 'unisex';
   name: string; slug: string; description: string; features: string[]; materials: string; care_instructions: string;
   price: string; compare_at_price: string | null; discount_percent: number; stock: number; sku: string;
@@ -32,10 +32,9 @@ export interface AdminOrder {
 }
 export interface AdminUser {
   id: number; username: string; email: string; first_name: string; last_name: string; phone: string;
-  role: 'customer' | 'vendor' | 'driver' | 'admin'; is_active: boolean; is_staff: boolean; date_joined: string;
+  role: 'customer' | 'driver' | 'admin'; is_active: boolean; is_staff: boolean; date_joined: string;
   last_login: string | null; orders_count: number; profile_picture_url: string | null;
 }
-export interface Vendor { id: number; username: string; store_name: string; slug: string; description: string; logo: string | null; status: 'pending' | 'approved' | 'suspended'; commission_rate: string; created_at: string }
 export interface Coupon { id: number; code: string; percent_off: number | null; amount_off: string | null; active: boolean; valid_until: string | null; is_public: boolean }
 export interface Campaign {
   id: number; title: string; description: string; placement: string; style: string; background_color: string; cta_label: string;
@@ -52,7 +51,6 @@ export interface Delivery {
 }
 
 export interface Lookups {
-  vendors: { id: number; store_name: string; status: string }[];
   departments: { id: number; name: string }[];
   categories: { id: number; name: string; label: string; department: number; parent: number | null }[];
   brands: { id: number; name: string }[];
@@ -71,5 +69,5 @@ export interface Overview {
   sales_by_department: { name: string | null; revenue: number; units: number }[];
   recent_orders: AdminOrder[];
   low_stock: { id: number; name: string; sku: string; stock: number; image: string | null }[];
-  totals: { products: number; active_products: number; pending_products: number; customers: number; vendors: number; pending_vendors: number; open_tickets: number };
+  totals: { products: number; active_products: number; pending_products: number; customers: number; open_tickets: number };
 }

@@ -17,7 +17,7 @@ export interface AuthUser {
   first_name: string;
   last_name: string;
   phone: string;
-  role: "customer" | "vendor" | "admin" | "driver";
+  role: "customer" | "admin" | "driver";
   date_joined: string;
   preferred_currency?: string;
   preferred_language?: string;
@@ -148,7 +148,7 @@ export const auth = {
     first_name?: string;
     last_name?: string;
     phone?: string;
-    role?: "customer" | "vendor" | "driver";
+    role?: "customer" | "driver";
     profile_picture?: File | null;
   }) {
     // Use FormData if there's a profile picture
