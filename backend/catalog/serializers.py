@@ -890,11 +890,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             return None
 
     def get_spin_frames(self, obj):
-        # [{color, url}] ordered for the 360 viewer.
-        return [{"color": fr.color, "url": self._abs(fr.image)} for fr in obj.spin_frames.all()]
+        # The current Product model has no spin-frame relation. Keep the
+        # response contract stable without querying a non-existent relation.
+        return []
 
     def get_has_360(self, obj):
-        return obj.spin_frames.exists() or bool(obj.model_3d)
+        # A generated 3D model is the supported interactive product view.
+        return bool(obj.model_3d)
 
     def get_model_3d_url(self, obj):
         return self._abs(obj.model_3d)
