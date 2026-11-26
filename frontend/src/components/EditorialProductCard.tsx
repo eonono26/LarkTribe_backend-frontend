@@ -7,6 +7,7 @@ import { useLocalization } from "@/lib/localization-context";
 import { useCart } from "@/lib/cart-context";
 import { apiErrorMessage } from "@/lib/api";
 import QuickViewModal from "@/components/QuickViewModal";
+import Model3DViewer from "@/components/Model3DViewer";
 import ColorSwatch from "@/components/ColorSwatch";
 import { API_BASE_URL } from "@/lib/config";
 import type { ProductListItem } from "@/lib/types";
@@ -112,6 +113,10 @@ export default function EditorialProductCard({
   }, [isHovering, galleryImages.length]);
 
   const activeImage = galleryImages[hoverIndex] || galleryImages[0];
+  const modelSrc = buildFullUrl(product.model_3d_url);
+  const modelIosSrc = buildFullUrl(product.model_3d_ios_url);
+  const modelPoster = buildFullUrl(product.model_3d_poster_url);
+  const productHref = selectedColor ? `/product/${product.slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${product.slug}`;
 
   const numericPrice = Number(product.price) || 0;
   const comparePrice = product.compare_at_price != null ? Number(product.compare_at_price) || 0 : null;
@@ -156,23 +161,29 @@ export default function EditorialProductCard({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <Link href={selectedColor ? `/product/${product.slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${product.slug}`} className="block">
+      <div className="block">
         <div className="relative aspect-[4/5] bg-stone-50 overflow-hidden">
-          {activeImage ? (
-            <Image
-              key={activeImage.url}
-              src={activeImage.url}
-              alt={product.name}
-              fill
-              className="object-cover transition-opacity duration-300"
-              sizes="(max-width: 768px) 50vw, 33vw"
-            />
+          {modelSrc ? (
+            <div className="absolute inset-0 z-[1]">
+              <Model3DViewer src={modelSrc} iosSrc={modelIosSrc} poster={modelPoster || activeImage?.url || null} alt={product.name} compact />
+            </div>
+          ) : activeImage ? (
+            <Link href={productHref} className="relative block h-full w-full">
+              <Image
+                key={activeImage.url}
+                src={activeImage.url}
+                alt={product.name}
+                fill
+                className="object-cover transition-opacity duration-300"
+                sizes="(max-width: 768px) 50vw, 33vw"
+              />
+            </Link>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">No image</div>
+            <Link href={productHref} className="w-full h-full flex items-center justify-center text-stone-400 text-xs">No image</Link>
           )}
 
-          {isHovering && galleryImages.length > 1 && (
-            <div className="absolute bottom-2 inset-x-0 flex items-center justify-center gap-1">
+          {!modelSrc && isHovering && galleryImages.length > 1 && (
+            <div className="pointer-events-none absolute bottom-2 inset-x-0 flex items-center justify-center gap-1">
               {galleryImages.map((_, i) => (
                 <span
                   key={i}
@@ -183,18 +194,18 @@ export default function EditorialProductCard({
           )}
 
           {badge && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] tracking-wider uppercase font-semibold text-white bg-[var(--color-accent)] shadow-sm">
+            <span className="pointer-events-none absolute top-3 left-3 z-[2] px-2.5 py-1 rounded-full text-[10px] tracking-wider uppercase font-semibold text-white bg-[var(--color-accent)] shadow-sm">
               {badge}
             </span>
           )}
-          {product.model_3d_url && (
-            <span className="absolute bottom-2 left-2 z-[1] bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>
+          {modelSrc && (
+            <span className="pointer-events-none absolute bottom-2 left-2 z-[2] bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>
           )}
 
           {/* Quick add / Quick view — fades in on hover, like the reference */}
           {isInStock && (
             <div
-              className={`absolute inset-x-0 bottom-0 flex justify-center transition-opacity duration-200 ${
+              className={`absolute inset-x-0 bottom-0 z-[3] flex justify-center transition-opacity duration-200 ${
                 isHovering ? "opacity-100" : "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none"
               }`}
             >
@@ -210,7 +221,7 @@ export default function EditorialProductCard({
           )}
         </div>
 
-        <div className="pt-3 flex flex-col gap-0.5">
+        <Link href={productHref} className="block pt-3 flex flex-col gap-0.5 hover:underline">
           <h3 className="text-xs uppercase tracking-wide text-espresso line-clamp-2 sm:line-clamp-1">{product.name}</h3>
           <div className="flex items-baseline gap-2">
             <span className="text-sm text-espresso">{formatPrice(numericPrice)}</span>
@@ -218,8 +229,8 @@ export default function EditorialProductCard({
               <span className="text-xs text-stone-400 line-through">{formatPrice(comparePrice)}</span>
             )}
           </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
 
       {colors.length > 0 && (
         <div className="flex items-center gap-1.5 pt-2">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
 import { useLocalization } from "@/lib/localization-context";
+import Model3DViewer from "@/components/Model3DViewer";
 import type { ProductListItem } from "@/lib/types";
 
 const CARD_W = 220;
@@ -20,7 +21,7 @@ const MAX_ITEMS = 8;
  * data-saver and slow connections.
  */
 export default function ShowroomStage({ products }: { products: ProductListItem[] }) {
-  const items = products.filter((p) => p.image).slice(0, MAX_ITEMS);
+  const items = products.filter((p) => p.image || p.image_url || p.model_3d_url || p.model_3d_poster_url).slice(0, MAX_ITEMS);
   const n = items.length;
   const [active, setActive] = useState(0);
   const [turn, setTurn] = useState(0); // continuous index so rotation never snaps back
@@ -73,18 +74,28 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
 
       {static3d ? (
         <ul className="mx-auto mt-8 flex max-w-5xl snap-x gap-3 overflow-x-auto pb-2">
-          {items.map((p) => (
-            <li key={p.id} className="w-52 shrink-0 snap-start">
-              <Link href={`/product/${p.slug}`} className="block">
+          {items.map((p) => {
+            const modelSrc = p.model_3d_url ? mediaUrl(p.model_3d_url) : "";
+            const poster = mediaUrl(p.model_3d_poster_url || p.image || p.image_url || null) || null;
+            return (
+              <li key={p.id} className="w-52 shrink-0 snap-start">
                 <div className="relative aspect-[3/4] bg-[#f7f5f0]">
-                  {p.model_3d_url && <span className="absolute bottom-2 left-2 z-10 bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>}
-                  <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="160px" className="object-contain p-3" />
+                  {modelSrc ? (
+                    <Model3DViewer src={modelSrc} iosSrc={p.model_3d_ios_url ? mediaUrl(p.model_3d_ios_url) : null} poster={poster} alt={p.name} compact />
+                  ) : (
+                    <Link href={`/product/${p.slug}`} className="relative block h-full w-full">
+                      <Image src={mediaUrl(p.image || p.image_url || "")} alt={p.name} fill sizes="160px" className="object-contain p-3" />
+                    </Link>
+                  )}
+                  {modelSrc && <span className="pointer-events-none absolute bottom-2 left-2 z-10 bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>}
                 </div>
-                <p className="mt-2 line-clamp-1 text-xs normal-case">{sentenceCase(p.name)}</p>
-                <p className="text-xs text-stone-400">{formatPrice(Number(p.price) || 0)}</p>
-              </Link>
-            </li>
-          ))}
+                <Link href={`/product/${p.slug}`} className="block">
+                  <p className="mt-2 line-clamp-1 text-xs normal-case hover:underline">{sentenceCase(p.name)}</p>
+                  <p className="text-xs text-stone-400">{formatPrice(Number(p.price) || 0)}</p>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <>
@@ -97,7 +108,11 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
               if (e.key === "ArrowLeft") go(-1);
               if (e.key === "ArrowRight") go(1);
             }}
-            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, start: turn }; }}
+            onPointerDown={(e) => {
+              if ((e.target as HTMLElement).closest("[data-model-viewer='interactive']")) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              drag.current = { x: e.clientX, start: turn };
+            }}
             onPointerMove={(e) => {
               if (!drag.current) return;
               const steps = Math.round((drag.current.x - e.clientX) / 90);
@@ -119,6 +134,8 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
             >
               {items.map((p, i) => {
                 const dist = Math.min(((i - active) % n + n) % n, ((active - i) % n + n) % n);
+                const modelSrc = p.model_3d_url ? mediaUrl(p.model_3d_url) : "";
+                const poster = mediaUrl(p.model_3d_poster_url || p.image || p.image_url || null) || null;
                 return (
                   <div
                     key={p.id}
@@ -135,8 +152,21 @@ export default function ShowroomStage({ products }: { products: ProductListItem[
                     }}
                   >
                     <div className="relative h-full w-full overflow-hidden bg-[#f7f5f0]">
-                      <Image src={mediaUrl(p.image)} alt={p.name} fill sizes="220px" className="object-contain p-3" draggable={false} />
-                      {p.model_3d_url && <span className="absolute bottom-2 left-2 z-10 bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>}
+                      {modelSrc ? (
+                        <Model3DViewer
+                          src={modelSrc}
+                          iosSrc={p.model_3d_ios_url ? mediaUrl(p.model_3d_ios_url) : null}
+                          poster={poster}
+                          alt={p.name}
+                          compact
+                          active={dist <= 1}
+                          interactive={i === active}
+                          autoRotate={i === active}
+                        />
+                      ) : (
+                        <Image src={mediaUrl(p.image || p.image_url || "")} alt={p.name} fill sizes="220px" className="object-contain p-3" draggable={false} />
+                      )}
+                      {modelSrc && <span className="pointer-events-none absolute bottom-2 left-2 z-10 bg-black/85 px-2 py-1 text-[9px] uppercase tracking-widest text-white">3D · AR</span>}
                     </div>
                   </div>
                 );

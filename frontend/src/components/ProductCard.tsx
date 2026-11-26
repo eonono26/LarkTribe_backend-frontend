@@ -156,6 +156,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const currentImageKey = `${selectedColor || "default"}-0`;
   const hasCurrentImageError = imageErrors[currentImageKey] || false;
   const modelPoster = model_3d_poster_url ? buildFullUrl(model_3d_poster_url) : null;
+  const resolvedModel3dUrl = buildFullUrl(model_3d_url ?? null);
+  const resolvedModel3dIosUrl = buildFullUrl(product.model_3d_ios_url ?? null);
   // Prefer the generated Meshy render on storefront cards whenever a 3D model exists.
   const finalImage = hasCurrentImageError ? PLACEHOLDER_IMAGE : activeImage?.url || PLACEHOLDER_IMAGE;
 
@@ -235,9 +237,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           <div
             className="absolute inset-0 overflow-hidden bg-transparent shadow-none"
           >
-            {model_3d_url ? (
+            {resolvedModel3dUrl ? (
               <div className="absolute inset-0 z-[1]">
-                <Model3DViewer src={model_3d_url} iosSrc={product.model_3d_ios_url} poster={modelPoster || activeImage?.url || null} alt={name} compact />
+                <Model3DViewer src={resolvedModel3dUrl} iosSrc={resolvedModel3dIosUrl} poster={modelPoster || activeImage?.url || null} alt={name} compact />
               </div>
             ) : !hasCurrentImageError ? (
               <Image
@@ -256,15 +258,15 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 <span className="text-xs">No image</span>
               </div>
             )}
-            {!model_3d_url && <Link
+            {!resolvedModel3dUrl && <Link
               href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
               aria-label={`View ${name}`}
               onClick={() => api.track("click", { product: id })}
               className="absolute inset-0 z-0"
             />}
 
-            {product.model_3d_url && (
-              <span className="absolute bottom-2.5 left-2.5 z-[1] inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white">
+            {resolvedModel3dUrl && (
+              <span className="pointer-events-none absolute bottom-2.5 left-2.5 z-[1] inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white">
                 <span aria-hidden>◈</span> 3D · AR
               </span>
             )}
@@ -310,7 +312,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         </div>
 
         <div className="px-1 pt-4 flex flex-col gap-1">
-          <h3 className="text-md normal-case tracking-normal text-espresso line-clamp-2 sm:line-clamp-1">{displayName}</h3>
+          <Link
+            href={selectedColor ? `/product/${slug}?color=${encodeURIComponent(selectedColor)}` : `/product/${slug}`}
+            onClick={() => api.track("click", { product: id })}
+            className="block hover:underline"
+          >
+            <h3 className="text-md normal-case tracking-normal text-espresso line-clamp-2 sm:line-clamp-1">{displayName}</h3>
+          </Link>
           <div className="flex items-baseline gap-2">
             <span className="text-md text-espresso">{formatPrice(numericPrice)}</span>
             {numericComparePrice !== null && numericComparePrice > numericPrice && (

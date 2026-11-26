@@ -11,7 +11,7 @@ import QuickViewModal from "@/components/QuickViewModal";
 import { useCart } from "@/lib/cart-context";
 import { useLocalization } from "@/lib/localization-context";
 import { trackEvent } from "@/lib/tracking";
-import { api, apiErrorMessage } from "@/lib/api";
+import { api, apiErrorMessage, mediaUrl } from "@/lib/api";
 import type { ProductListItem } from "@/lib/types";
 
 type Engine = ReturnType<typeof createShowroom>;
@@ -73,7 +73,7 @@ export default function ShowroomExperience({ wings }: { wings: StoreWing[] }) {
         .map((frame) => frame.url);
       const has360 = Boolean(d.model_3d_url || spinFrames.length > 1);
       setHasTrue360(has360);
-      if (has360) engine.current?.inspect(id, d.model_3d_url, spinFrames);
+      if (has360) engine.current?.inspect(id, d.model_3d_url ? mediaUrl(d.model_3d_url) : null, spinFrames);
     }).catch(() => {});
     return () => { alive = false; };
   }, [selected]);

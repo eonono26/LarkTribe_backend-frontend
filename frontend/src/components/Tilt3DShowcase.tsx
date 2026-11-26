@@ -9,6 +9,7 @@ import { isLoggedIn } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useLocalization } from "@/lib/localization-context";
 import QuickViewModal from "@/components/QuickViewModal";
+import Model3DViewer from "@/components/Model3DViewer";
 import TryOnButton from "@/components/TryOnButton";
 import type { ProductListItem } from "@/lib/types";
 
@@ -20,7 +21,9 @@ export default function Tilt3DShowcase({
   products: ProductListItem[];
   title?: string;
 }) {
-  const items = products.filter((product) => product.image || product.image_url).slice(0, 12);
+  const items = products
+    .filter((product) => product.image || product.image_url || product.model_3d_url || product.model_3d_poster_url)
+    .slice(0, 12);
   const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
   const [wishlistBusy, setWishlistBusy] = useState<number | null>(null);
   const [wishlistError, setWishlistError] = useState("");
@@ -101,8 +104,16 @@ export default function Tilt3DShowcase({
   const step = 360 / items.length;
 
   const card = (product: ProductListItem, index: number) => {
-    const image = product.image || product.image_url;
-    if (!image) return null;
+    const image = product.image || product.image_url || product.model_3d_poster_url || "";
+    const modelSrc = product.model_3d_url ? mediaUrl(product.model_3d_url) : "";
+    if (!image && !modelSrc) return null;
+    const posterSrc = mediaUrl(product.model_3d_poster_url || image) || null;
+    const iosSrc = product.model_3d_ios_url ? mediaUrl(product.model_3d_ios_url) : null;
+    const dist = Math.min(
+      ((index - activeIndex) % items.length + items.length) % items.length,
+      ((activeIndex - index) % items.length + items.length) % items.length,
+    );
+    const isFront = index === activeIndex;
     const productId = Number(product.id);
     const saved = isSaved(productId);
     return (
@@ -115,24 +126,49 @@ export default function Tilt3DShowcase({
           backfaceVisibility: "hidden",
         }}
       >
-        <Link
-          href={`/product/${product.slug}`}
-          className="relative block h-full w-full overflow-hidden bg-white"
-        >
-          <Image
-            src={mediaUrl(image)}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 160px, (max-width: 1100px) 240px, 280px"
-            className="object-contain p-3 sm:p-4"
-            draggable={false}
-          />
+        <div className="relative block h-full w-full overflow-hidden bg-white">
+          {modelSrc ? (
+            <div className="h-full w-full p-2 sm:p-3">
+              <Model3DViewer
+                src={modelSrc}
+                iosSrc={iosSrc}
+                poster={posterSrc}
+                alt={product.name}
+                compact
+                active={dist <= 1}
+                interactive={isFront}
+                autoRotate={isFront}
+              />
+            </div>
+          ) : (
+            <Link
+              href={`/product/${product.slug}`}
+              className="relative block h-full w-full"
+            >
+              <Image
+                src={mediaUrl(image)}
+                alt={product.name}
+                fill
+                sizes="(max-width: 640px) 160px, (max-width: 1100px) 240px, 280px"
+                className="object-contain p-3 sm:p-4"
+                draggable={false}
+              />
+            </Link>
+          )}
+          {modelSrc && (
+            <span className="pointer-events-none absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white">
+              <span aria-hidden>◈</span> 3D · AR
+            </span>
+          )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 text-left text-white">
+          <Link
+            href={`/product/${product.slug}`}
+            className="absolute inset-x-0 bottom-0 z-[5] p-3 text-left text-white hover:underline"
+          >
             <p className="truncate text-[10px] tracking-[0.13em]">{product.name.charAt(0).toUpperCase() + product.name.slice(1).toLowerCase()}</p>
             <p className="mt-1 text-xs">{formatPrice(Number(product.price) || 0)}</p>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
         <div className="lark-round-actions absolute inset-x-1 bottom-3 z-10 flex items-center justify-center gap-1.5 sm:inset-x-2 sm:gap-2">
           <button
@@ -178,7 +214,7 @@ export default function Tilt3DShowcase({
         aria-roledescription="carousel"
         aria-label="Drag horizontally to rotate the product collection"
         onPointerDown={(event) => {
-          if (event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
+          if (event.button !== 0 || (event.target as HTMLElement).closest("button, a, [data-model-viewer='interactive']")) return;
           drag.current = { x: event.clientX, angle: angle.current };
           dragged.current = false;
           event.currentTarget.setPointerCapture(event.pointerId);
